@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "C:\Users\pulla\AppData\Local\Temp\probe_one_standalone.py", line 26, in <module>
+    from decompyle3.main import main as d3main
+ModuleNotFoundError: No module named 'decompyle3'
+Traceback (most recent call last):
+  File "C:\Users\pulla\AppData\Local\Temp\probe_one_standalone.py", line 41, in <module>
+    from uncompyle6.main import main_bin as u6main
+ModuleNotFoundError: No module named 'uncompyle6'
+PYTHON: 3.12.6 (tags/v3.12.6:a4a2d2b, Sep  6 2024, 20:11:23) [MSC v.1940 64 bit (AMD64)]
+TARGET: D:\sml8\companies\management\commands\__pycache__\validate_schema.cpython-310.pyc
+HEADER_HEX: 6F 0D 0D 0A 00 00 00 00 F9 07 8E 68 A0 23 00 00
+XDIS_IMPORT_OR_PARSE_ERROR: No module named 'xdis'
+DECOMPYLE3_TRACEBACK:
+UNCOMPYLE6_TRACEBACK:
