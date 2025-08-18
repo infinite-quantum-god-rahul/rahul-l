@@ -13,122 +13,40 @@
       {# ───────── PRIORITY: REPORTS-ONLY LOCK (ignores other flags unless Admin/Master/SU) ───────── #}
       {% if p %}
         {% if not user.is_superuser and not p.is_admin and not p.is_master %}
-          {% if p.is_reports or p.is_auditor %}
-            <li><a href="{% url 'entity_list' 'FieldReport' %}">{{ "FieldReport"|pretty_name }}</a></li>
-            <li class="dropdown">
-              <a href="#">Report ▸</a>
-              <ul class="dropdown-menu">
-                <li><a href="{% url 'entity_list' 'WeeklyReport' %}">Weekly</a></li>
-                <li><a href="{% url 'entity_list' 'MonthlyReport' %}">Monthly</a></li>
-              </ul>
-            </li>
-            {% if SML_FEATURES.NPA_DASHBOARD %}
-              <li><a href="{% url 'npa_dashboard' %}">NPA Dashboard</a></li>
-            {% endif %}
-          {% else %}
-
-            {# ───────── FULL / ROLE MENUS ───────── #}
-
-            {# CREATE (only Admin/SU/Master) #}
-            {% if user.is_superuser or p.is_admin or p.is_master %}
-              <li class="dropdown">
-                <a href="#">Create ▸</a>
-                <ul class="dropdown-menu">
-                  {% for model in "Company,Branch,UserProfile,UserPermission,Village,Center,Group,Cadre,Column"|split:"," %}
-                    <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
-                  {% endfor %}
-                </ul>
-              </li>
-            {% endif %}
-
-            {# HRPM (Admin/SU/Master/Manager) #}
-            {% if user.is_superuser or p.is_admin or p.is_master or p.is_manager %}
-              <li class="dropdown">
-                <a href="#">HRPM ▸</a>
-                <ul class="dropdown-menu">
-                  <li><a href="{% url 'hrpm_staff' %}">{{ "Staff"|pretty_name }}</a></li>
-                  <li><a href="{% url 'hrpm_appointment' %}">{{ "Appointment"|pretty_name }}</a></li>
-                  <li><a href="{% url 'hrpm_salary_statement' %}">{{ "Salary Statement"|pretty_name }}</a></li>
-                </ul>
-              </li>
-            {% endif %}
-
-            {# MAIN NAV LISTS #}
-            {% if user.is_superuser or p.is_admin %}
-              {% for model in "Role,Product,Client,LoanApplication,LoanApproval,Disbursement,BusinessSetting,FieldSchedule,FieldReport,AccountHead,Voucher,Posting,RecoveryPosting"|split:"," %}
-                <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
-              {% endfor %}
-            {% else %}
-              {% if p.is_data_entry %}
-                {% for model in "Client,LoanApplication,RecoveryPosting"|split:"," %}
-                  <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
-                {% endfor %}
-              {% endif %}
-
-              {% if p.is_accounting %}
-                {% for model in "Voucher,Posting,AccountHead"|split:"," %}
-                  <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
-                {% endfor %}
-              {% endif %}
-
-              {% if p.is_manager %}
-                {% for model in "Client,LoanApplication,RecoveryPosting,Voucher,Posting,AccountHead"|split:"," %}
-                  <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
-                {% endfor %}
-              {% endif %}
-
-              {% if p.is_recovery_agent %}
-                <li><a href="{% url 'entity_list' 'RecoveryPosting' %}">{{ "RecoveryPosting"|pretty_name }}</a></li>
-              {% endif %}
-
-              {% if p.is_reports or p.is_auditor %}
-                <li><a href="{% url 'entity_list' 'FieldReport' %}">{{ "FieldReport"|pretty_name }}</a></li>
-              {% endif %}
-            {% endif %}
-
-            {# REPORTS DROPDOWN (Admin/SU, Reports role, Auditor) #}
-            {% if user.is_superuser or p.is_admin or p.is_reports or p.is_auditor %}
-              <li class="dropdown">
-                <a href="#">Report ▸</a>
-                <ul class="dropdown-menu">
-                  <li><a href="{% url 'entity_list' 'WeeklyReport' %}">Weekly</a></li>
-                  <li><a href="{% url 'entity_list' 'MonthlyReport' %}">Monthly</a></li>
-                </ul>
-              </li>
-            {% endif %}
-
-            {# FEATURE LINKS #}
-            {% if SML_FEATURES.NPA_DASHBOARD %}
-              <li><a href="{% url 'npa_dashboard' %}">NPA Dashboard</a></li>
-            {% endif %}
-
-            {% if SML_FEATURES.CREDIT_BUREAU %}
-              <li><a href="#" onclick="openCreditPullModal()">Credit Bureau Check</a></li>
-            {% endif %}
-
-            {% if SML_FEATURES.OFFLINE_KYC %}
-              <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
-            {% endif %}
-
-            {# Precedence: user.is_superuser or (p.is_admin and flag) #}
-            {% if user.is_superuser or p.is_admin and SML_FEATURES.ESCALATION_ALERTS %}
-              <li><a href="{% url 'entity_list' 'AlertRule' %}">{{ "AlertRule"|pretty_name }}</a></li>
-            {% endif %}
+          <li><a href="{% url 'entity_list' 'FieldReport' %}">{{ "FieldReport"|pretty_name }}</a></li>
+          <li class="dropdown">
+            <a href="#">Report ▸</a>
+            <ul class="dropdown-menu">
+              <li><a href="{% url 'entity_list' 'WeeklyReport' %}">Weekly</a></li>
+              <li><a href="{% url 'entity_list' 'MonthlyReport' %}">Monthly</a></li>
+            </ul>
+          </li>
+          {% if user.is_superuser or p.is_admin or SML_FEATURES.NPA_DASHBOARD %}
+            <li><a href="{% url 'npa_dashboard' %}">NPA Dashboard</a></li>
           {% endif %}
         {% else %}
-          {# Admin/Master/SU → full menus #}
 
+          {# ───────── FULL / ROLE MENUS ───────── #}
+
+          {# CREATE (Admin/SU/Master). UserPermission placed after UserProfile. #}
           {% if user.is_superuser or p.is_admin or p.is_master %}
             <li class="dropdown">
               <a href="#">Create ▸</a>
               <ul class="dropdown-menu">
-                {% for model in "Company,Branch,UserProfile,UserPermission,Village,Center,Group,Cadre,Column"|split:"," %}
-                  <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
-                {% endfor %}
+                <li><a href="{% url 'entity_list' 'Company' %}">{{ "Company"|pretty_name }}</a></li>
+                <li><a href="{% url 'entity_list' 'Branch' %}">{{ "Branch"|pretty_name }}</a></li>
+                <li><a href="{% url 'entity_list' 'UserProfile' %}">{{ "UserProfile"|pretty_name }}</a></li>
+                <li><a href="{% url 'entity_list' 'UserPermission' %}">{{ "UserPermission"|pretty_name }}</a></li>
+                <li><a href="{% url 'entity_list' 'Village' %}">{{ "Village"|pretty_name }}</a></li>
+                <li><a href="{% url 'entity_list' 'Center' %}">{{ "Center"|pretty_name }}</a></li>
+                <li><a href="{% url 'entity_list' 'Group' %}">{{ "Group"|pretty_name }}</a></li>
+                <li><a href="{% url 'entity_list' 'Cadre' %}">{{ "Cadre"|pretty_name }}</a></li>
+                <li><a href="{% url 'entity_list' 'Column' %}">{{ "Column"|pretty_name }}</a></li>
               </ul>
             </li>
           {% endif %}
 
+          {# HRPM (Admin/SU/Master/Manager) #}
           {% if user.is_superuser or p.is_admin or p.is_master or p.is_manager %}
             <li class="dropdown">
               <a href="#">HRPM ▸</a>
@@ -140,11 +58,116 @@
             </li>
           {% endif %}
 
+          {# MAIN NAV LISTS #}
           {% if user.is_superuser or p.is_admin %}
-            {% for model in "Role,Product,Client,LoanApplication,LoanApproval,Disbursement,BusinessSetting,FieldSchedule,FieldReport,AccountHead,Voucher,Posting,RecoveryPosting"|split:"," %}
+            {% for model in "Role,Product,Client,LoanApplication,LoanApproval,Disbursement,BusinessSetting,FieldSchedule,FieldReport,AccountHead,Voucher,Posting,RecoveryPosting,UserPermission"|split:"," %}
               <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
             {% endfor %}
+            {# Admin/SU see these regardless of feature flags #}
+            <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'AlertRule' %}">{{ "AlertRule"|pretty_name }}</a></li>
+          {% else %}
+            {% if p.is_data_entry %}
+              {% for model in "Client,LoanApplication,RecoveryPosting"|split:"," %}
+                <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
+              {% endfor %}
+              {% if user.is_superuser or p.is_admin or SML_FEATURES.OFFLINE_KYC %}
+                <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
+              {% endif %}
+            {% endif %}
+
+            {% if p.is_accounting %}
+              {% for model in "Voucher,Posting,AccountHead"|split:"," %}
+                <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
+              {% endfor %}
+            {% endif %}
+
+            {% if p.is_manager %}
+              {% for model in "Client,LoanApplication,RecoveryPosting,Voucher,Posting,AccountHead"|split:"," %}
+                <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
+              {% endfor %}
+              {% if user.is_superuser or p.is_admin or SML_FEATURES.OFFLINE_KYC %}
+                <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
+              {% endif %}
+            {% endif %}
+
+            {% if p.is_recovery_agent %}
+              <li><a href="{% url 'entity_list' 'RecoveryPosting' %}">{{ "RecoveryPosting"|pretty_name }}</a></li>
+            {% endif %}
+
+            {% if p.is_reports or p.is_auditor %}
+              <li><a href="{% url 'entity_list' 'FieldReport' %}">{{ "FieldReport"|pretty_name }}</a></li>
+            {% endif %}
           {% endif %}
+
+          {# REPORTS DROPDOWN (Admin/SU, Reports role, Auditor) #}
+          {% if user.is_superuser or p.is_admin or p.is_reports or p.is_auditor %}
+            <li class="dropdown">
+              <a href="#">Report ▸</a>
+              <ul class="dropdown-menu">
+                <li><a href="{% url 'entity_list' 'WeeklyReport' %}">Weekly</a></li>
+                <li><a href="{% url 'entity_list' 'MonthlyReport' %}">Monthly</a></li>
+              </ul>
+            </li>
+          {% endif %}
+
+          {# FEATURE LINKS. Admin/SU always see them. Others see when enabled. #}
+          {% if user.is_superuser or p.is_admin or SML_FEATURES.NPA_DASHBOARD %}
+            <li><a href="{% url 'npa_dashboard' %}">NPA Dashboard</a></li>
+          {% endif %}
+          {% if user.is_superuser or p.is_admin or SML_FEATURES.CREDIT_BUREAU %}
+            <li><a href="#" onclick="openCreditPullModal()">Credit Bureau Check</a></li>
+          {% endif %}
+          {% if user.is_superuser or p.is_admin or SML_FEATURES.OFFLINE_KYC %}
+            <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
+          {% endif %}
+          {% if user.is_superuser or p.is_admin or SML_FEATURES.ESCALATION_ALERTS %}
+            <li><a href="{% url 'entity_list' 'AlertRule' %}">{{ "AlertRule"|pretty_name }}</a></li>
+          {% endif %}
+        {% endif %}
+      {% else %}
+        {# ───────── NO PROFILE: show Superuser/Admin menus so sidebar isn't empty ───────── #}
+        {% if user.is_superuser %}
+          <li class="dropdown">
+            <a href="#">Create ▸</a>
+            <ul class="dropdown-menu">
+              <li><a href="{% url 'entity_list' 'Company' %}">{{ "Company"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'Branch' %}">{{ "Branch"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'UserProfile' %}">{{ "UserProfile"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'UserPermission' %}">{{ "UserPermission"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'Village' %}">{{ "Village"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'Center' %}">{{ "Center"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'Group' %}">{{ "Group"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'Cadre' %}">{{ "Cadre"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'Column' %}">{{ "Column"|pretty_name }}</a></li>
+            </ul>
+          </li>
+
+          <li class="dropdown">
+            <a href="#">HRPM ▸</a>
+            <ul class="dropdown-menu">
+              <li><a href="{% url 'hrpm_staff' %}">{{ "Staff"|pretty_name }}</a></li>
+              <li><a href="{% url 'hrpm_appointment' %}">{{ "Appointment"|pretty_name }}</a></li>
+              <li><a href="{% url 'hrpm_salary_statement' %}">{{ "Salary Statement"|pretty_name }}</a></li>
+            </ul>
+          </li>
+
+          {% for model in "Role,Product,Client,LoanApplication,LoanApproval,Disbursement,BusinessSetting,FieldSchedule,FieldReport,AccountHead,Voucher,Posting,RecoveryPosting"|split:"," %}
+            <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
+          {% endfor %}
+          <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
+          <li><a href="{% url 'entity_list' 'AlertRule' %}">{{ "AlertRule"|pretty_name }}</a></li>
+
+          <li class="dropdown">
+            <a href="#">Report ▸</a>
+            <ul class="dropdown-menu">
+              <li><a href="{% url 'entity_list' 'WeeklyReport' %}">Weekly</a></li>
+              <li><a href="{% url 'entity_list' 'MonthlyReport' %}">Monthly</a></li>
+            </ul>
+          </li>
+
+          <li><a href="{% url 'npa_dashboard' %}">NPA Dashboard</a></li>
+          <li><a href="#" onclick="openCreditPullModal()">Credit Bureau Check</a></li>
         {% endif %}
       {% endif %}
 

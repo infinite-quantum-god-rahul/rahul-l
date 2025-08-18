@@ -121,25 +121,36 @@
           <table class="table table-striped">
             <thead>
               <tr>
-                {% for field in objects.0|get_fields %}
-                  {% if field.name|in_list:"extra_data,raw_csv_data,password" %}
-                    {# skip hidden common #}
-                  {% elif entity|lower == "staff" and field.name|in_list:"status,ifsc,bank,designation" %}
-                    {# skip staff extras in grid #}
-                  {% elif entity|lower == "userprofile" and field.name|in_list:"is_admin,is_master,is_data_entry,is_accounting,is_recovery_agent,is_auditor,is_manager" %}
-                    {# hide permissions from profile grid #}
-                  {% else %}
-                    {% if entity|lower == "userprofile" and field.name == "user" %}
-                      <th>Username</th>
+                {# ───────── SPEC-DRIVEN GRID HEADERS (PDF/SML sync) ───────── #}
+                {% if spec_grid and spec_grid|length %}
+                  {% for f in spec_grid %}
+                    {% with lbl=f|cut:"extra__"|replace_underscore %}
+                      <th>{{ lbl }}</th>
+                    {% endwith %}
+                  {% endfor %}
+                  <th>Actions</th>
+                {% else %}
+                  {# ───────── LEGACY FALLBACK HEADERS ───────── #}
+                  {% for field in objects.0|get_fields %}
+                    {% if field.name|in_list:"extra_data,raw_csv_data,password" %}
+                      {# skip hidden common #}
+                    {% elif entity|lower == "staff" and field.name|in_list:"status,ifsc,bank,designation" %}
+                      {# skip staff extras in grid #}
+                    {% elif entity|lower == "userprofile" and field.name|in_list:"is_admin,is_master,is_data_entry,is_accounting,is_recovery_agent,is_auditor,is_manager" %}
+                      {# hide permissions from profile grid #}
                     {% else %}
-                      <th>{{ field.verbose_name|replace_underscore }}</th>
+                      {% if entity|lower == "userprofile" and field.name == "user" %}
+                        <th>Username</th>
+                      {% else %}
+                        <th>{{ field.verbose_name|replace_underscore }}</th>
+                      {% endif %}
                     {% endif %}
-                  {% endif %}
-                {% endfor %}
-                {% for col in column_fields %}
-                  <th>{{ col.label }}</th>
-                {% endfor %}
-                <th>Actions</th>
+                  {% endfor %}
+                  {% for col in column_fields %}
+                    <th>{{ col.label }}</th>
+                  {% endfor %}
+                  <th>Actions</th>
+                {% endif %}
               </tr>
             </thead>
 
@@ -149,44 +160,78 @@
                 {% with st=obj|attr:"status" ia=obj|attr:"is_active" ac=obj|attr:"active" stn=st|default_if_none:"__none__" ian=ia|default_if_none:"__none__" acn=ac|default_if_none:"__none__" %}
                   {% if st|stringformat:"s"|lower == "active" or st|stringformat:"s" == "1" or ia or ac or stn == "__none__" and ian == "__none__" and acn == "__none__" %}
                     <tr data-id="{{ obj.pk }}">
-                      {% for field in obj|get_fields %}
-                        {% if field.name|in_list:"extra_data,raw_csv_data,password" %}
-                          {# skip cell #}
-                        {% elif entity|lower == "staff" and field.name|in_list:"status,ifsc,bank,designation" %}
-                          {# skip cell #}
-                        {% elif entity|lower == "userprofile" and field.name|in_list:"is_admin,is_master,is_data_entry,is_accounting,is_recovery_agent,is_auditor,is_manager" %}
-                          {# skip cell #}
-                        {% else %}
-                          <td>
-                            {% if entity|lower == "userprofile" and field.name == "user" %}
-                              {{ obj.extra_data|get_item:"auth_username"|default_if_none:"" }}
-                            {% else %}
-                              {% if field.name|in_list:"photo,live_photo,house_photo,logo,image" and obj|attr:field.name %}
-                                <a href="{{ obj|attr:field.name }}"
-                                   class="image-link"
-                                   data-code="{{ obj.code|default_if_none:'' }}"
-                                   data-name="{{ obj.name|default_if_none:'' }}"
-                                   data-status="{{ obj.status|default_if_none:'' }}"
-                                   title="Preview {{ obj.name|default:pretty_entity }}">
-                                  View
-                                </a>
+
+                      {# ───────── SPEC-DRIVEN GRID CELLS ───────── #}
+                      {% if spec_grid and spec_grid|length %}
+                        {% for f in spec_grid %}
+                          {% with fl=f|lower %}
+                            <td>
+                              {# model-field direct #}
+                              {% if not fl|slice:":7" == "extra__" and obj|attr:f %}
+                                {% if fl|in_list:"photo,live_photo,house_photo,logo,image" %}
+                                  <a href="{{ obj|attr:f }}" class="image-link" title="Preview">View</a>
+                                {% else %}
+                                  {{ obj|attr:f|format_ddmmyyyy }}
+                                {% endif %}
                               {% else %}
-                                {{ obj|attr:field.name|format_ddmmyyyy }}
+                                {# extra_data field; try both trimmed and raw keys #}
+                                {% with exk=f|cut:"extra__" %}
+                                  {% with val=obj.extra_data|get_item:exk|default:obj.extra_data|get_item:f %}
+                                    {% if val %}
+                                      {% if "file" in fl or "image" in fl or "document" in fl %}
+                                        <a href="{{ val }}" target="_blank" title="View">View</a>
+                                      {% else %}
+                                        {{ val|format_ddmmyyyy }}
+                                      {% endif %}
+                                    {% endif %}
+                                  {% endwith %}
+                                {% endwith %}
                               {% endif %}
+                            </td>
+                          {% endwith %}
+                        {% endfor %}
+
+                      {# ───────── LEGACY FALLBACK CELLS ───────── #}
+                      {% else %}
+                        {% for field in obj|get_fields %}
+                          {% if field.name|in_list:"extra_data,raw_csv_data,password" %}
+                            {# skip cell #}
+                          {% elif entity|lower == "staff" and field.name|in_list:"status,ifsc,bank,designation" %}
+                            {# skip cell #}
+                          {% elif entity|lower == "userprofile" and field.name|in_list:"is_admin,is_master,is_data_entry,is_accounting,is_recovery_agent,is_auditor,is_manager" %}
+                            {# skip cell #}
+                          {% else %}
+                            <td>
+                              {% if entity|lower == "userprofile" and field.name == "user" %}
+                                {{ obj.extra_data|get_item:"auth_username"|default_if_none:"" }}
+                              {% else %}
+                                {% if field.name|in_list:"photo,live_photo,house_photo,logo,image" and obj|attr:field.name %}
+                                  <a href="{{ obj|attr:field.name }}"
+                                     class="image-link"
+                                     data-code="{{ obj.code|default_if_none:'' }}"
+                                     data-name="{{ obj.name|default_if_none:'' }}"
+                                     data-status="{{ obj.status|default_if_none:'' }}"
+                                     title="Preview {{ obj.name|default:pretty_entity }}">
+                                    View
+                                  </a>
+                                {% else %}
+                                  {{ obj|attr:field.name|format_ddmmyyyy }}
+                                {% endif %}
+                              {% endif %}
+                            </td>
+                          {% endif %}
+                        {% endfor %}
+
+                        {% for col in column_fields %}
+                          <td>
+                            {% if col.field_type == 'file' and obj.extra_data|get_item:col.field_name %}
+                              <a href="{{ obj.extra_data|get_item:col.field_name }}" target="_blank" title="Download File">View</a>
+                            {% else %}
+                              {{ obj.extra_data|get_item:col.field_name|format_ddmmyyyy }}
                             {% endif %}
                           </td>
-                        {% endif %}
-                      {% endfor %}
-
-                      {% for col in column_fields %}
-                        <td>
-                          {% if col.field_type == 'file' and obj.extra_data|get_item:col.field_name %}
-                            <a href="{{ obj.extra_data|get_item:col.field_name }}" target="_blank" title="Download File">View</a>
-                          {% else %}
-                            {{ obj.extra_data|get_item:col.field_name|format_ddmmyyyy }}
-                          {% endif %}
-                        </td>
-                      {% endfor %}
+                        {% endfor %}
+                      {% endif %}
 
                       <td class="d-flex gap-1">
                         <button

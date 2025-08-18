@@ -21,6 +21,12 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_POST, require_GET
 
+# Optional spec import for grid and modal sections (PDF/SML sync)
+try:
+    from .forms_spec import FORMS_SPEC
+except Exception:
+    FORMS_SPEC = {}
+
 from .models import Company, Column, Client, UserProfile, Staff
 from .forms import *
 from .services.credit_bureau import CreditBureauClient  # safe if file absent (feature flag off)
@@ -183,6 +189,83 @@ def _json_db_error(e: Exception, default="Unexpected database error"):
 
 
 # ────────────────────────────────────────────────────────────────────
+#  Spec helpers (PDF/SML alignment)
+# ────────────────────────────────────────────────────────────────────
+def _norm(s: str) -> str:
+    return (s or "").strip().lower().replace(" ", "").replace("_", "").replace("-", "")
+
+def get_model_class(entity):
+    ent = (entity or "").strip()
+    ent_clean = ent.replace("-", "").replace(" ", "")
+    try:
+        m = apps.get_model("companies", ent)
+        if m:
+            return m
+    except LookupError:
+        pass
+    try:
+        m = apps.get_model("companies", ent_clean)
+        if m:
+            return m
+    except LookupError:
+        pass
+    try:
+        m = apps.get_model("companies", ent.title().replace("_", "").replace("-", ""))
+        if m:
+            return m
+    except LookupError:
+        pass
+    try:
+        app = apps.get_app_config("companies")
+        tgt = _norm(ent)
+        for m in app.get_models():
+            if _norm(m.__name__) == tgt:
+                return m
+    except Exception:
+        pass
+    return None
+
+def _spec_for(entity: str):
+    key = None
+    try:
+        mc = get_model_class(entity)
+        key = mc.__name__ if mc else None
+    except Exception:
+        key = None
+    if key and key in FORMS_SPEC:
+        return FORMS_SPEC.get(key)
+    # fallback by normalizing name
+    ent_us = (entity or "").replace("-", "_")
+    camel = "".join(p.capitalize() for p in ent_us.split("_") if p)
+    return FORMS_SPEC.get(camel)
+
+def _sections_from_spec(entity: str):
+    spec = _spec_for(entity)
+    if not spec:
+        return None
+    sections = spec.get("sections") or {}
+    remapped = {}
+    for sec, fields in sections.items():
+        names = []
+        for f in fields:
+            if isinstance(f, dict):
+                nm = f.get("name")
+            else:
+                nm = str(f)
+            if nm:
+                names.append(nm)
+        remapped[sec] = names
+    return remapped or None
+
+def _grid_from_spec(entity: str):
+    spec = _spec_for(entity)
+    if not spec:
+        return None
+    grid = spec.get("grid") or []
+    return list(grid) if grid else None
+
+
+# ────────────────────────────────────────────────────────────────────
 #  Auth Views
 # ────────────────────────────────────────────────────────────────────
 def home_view(request):
@@ -294,41 +377,6 @@ def dashboard_view(request):
 # Unblocked: allow User Permissions as a normal entity
 _FAUX_ENTITIES = set()
 
-def _norm(s: str) -> str:
-    # normalize: remove spaces, underscores, and hyphens; lowercase
-    return (s or "").strip().lower().replace(" ", "").replace("_", "").replace("-", "")
-
-def get_model_class(entity):
-    ent = (entity or "").strip()
-    ent_clean = ent.replace("-", "").replace(" ", "")
-    try:
-        m = apps.get_model("companies", ent)
-        if m:
-            return m
-    except LookupError:
-        pass
-    try:
-        m = apps.get_model("companies", ent_clean)
-        if m:
-            return m
-    except LookupError:
-        pass
-    try:
-        m = apps.get_model("companies", ent.title().replace("_", "").replace("-", ""))
-        if m:
-            return m
-    except LookupError:
-        pass
-    try:
-        app = apps.get_app_config("companies")
-        tgt = _norm(ent)
-        for m in app.get_models():
-            if _norm(m.__name__) == tgt:
-                return m
-    except Exception:
-        pass
-    return None
-
 def get_form_class(entity):
     # be tolerant of dashes/underscores/case
     ent = (entity or "")
@@ -352,6 +400,11 @@ def get_form_class(entity):
     return None
 
 def get_section_map(entity):
+    # Prefer spec sections
+    spec_map = _sections_from_spec(entity)
+    if spec_map:
+        return spec_map
+    # Fallback legacy groupings
     return {
         "clientjoiningform": {"Personal Info": ["member", "joined_on", "referred_by"], "Meta": ["joining_date"]},
         "staff":             {"Staff Details": ["name", "joining_date", "branch"]},
@@ -363,8 +416,8 @@ def get_section_map(entity):
             "Status": ["status"],
         },
         "role":              {"Role Details": ["name"]},
-        "kycdocument":       {"Document Info": ["doc_type", "number", "file", "status"], "Client": ["client_ref", "client_name"], "Notes": ["remarks"]},
-        "alertrule":         {"Basics": ["name", "entity", "is_active"], "Logic": ["condition", "channels"]},
+        "kycdocument":       {"Document": ["extra__doc_type","extra__doc_no","extra__document_file","extra__expiry_date"], "Holder": ["extra__party_name"], "Verification": ["extra__verified_on"]},
+        "alertrule":         {"Basics": ["extra__name", "extra__entity", "extra__is_active"], "Logic": ["extra__condition", "extra__channel"]},
     }.get(entity.lower().replace("-", ""), None)
 
 pretty_names = {
@@ -382,6 +435,11 @@ pretty_names = {
     "group": "Group",
     "column": "Column",
     "businesssetting": "Business Setting Rules",
+    "fieldschedule": "Field Schedule",
+    "kycdocument": "KYC Document",
+    "alertrule": "Alert Rule",
+    "appointment": "Appointment",
+    "salarystatement": "Salary Statement",
 }
 
 def _truthy(v): return str(v).strip().lower() in {"true", "1", "yes", "y", "t"}
@@ -515,7 +573,7 @@ def entity_list(request, entity):
     if model is None:
         return JsonResponse({"success": False, "error": f'Model for entity "{entity}" not found.'}, status=404)
 
-    # Show ALL by default to preserve your previous logic
+    # Show ALL by default to preserve previous logic
     objects = model.objects.all()
 
     # Optional filters (opt-in via querystring)
@@ -524,11 +582,29 @@ def entity_list(request, entity):
     if request.GET.get("hide_deleted") == "1":
         objects = _exclude_deleted(objects, model)
 
-    grouped_objects = {"All Records": objects}
+    # Columns config: keep old Column table logic. If empty or ?use_spec_grid=1, use FORMS_SPEC grid.
     try:
-        column_fields = Column.objects.filter(module__iexact=_norm(entity_lc)).order_by("order")
+        column_fields = list(Column.objects.filter(module__iexact=_norm(entity_lc)).order_by("order"))
     except DatabaseError:
         column_fields = []
+
+    use_spec = (request.GET.get("use_spec_grid") == "1") or (len(column_fields) == 0)
+    spec_grid = _grid_from_spec(entity_lc) if use_spec else None
+
+    if use_spec and spec_grid:
+        # lightweight spec-column wrapper compatible with most templates
+        class _SpecCol:
+            __slots__ = ("field_name", "label", "required", "order")
+            def __init__(self, field_name, label, order):
+                self.field_name = field_name
+                self.label = label
+                self.required = False
+                self.order = order
+        def _labelize(n: str) -> str:
+            return n.replace("extra__", "").replace("_", " ").title()
+        column_fields = [_SpecCol(fn, _labelize(fn), i) for i, fn in enumerate(spec_grid)]
+
+    grouped_objects = {"All Records": objects}
 
     user = request.user
     profile = get_profile_for_user(user)
@@ -539,6 +615,7 @@ def entity_list(request, entity):
         "pretty_entity": pretty_names.get(_norm(entity_lc), entity.replace("_", " ").replace("-", " ").title()),
         "grouped_objects": grouped_objects,
         "column_fields": column_fields,
+        "spec_grid": spec_grid or [],  # expose for templates that support it
         "profile": profile,
         "can_delete": True,
         "staff_info": getattr(user, "staff_info", None),
@@ -714,7 +791,7 @@ def entity_get(request, entity, pk=None):
                 pass
         form = form_class(instance=obj, extra_fields=extra_fields)
 
-    # Build branch map for UI only; DO NOT override form's staff queryset
+    # UI-only staff→branch mapping
     staff_branch_map_json = None
     if _norm(entity_lc) == "userprofile" and "staff" in form.fields:
         try:
@@ -733,6 +810,9 @@ def entity_get(request, entity, pk=None):
         for f in form.fields.values()
     )
 
+    # Section map: prefer spec
+    section_map = get_section_map(entity_lc)
+
     try:
         html = render_to_string(
             "companies/modal_form.html",
@@ -741,7 +821,7 @@ def entity_get(request, entity, pk=None):
                 "entity": entity,
                 "edit_mode": edit_mode,
                 "object_id": object_id,
-                "section_map": get_section_map(entity_lc),
+                "section_map": section_map,
                 "extra_fields": extra_fields,
                 "staff_branch_map_json": staff_branch_map_json,
             },
@@ -920,7 +1000,7 @@ def entity_delete(request, entity, pk):
         return JsonResponse({"success": False, "error": "Delete blocked: this item is referenced by other records."}, status=400)
 
     except DatabaseError as e:
-        # Missing table handling (your requirement text)
+        # Missing table handling
         msg = str(e)
         missing_tbl = re.search(r"(no such table|does not exist|UndefinedTable|relation .* does not exist|table .* not present)", msg, re.I)
         if missing_tbl:
@@ -931,7 +1011,6 @@ def entity_delete(request, entity, pk):
                     extra["deleted"] = True
                     obj.extra_data = extra
                     obj.save(update_fields=["extra_data"])
-                    # User Profile should show the hint string you asked for
                     if _norm(entity_lc) in {"userprofile", "appointment", "salarystatement"}:
                         return JsonResponse({"success": True, "soft_deleted": True, "note": "Table missing. Run migrations, then retry delete."})
                     return JsonResponse({"success": True, "soft_deleted": True})
