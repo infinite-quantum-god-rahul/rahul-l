@@ -5,6 +5,12 @@ from django.utils.timezone import localdate
 from django.utils import timezone
 from django.db.models import ForeignKey
 
+# ── optional spec import; safe no-op if missing ──
+try:
+    from .forms_spec import FORMS_SPEC
+except Exception:
+    FORMS_SPEC = {}
+
 from .models import (
     # core
     Company, Branch, Village, Center, Group, Role, UserProfile, Staff,
@@ -45,6 +51,76 @@ def _truthy_active(v):
     return s in {"active", "1", "true", "yes", "y", "t"}
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Spec-driven modal field injector (adds extra__* fields from FORMS_SPEC)
+# ─────────────────────────────────────────────────────────────────────────────
+TYPE_MAP = {
+    "char": forms.CharField,
+    "date": forms.DateField,
+    "int":  forms.IntegerField,
+    "file": forms.FileField,
+    "image": forms.ImageField,
+}
+
+def _pretty_label(name: str) -> str:
+    return name.replace("extra__", "").replace("_", " ").strip().title()
+
+def _inject_spec_fields(form_obj: forms.ModelForm):
+    """Add fields defined in FORMS_SPEC[Entity]['sections'] if not present."""
+    try:
+        entity = form_obj._meta.model.__name__
+    except Exception:
+        return
+
+    spec = FORMS_SPEC.get(entity) or {}
+    sections = spec.get("sections") or {}
+    if not sections:
+        return
+
+    for _section, fields in sections.items():
+        for f in fields:
+            if isinstance(f, dict):
+                fname = f.get("name")
+                ftype = f.get("type", "char")
+                freq  = bool(f.get("required", False))
+                flabel = f.get("label") or _pretty_label(fname)
+            else:
+                fname = str(f)
+                ftype = "char"
+                freq = False
+                flabel = _pretty_label(fname)
+
+            if not fname or fname in form_obj.fields:
+                continue
+
+            FieldCls = TYPE_MAP.get(ftype, forms.CharField)
+            kwargs = {"label": flabel, "required": freq}
+
+            if ftype == "date":
+                kwargs["widget"] = TextInput(attrs={
+                    "class": "date-field form-control",
+                    "placeholder": "dd/mm/yyyy",
+                    "data-flatpickr": "true",
+                    "autocomplete": "off",
+                    "pattern": r"\d{2}/\d{2}/\d{4}",
+                    "maxlength": "10",
+                })
+                kwargs["input_formats"] = DATE_INPUT_FORMATS
+            elif ftype in ("file", "image"):
+                kwargs["widget"] = ClearableFileInput(attrs={"class": "form-control"})
+            else:
+                kwargs["widget"] = TextInput(attrs={"class": "form-control"})
+
+            form_obj.fields[fname] = FieldCls(**kwargs)
+
+    # add data-required flag for injected required fields and dates
+    for nm, f in form_obj.fields.items():
+        if isinstance(f.widget, forms.HiddenInput):
+            continue
+        if getattr(f, "required", False) or isinstance(f, forms.DateField):
+            f.widget.attrs.setdefault("data-required", "true")
+
+
 # ── permissive: accept PKs even if not in queryset (handles CSV-imported rows) ──
 class PermissiveModelChoiceField(forms.ModelChoiceField):
     default_error_messages = {
@@ -52,13 +128,11 @@ class PermissiveModelChoiceField(forms.ModelChoiceField):
         "invalid_choice": "Selected value is not available.",
     }
 
-    # Ensure bound/initial values render as PK strings (prevents “None” UI edge cases)
     def prepare_value(self, value):
         if isinstance(value, self.queryset.model):
             return str(value.pk)
         return super().prepare_value(value)
 
-    # Return instance for pk/int/str
     def to_python(self, value):
         if value in self.empty_values:
             return None
@@ -70,12 +144,10 @@ class PermissiveModelChoiceField(forms.ModelChoiceField):
         except (ValueError, self.queryset.model.DoesNotExist):
             raise forms.ValidationError(self.error_messages["invalid_choice"], code="invalid_choice")
 
-    # Skip queryset-membership checks entirely
     def validate(self, value):
         if self.required and value in self.empty_values:
             raise forms.ValidationError(self.error_messages["required"], code="required")
 
-    # Allow values that resolve to an instance
     def valid_value(self, value):
         if value in self.empty_values:
             return True
@@ -199,6 +271,7 @@ class ExcludeRawCSVDataForm(forms.ModelForm):
                     f.initial = val
                     self.initial.setdefault(name, val)
 
+        # Dynamic Column module extra fields
         for col in self.extra_fields:
             field_kwargs = {
                 "label": col.label,
@@ -230,6 +303,10 @@ class ExcludeRawCSVDataForm(forms.ModelForm):
 
             self.fields[f"extra__{col.field_name}"] = field_cls(**field_kwargs)
 
+        # Spec-driven modal extras from FORMS_SPEC
+        _inject_spec_fields(self)
+
+        # Mark requireds
         for nm, f in self.fields.items():
             if not isinstance(f.widget, forms.HiddenInput):
                 if getattr(f, "required", False) or isinstance(f, forms.DateField):
@@ -295,7 +372,6 @@ class UserProfileForm(ExcludeRawCSVDataForm):
         label="Username",
     )
 
-    # Keep validation wide-open; control DISPLAY separately (below)
     staff = PermissiveModelChoiceField(
         queryset=Staff._base_manager.all(),
         required=False,
@@ -325,7 +401,6 @@ class UserProfileForm(ExcludeRawCSVDataForm):
         from django.db.models import Q
         super().__init__(*args, **kwargs)
 
-        # ⬇️ Replace the auto-built field to avoid any limit_choices_to leakage
         self.fields["staff"] = PermissiveModelChoiceField(
             queryset=Staff._base_manager.all(),
             required=False,
@@ -334,18 +409,15 @@ class UserProfileForm(ExcludeRawCSVDataForm):
 
         edit_staff_id = getattr(self.instance, "staff_id", None)
 
-        # posted id (str/int both ok)
         raw_posted = self.data.get(self.add_prefix("staff")) or self.data.get("staff")
         posted_id = str(raw_posted).strip() if raw_posted not in (None, "") else None
 
-        # Build the *display* list for the dropdown (active & not-linked)
         active_q = Q(status__iexact="active") | Q(status=1) | Q(status="1") | Q(status=True)
         linked_ids = set(
             UserProfile.objects.exclude(staff_id=edit_staff_id).values_list("staff_id", flat=True)
         )
         display_qs = Staff._base_manager.filter(active_q).exclude(id__in=linked_ids)
 
-        # Ensure current/edit and posted ids show up visually too
         if edit_staff_id:
             display_qs = display_qs | Staff._base_manager.filter(pk=edit_staff_id)
         if posted_id:
@@ -354,11 +426,8 @@ class UserProfileForm(ExcludeRawCSVDataForm):
         display_qs = display_qs.distinct().order_by("name")
 
         if "staff" in self.fields:
-            # IMPORTANT:
-            # 1) Keep field.queryset = ALL staff for validation (prevents “not a valid choice”)
-            # 2) Limit ONLY what is rendered by overriding widget.choices
             field = self.fields["staff"]
-            field.queryset = Staff._base_manager.all()  # wide for validation
+            field.queryset = Staff._base_manager.all()
             field.empty_label = "— select —"
             field.error_messages["invalid_choice"] = "Selected staff is not available."
             field.widget.choices = [("", "— select —")] + [
@@ -405,7 +474,6 @@ class UserProfileForm(ExcludeRawCSVDataForm):
     def clean(self):
         cleaned = super().clean()
 
-        # Self-heal: if staff flagged invalid but PK exists, coerce and drop error
         try:
             if "staff" in getattr(self, "errors", {}):
                 raw = self.data.get(self.add_prefix("staff")) or self.data.get("staff")
@@ -418,7 +486,6 @@ class UserProfileForm(ExcludeRawCSVDataForm):
         except Exception:
             pass
 
-        # Optional guard: must have either staff or username
         u = (cleaned.get("user") or (self.data.get(self.add_prefix("user")) or self.data.get("user") or "")).strip()
         st = cleaned.get("staff")
         if not st and not u:
@@ -466,7 +533,6 @@ class UserPermissionForm(ExcludeRawCSVDataForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Order fields for usability
         want_first = ["user_profile", "is_admin", "is_master", "is_data_entry",
                       "is_accounting", "is_recovery_agent", "is_auditor", "is_manager", "status"]
         ordered = [f for f in want_first if f in self.fields] + \
@@ -476,7 +542,6 @@ class UserPermissionForm(ExcludeRawCSVDataForm):
         except Exception:
             pass
 
-        # Friendly labels in the dropdown (show Staff/Name or Username instead of "UserProfile #")
         try:
             field = self.fields.get("user_profile")
             if field:
@@ -496,7 +561,6 @@ class UserPermissionForm(ExcludeRawCSVDataForm):
                         except Exception:
                             pass
                     if not name:
-                        # derive username from either FK or CharField
                         try:
                             user_field = UserProfile._meta.get_field("user")
                             if isinstance(user_field, ForeignKey):
@@ -507,7 +571,6 @@ class UserPermissionForm(ExcludeRawCSVDataForm):
                             name = getattr(up, "user", "") or ""
                     if not name:
                         name = f"UserProfile #{up.pk}"
-                    # Optional branch suffix
                     try:
                         bname = getattr(getattr(up, "branch", None), "name", "") or ""
                         if bname:
@@ -516,7 +579,7 @@ class UserPermissionForm(ExcludeRawCSVDataForm):
                         pass
                     return name
 
-                field.queryset = UserProfile._base_manager.all()  # keep wide for validation
+                field.queryset = UserProfile._base_manager.all()
                 field.empty_label = "— select —"
                 field.widget.choices = [("", "— select —")] + [(str(up.pk), _label(up)) for up in qs]
         except Exception:
@@ -675,6 +738,35 @@ class ColumnForm(ExcludeRawCSVDataForm):
 class CadreForm(ExcludeRawCSVDataForm):
     class Meta(ExcludeRawCSVDataForm.Meta):
         model = Cadre
+        fields = "__all__"
+
+
+# ───────── FEATURE FORMS (added) ─────────
+class KYCDocumentForm(ExcludeRawCSVDataForm):
+    """KYC uploads and metadata."""
+    class Meta(ExcludeRawCSVDataForm.Meta):
+        model = KYCDocument
+        fields = "__all__"
+
+
+class AlertRuleForm(ExcludeRawCSVDataForm):
+    """Alert rules configuration."""
+    class Meta(ExcludeRawCSVDataForm.Meta):
+        model = AlertRule
+        fields = "__all__"
+
+
+class AppointmentForm(ExcludeRawCSVDataForm):
+    """HRPM appointment entries."""
+    class Meta(ExcludeRawCSVDataForm.Meta):
+        model = Appointment
+        fields = "__all__"
+
+
+class SalaryStatementForm(ExcludeRawCSVDataForm):
+    """HRPM salary statements."""
+    class Meta(ExcludeRawCSVDataForm.Meta):
+        model = SalaryStatement
         fields = "__all__"
 
 
