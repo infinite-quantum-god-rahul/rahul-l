@@ -10,7 +10,6 @@
     {% with p=profile %}
     <ul class="sidebar-menu">
 
-      {# ───────── PRIORITY: REPORTS-ONLY LOCK (ignores other flags unless Admin/Master/SU) ───────── #}
       {% if p %}
         {% if not user.is_superuser and not p.is_admin and not p.is_master %}
           <li><a href="{% url 'entity_list' 'FieldReport' %}">{{ "FieldReport"|pretty_name }}</a></li>
@@ -26,16 +25,14 @@
           {% endif %}
         {% else %}
 
-          {# ───────── FULL / ROLE MENUS ───────── #}
-
-          {# CREATE (Admin/SU/Master). UserPermission placed after UserProfile. #}
           {% if user.is_superuser or p.is_admin or p.is_master %}
             <li class="dropdown">
               <a href="#">Create ▸</a>
               <ul class="dropdown-menu">
                 <li><a href="{% url 'entity_list' 'Company' %}">{{ "Company"|pretty_name }}</a></li>
                 <li><a href="{% url 'entity_list' 'Branch' %}">{{ "Branch"|pretty_name }}</a></li>
-                <li><a href="{% url 'entity_list' 'UserProfile' %}">{{ "UserProfile"|pretty_name }}</a></li>
+                <!-- Hard navigate to dedicated UserProfile page -->
+                <li><a data-hard-nav="1" href="{% url 'userprofile_get' %}">{{ "UserProfile"|pretty_name }}</a></li>
                 <li><a href="{% url 'entity_list' 'UserPermission' %}">{{ "UserPermission"|pretty_name }}</a></li>
                 <li><a href="{% url 'entity_list' 'Village' %}">{{ "Village"|pretty_name }}</a></li>
                 <li><a href="{% url 'entity_list' 'Center' %}">{{ "Center"|pretty_name }}</a></li>
@@ -46,7 +43,6 @@
             </li>
           {% endif %}
 
-          {# HRPM (Admin/SU/Master/Manager) #}
           {% if user.is_superuser or p.is_admin or p.is_master or p.is_manager %}
             <li class="dropdown">
               <a href="#">HRPM ▸</a>
@@ -58,12 +54,10 @@
             </li>
           {% endif %}
 
-          {# MAIN NAV LISTS #}
           {% if user.is_superuser or p.is_admin %}
-            {% for model in "Role,Product,Client,LoanApplication,LoanApproval,Disbursement,BusinessSetting,FieldSchedule,FieldReport,AccountHead,Voucher,Posting,RecoveryPosting,UserPermission"|split:"," %}
+            {% for model in "Role,Product,Client,LoanApplication,LoanApproval,Disbursement,BusinessSetting,FieldSchedule,FieldReport,Prepaid,Mortgage,ExSaving,AccountHead,Voucher,Posting,RecoveryPosting,UserPermission,Payment,Repayment,LoanRestructure,Notification,GatewayEvent,EWIFlag"|split:"," %}
               <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
             {% endfor %}
-            {# Admin/SU see these regardless of feature flags #}
             <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
             <li><a href="{% url 'entity_list' 'AlertRule' %}">{{ "AlertRule"|pretty_name }}</a></li>
           {% else %}
@@ -100,7 +94,6 @@
             {% endif %}
           {% endif %}
 
-          {# REPORTS DROPDOWN (Admin/SU, Reports role, Auditor) #}
           {% if user.is_superuser or p.is_admin or p.is_reports or p.is_auditor %}
             <li class="dropdown">
               <a href="#">Report ▸</a>
@@ -111,7 +104,6 @@
             </li>
           {% endif %}
 
-          {# FEATURE LINKS. Admin/SU always see them. Others see when enabled. #}
           {% if user.is_superuser or p.is_admin or SML_FEATURES.NPA_DASHBOARD %}
             <li><a href="{% url 'npa_dashboard' %}">NPA Dashboard</a></li>
           {% endif %}
@@ -126,14 +118,14 @@
           {% endif %}
         {% endif %}
       {% else %}
-        {# ───────── NO PROFILE: show Superuser/Admin menus so sidebar isn't empty ───────── #}
         {% if user.is_superuser %}
           <li class="dropdown">
             <a href="#">Create ▸</a>
             <ul class="dropdown-menu">
               <li><a href="{% url 'entity_list' 'Company' %}">{{ "Company"|pretty_name }}</a></li>
               <li><a href="{% url 'entity_list' 'Branch' %}">{{ "Branch"|pretty_name }}</a></li>
-              <li><a href="{% url 'entity_list' 'UserProfile' %}">{{ "UserProfile"|pretty_name }}</a></li>
+              <!-- Hard navigate to dedicated UserProfile page -->
+              <li><a data-hard-nav="1" href="{% url 'userprofile_get' %}">{{ "UserProfile"|pretty_name }}</a></li>
               <li><a href="{% url 'entity_list' 'UserPermission' %}">{{ "UserPermission"|pretty_name }}</a></li>
               <li><a href="{% url 'entity_list' 'Village' %}">{{ "Village"|pretty_name }}</a></li>
               <li><a href="{% url 'entity_list' 'Center' %}">{{ "Center"|pretty_name }}</a></li>
@@ -152,7 +144,7 @@
             </ul>
           </li>
 
-          {% for model in "Role,Product,Client,LoanApplication,LoanApproval,Disbursement,BusinessSetting,FieldSchedule,FieldReport,AccountHead,Voucher,Posting,RecoveryPosting"|split:"," %}
+          {% for model in "Role,Product,Client,LoanApplication,LoanApproval,Disbursement,BusinessSetting,FieldSchedule,FieldReport,Prepaid,Mortgage,ExSaving,AccountHead,Voucher,Posting,RecoveryPosting,UserPermission,Payment,Repayment,LoanRestructure,Notification,GatewayEvent,EWIFlag"|split:"," %}
             <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
           {% endfor %}
           <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
@@ -177,7 +169,6 @@
 
   <!-- Main Content + Toggle Button Container -->
   <div class="admin-main-content">
-    <!-- User meta block -->
     <div class="user-meta-header d-flex justify-content-end align-items-center p-2" style="font-size: 14px; color: #666;">
       {% if header_user_display_name or header_branch_name or header_role_label %}
         <strong>{{ header_user_display_name }}</strong>
@@ -186,7 +177,6 @@
       {% endif %}
     </div>
 
-    <!-- Sidebar Toggle Button -->
     <button id="sidebar-toggle" class="sidebar-toggle-btn" title="Toggle Sidebar">&#9776;</button>
 
     {% if include_template %}
@@ -216,4 +206,26 @@
     </div>
   </div>
 </div>
+
+<!-- Hard-nav shim: lets UserProfile menu bypass the modal router -->
+<script>
+// Disable the global entity modal router on this page to avoid re-opening issues
+window.DISABLE_ENTITY_MODAL_ROUTER = true;
+document.addEventListener("click", function(ev){
+  const a = ev.target.closest('a[data-hard-nav="1"]');
+  if(!a) return;
+  ev.preventDefault(); ev.stopImmediatePropagation();
+  window.location.href = a.href;
+}, true);
+// Force hard navigation for all sidebar links (bypass modal router entirely)
+document.addEventListener("click", function(ev){
+  const a = ev.target.closest('.sidebar a[href]');
+  if(!a) return;
+  const href = a.getAttribute('href');
+  if(!href || href==="#") return;
+  ev.preventDefault(); ev.stopImmediatePropagation();
+  window.location.href = href;
+}, true);
+</script>
+<!-- Removed inline AJAX UserProfile modal; using hard navigation instead -->
 {% endblock %}

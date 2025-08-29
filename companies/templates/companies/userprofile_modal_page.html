@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+  {% include "companies/userprofile_modal.html" %}
+  <style>
+  /* neutralize any global blocker */
+  .modal-backdrop,.blockUI,.blockOverlay,#overlay,#loading,#loader{display:none!important}
+  [inert]{pointer-events:auto!important}
+  body{pointer-events:auto!important}
+  /* bring our modal to the very top and make it full-page */
+  #entity-modal{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:flex-start;justify-content:center}
+</style>
+<script>
+(function(){
+  // remove known blockers and body locks
+  ['.modal-backdrop','.blockUI','.blockOverlay','#overlay','#loading','#loader']
+    .forEach(s=>document.querySelectorAll(s).forEach(n=>{try{n.remove()}catch(_){}}));
+  document.body.classList.remove('modal-open','loading','busy','blocked');
+  document.body.removeAttribute('inert');
+  document.body.style.pointerEvents='auto';
+
+  // ensure our modal is interactive
+  const m=document.getElementById('entity-modal'); if(!m) return;
+  m.removeAttribute('inert'); m.style.pointerEvents='auto';
+  m.querySelectorAll('input,select,textarea,button').forEach(el=>{
+    el.disabled=false; el.readOnly=false; el.removeAttribute('aria-disabled'); el.tabIndex=0;
+  });
+
+  // kill any global keydown trap
+  window.onkeydown=null; document.onkeydown=null;
+})();
+</script>
+
+
+{% endblock %}

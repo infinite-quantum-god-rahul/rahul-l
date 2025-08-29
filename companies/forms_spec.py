@@ -230,4 +230,272 @@ FORMS_SPEC = {
             ],
         },
     },
+
+    # ───────────────── LOAN LIFECYCLE (ADDED) ─────────────────
+    "LoanApplication": {
+        "grid": ["application_number", "client", "product", "amount_requested", "status"],
+        "sections": {
+            "Application": [
+                {"name": "application_number", "type": "char"},
+                {"name": "client", "type": "char"},
+                {"name": "product", "type": "char"},
+                {"name": "amount_requested", "type": "char"},
+                {"name": "interest_rate", "type": "char"},
+                {"name": "tenure_months", "type": "int"},
+                {"name": "applied_date", "type": "date"},
+                {"name": "status", "type": "char"},
+            ],
+            "Extras": [
+                {"name": "extra__loan_purpose", "type": "char"},
+                {"name": "extra__guarantor_details", "type": "char"},
+                {"name": "extra__bureau_score", "type": "int"},
+                {"name": "extra__remarks", "type": "char"},
+            ],
+        },
+    },
+
+    "LoanApproval": {
+        "grid": ["loan_application", "approved_amount", "approval_date", "approver"],
+        "sections": {
+            "Approval": [
+                {"name": "loan_application", "type": "char"},
+                {"name": "approved_amount", "type": "char"},
+                {"name": "approval_date", "type": "date"},
+                {"name": "approver", "type": "char"},
+                {"name": "status", "type": "char"},
+            ],
+            "Notes": [
+                {"name": "extra__conditions", "type": "char"},
+                {"name": "extra__remarks", "type": "char"},
+            ],
+        },
+    },
+
+    "Disbursement": {
+        "grid": ["loan_application", "amount", "disbursement_date", "channel"],
+        "sections": {
+            "Disbursement": [
+                {"name": "loan_application", "type": "char"},
+                {"name": "amount", "type": "char"},
+                {"name": "disbursement_date", "type": "date"},
+                {"name": "channel", "type": "char"},
+                {"name": "status", "type": "char"},
+            ],
+            "Proof": [
+                {"name": "extra__utr_no", "type": "char"},
+                {"name": "extra__receipt", "type": "file"},
+            ],
+        },
+    },
+
+    # ───────────────── PAYMENTS / REPAYMENTS (ADDED) ─────────────────
+    "Payment": {
+        "grid": ["loan_application", "amount", "gateway", "status", "order_id"],
+        "sections": {
+            "Intent": [
+                {"name": "loan_application", "type": "char"},
+                {"name": "amount", "type": "char"},
+                {"name": "gateway", "type": "char"},
+                {"name": "order_id", "type": "char"},
+                {"name": "status", "type": "char"},
+            ],
+            "Gateway": [
+                {"name": "txn_ref", "type": "char"},
+                {"name": "extra__redirect_url", "type": "char"},
+            ],
+            "Meta": [
+                {"name": "extra__payer_name", "type": "char"},
+                {"name": "extra__payer_phone", "type": "char"},
+                {"name": "extra__notes", "type": "char"},
+            ],
+        },
+    },
+
+    "Repayment": {
+        "grid": ["loan_application", "paid_on", "amount", "mode", "reference"],
+        "sections": {
+            "Repayment": [
+                {"name": "loan_application", "type": "char"},
+                {"name": "paid_on", "type": "date"},
+                {"name": "amount", "type": "char"},
+                {"name": "mode", "type": "char"},          # cash|upi|neft|auto
+                {"name": "reference", "type": "char"},
+                {"name": "status", "type": "char"},
+            ],
+            "Notes": [
+                {"name": "notes", "type": "char"},
+                {"name": "extra__collector", "type": "char"},
+            ],
+        },
+    },
+
+    "LoanRestructure": {
+        "grid": ["loan_application", "effective_from", "new_tenure", "new_rate"],
+        "sections": {
+            "Terms": [
+                {"name": "loan_application", "type": "char"},
+                {"name": "effective_from", "type": "date"},
+                {"name": "old_tenure", "type": "int"},
+                {"name": "old_rate", "type": "char"},
+                {"name": "new_tenure", "type": "int"},
+                {"name": "new_rate", "type": "char"},
+                {"name": "reason", "type": "char"},
+                {"name": "status", "type": "char"},
+            ],
+            "Audit": [
+                {"name": "extra__approved_by", "type": "char"},
+                {"name": "extra__approval_note", "type": "char"},
+            ],
+        },
+    },
+
+    # ───────────────── EVENTS / NOTIFICATIONS / RISK (ADDED) ─────────────────
+    "Notification": {
+        "grid": ["channel", "to_address", "status", "sent_at"],
+        "sections": {
+            "Message": [
+                {"name": "channel", "type": "char"},
+                {"name": "to_address", "type": "char"},
+                {"name": "subject", "type": "char"},
+                {"name": "body", "type": "char"},
+                {"name": "status", "type": "char"},
+                {"name": "sent_at", "type": "date"},
+            ],
+            "Meta": [
+                {"name": "extra__template", "type": "char"},
+                {"name": "extra__params", "type": "char"},
+            ],
+        },
+    },
+
+    "GatewayEvent": {
+        "grid": ["gateway", "event", "received_at", "signature_ok"],
+        "sections": {
+            "Event": [
+                {"name": "gateway", "type": "char"},
+                {"name": "event", "type": "char"},
+                {"name": "signature_ok", "type": "char"},
+                {"name": "received_at", "type": "date"},
+            ],
+            "Payload": [
+                {"name": "extra__raw", "type": "char"},
+            ],
+        },
+    },
+
+    "EWIFlag": {
+        "grid": ["loan_application", "code", "active", "raised_at"],
+        "sections": {
+            "Flag": [
+                {"name": "loan_application", "type": "char"},
+                {"name": "code", "type": "char"},
+                {"name": "detail", "type": "char"},
+                {"name": "active", "type": "char"},
+                {"name": "raised_at", "type": "date"},
+                {"name": "cleared_at", "type": "date"},
+            ],
+            "Meta": [
+                {"name": "extra__source", "type": "char"},
+                {"name": "extra__severity", "type": "char"},
+            ],
+        },
+    },
+
+    # ───────────────── FIELD REPORTS (OPTIONAL) ─────────────────
+    "FieldReport": {
+        "grid": ["report_date", "schedule", "summary"],
+        "sections": {
+            "Report": [
+                {"name": "report_date", "type": "date"},
+                {"name": "schedule", "type": "char"},
+                {"name": "summary", "type": "char"},
+            ],
+            "Attachments": [
+                {"name": "extra__photo_1", "type": "image"},
+                {"name": "extra__photo_2", "type": "image"},
+            ],
+        },
+    },
+
+    # ───────────────── USER PERMISSIONS (OPTIONAL) ─────────────────
+    "UserPermission": {
+        "grid": ["user_profile", "is_admin", "is_manager", "status"],
+        "sections": {
+            "Permissions": [
+                {"name": "user_profile", "type": "char"},
+                {"name": "is_admin", "type": "char"},
+                {"name": "is_master", "type": "char"},
+                {"name": "is_data_entry", "type": "char"},
+                {"name": "is_accounting", "type": "char"},
+                {"name": "is_recovery_agent", "type": "char"},
+                {"name": "is_auditor", "type": "char"},
+                {"name": "is_manager", "type": "char"},
+                {"name": "status", "type": "char"},
+            ],
+            "Meta": [
+                {"name": "extra__scope_branch", "type": "char"},
+                {"name": "extra__scope_role", "type": "char"},
+            ],
+        },
+    },
+
+    # ───────────────── SAVINGS / PREPAID / MORTGAGE (NEW) ─────────────────
+    "Prepaid": {
+        "grid": ["code", "voucher_no", "member_code", "head", "amount", "date"],
+        "sections": {
+            "Prepaid Details": [
+                {"name": "code", "type": "char"},
+                {"name": "voucher_no", "type": "char"},          # model field (added)
+                {"name": "member_code", "type": "char"},
+                {"name": "head", "type": "char"},                # model field (added)
+                {"name": "amount", "type": "char"},
+                {"name": "date", "type": "date"},
+            ],
+            "Notes": [
+                {"name": "remarks", "type": "char"},
+                {"name": "extra__company_id", "type": "char"},
+            ],
+        },
+    },
+
+    "Mortgage": {
+        "grid": ["code", "member_code", "mortgage_date", "mortgage_amount"],
+        "sections": {
+            "Mortgage": [
+                {"name": "code", "type": "char"},
+                {"name": "member_code", "type": "char"},
+                {"name": "mortgage_date", "type": "date"},
+                {"name": "property_desc", "type": "char"},
+                {"name": "deed_no", "type": "char"},
+            ],
+            "Amounts": [
+                {"name": "mortgage_amount", "type": "char"},
+                {"name": "collateral_val", "type": "char"},
+            ],
+            "Notes": [
+                {"name": "remarks", "type": "char"},
+                {"name": "extra__company_id", "type": "char"},
+            ],
+        },
+    },
+
+    "ExSaving": {
+        "grid": ["code", "account_no", "member_code", "open_date", "amount", "status"],
+        "sections": {
+            "Account": [
+                {"name": "code", "type": "char"},
+                {"name": "account_no", "type": "char"},
+                {"name": "member_code", "type": "char"},
+                {"name": "open_date", "type": "date"},
+            ],
+            "Status": [
+                {"name": "amount", "type": "char"},
+                {"name": "status", "type": "char"},
+            ],
+            "Notes": [
+                {"name": "remarks", "type": "char"},
+                {"name": "extra__company_id", "type": "char"},
+            ],
+        },
+    },
 }

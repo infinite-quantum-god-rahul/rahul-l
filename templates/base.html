@@ -9,8 +9,6 @@
     <link rel="stylesheet" href="/static/css/style.css">
 
     <!-- 📞 intl-tel-input (country-code dropdown) -->
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.4/build/css/intlTelInput.css">
 
     <!-- 🔒 final no-hover / yes-click rules (must follow main CSS) -->
     <style>
@@ -25,10 +23,21 @@
           href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
     <!-- 📞 intl-tel-input script -->
-    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.4/build/js/intlTelInput.min.js"></script>
+
 
     <!-- Main JS -->
-    <script src="/static/js/script.js" defer></script>
+    
+    <script src="/static/js/unfreeze.inject.js" defer></script>
+
+    <script src="/static/js/admin.core.js" defer></script>
+    <script src="/static/js/forms.validation.js" defer></script>
+    <script src="/static/js/modals.crud.js" defer></script>
+    <script src="/static/js/media.image.login.js" defer></script>
+<!-- optional guards -->
+    <script src="/static/js/section06.safe.shim.normalize.entity.casing.guard.fallback.js" defer></script>
+    <script src="/static/js/section07.final.ui.unlock.shim.append.only.preserves.existing.logic.js" defer></script>
+
+
 
     {% block extra_head %}{% endblock %}
 </head>

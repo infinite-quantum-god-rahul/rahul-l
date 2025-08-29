@@ -9,6 +9,8 @@
 #   • Robust upsert on natural unique keys when present
 #   • Full log, continue-on-error
 #   • Generic importer for ALL remaining CSVs that match models
+#   • JSONField-safe writes for raw SQL paths
+#   • Graceful skip of unmapped CSVs (e.g., br.csv) without crashing
 # ─────────────────────────────────────────────────────────────────────────────
 
 import os, sys, io, csv, json, zipfile, re
@@ -42,10 +44,17 @@ INPUT_FOLDER = "full_dump_csv"          # folder name if extracted
 INPUT_ZIP    = "full_dump_csv.zip"      # zip name if not extracted
 LOG_FILE     = "import_log.txt"
 
-# Skip files that your explicit importers already consume
+# Skip files that your explicit importers already consume (include variants)
 EXPLICITLY_HANDLED = {
-    "branch.csv","village.csv","center.csv","groups.csv",
-    "staff.csv","members.csv","acc_heads.csv","acc_cashbook.csv","aadhar.csv"
+    "branch.csv","br.csv",
+    "village.csv",
+    "center.csv",
+    "groups.csv","group.csv",
+    "staff.csv",
+    "members.csv","member.csv",
+    "acc_heads.csv",
+    "acc_cashbook.csv","acc_cashbookold.csv",
+    "aadhar.csv",
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -207,7 +216,7 @@ def resolve_fk_value(field, raw_value):
     """
     if raw_value in (None, "", "NULL", "null"): return None
     model = field.remote_field.model
-    to_field = field.remote_field.field_name or model._meta.pk.name  # Django uses 'field_name' as to_field
+    to_field = field.remote_field.field_name or model._meta.pk.name
     val = str(raw_value).strip()
 
     # Try exact to_field
@@ -435,8 +444,8 @@ def import_staff():
             if "ifsc"          in possible: rowvals["ifsc"] = ifsc
             if "contact1"      in possible: rowvals["contact1"] = phone
             if "status"        in possible: rowvals["status"] = status
-            if "raw_csv_data"  in possible: rowvals["raw_csv_data"] = row
-            if "extra_data"    in possible: rowvals["extra_data"] = {"src":"staff.csv"}
+            if "raw_csv_data"  in possible: rowvals["raw_csv_data"] = json.dumps(row, ensure_ascii=False)
+            if "extra_data"    in possible: rowvals["extra_data"] = json.dumps({"src":"staff.csv"}, ensure_ascii=False)
 
             # upsert by staffcode if unique
             with connection.cursor() as cur:
@@ -487,7 +496,6 @@ def import_clients():
                     grp = Group.objects.create(code=str(gcode), name=str(gcode), status="active")
                 obj.group = grp
             obj.join_date = doj
-            # unique collision-safe set
             obj.aadhar = aad
             obj.contactno = ph
             obj.status = status
@@ -495,7 +503,6 @@ def import_clients():
             try:
                 obj.save()
             except IntegrityError:
-                # clear conflicting uniques and save
                 try:
                     obj.aadhar = None; obj.save()
                 except IntegrityError:
@@ -516,7 +523,7 @@ def import_account_heads():
         return
     log(f"[AccountHead] Import from {src} …")
     cnt = ok = 0
-    # enforce abbreviation length from model (max 20)
+    # enforce abbreviation length from model (fallback 20)
     abbr_max = getattr(AccountHead._meta.get_field("abbreviation"), "max_length", 20)
     for row in rdr:
         cnt += 1
@@ -659,10 +666,17 @@ def titlecase_model_name(csv_basename_noext):
 def get_model_for_csv(stem):
     """
     Try exact TitleCase, and a few special shims.
+    Never raise if not found.
     """
-    Model = apps.get_model(COMPANIES_APP_LABEL, titlecase_model_name(stem))
+    Model = None
+    try:
+        Model = apps.get_model(COMPANIES_APP_LABEL, titlecase_model_name(stem))
+    except LookupError:
+        Model = None
+
     if Model:
         return Model
+
     # Special aliases if needed
     aliases = {
         "acc_heads": "AccHeads",
@@ -681,17 +695,22 @@ def get_model_for_csv(stem):
         "master_loanpurposes": "MasterLoanpurposes",
         "equityshare31032014": "Equityshare31032014",
         "equityshare31032015": "Equityshare31032015",
+        # add shortforms mapped to real models as needed
+        "br": "Branch",
     }
     alias = aliases.get(stem.lower())
     if alias:
-        return apps.get_model(COMPANIES_APP_LABEL, alias)
+        try:
+            return apps.get_model(COMPANIES_APP_LABEL, alias)
+        except LookupError:
+            return None
     return None
 
 def cast_value_for_field(field, raw):
     if raw in (None, "", "NULL", "null"): return None
     if isinstance(field, models.ForeignKey):
         return resolve_fk_value(field, raw)
-    if isinstance(field, models.DateField):
+    if isinstance(field, models.DateField) and not isinstance(field, models.DateTimeField):
         return parse_date(raw)
     if isinstance(field, models.DateTimeField):
         d = parse_date(raw)
@@ -711,7 +730,12 @@ def cast_value_for_field(field, raw):
         return trim_to_max(field, str(raw))
     if isinstance(field, models.JSONField):
         try:
-            return json.loads(raw) if isinstance(raw, str) and raw.strip().startswith(("{","[")) else raw
+            if isinstance(raw, (dict, list)):
+                return raw
+            if isinstance(raw, str) and raw.strip().startswith(("{","[")):
+                return json.loads(raw)
+            # wrap as object if plain scalar
+            return {"value": raw}
         except Exception:
             return {"value": raw}
     return raw
@@ -720,13 +744,10 @@ def unique_key_fields(model):
     """Return a list of unique fields to try for upsert, ordered by preference."""
     prefs = ["code","smtcode","staffcode","VCode","voucher_no","acode","voucherno","gcode","centercode"]
     uniqs = [f for f in model._meta.get_fields() if getattr(f, "unique", False)]
-    # Include primary key if user-provided (rare for staging tables)
     if model._meta.pk and getattr(model._meta.pk, "unique", False):
         uniqs.append(model._meta.pk)
-    # Order by prefs first
-    uniq_by_name = {f.name: f for f in uniqs if hasattr(f, "name")}
+    uniq_by_name = {getattr(f, "name", None): f for f in uniqs if getattr(f, "name", None)}
     ordered = [uniq_by_name[n] for n in prefs if n in uniq_by_name]
-    # Add any remaining unique fields
     for f in uniqs:
         if f not in ordered:
             ordered.append(f)
@@ -769,20 +790,16 @@ def import_generic_csv(basename):
                 # Prefer exact CSV key or case-insensitive matches
                 raw = row.get(name)
                 if raw is None:
-                    # try common fallbacks: db_column, title-cased, etc.
                     dbcol = getattr(field, "db_column", None)
                     if dbcol:
                         raw = ci_get(row, dbcol)
                 if raw is None:
-                    # lenient map: strip underscores/case
                     lowmap = {re.sub(r"[^0-9a-z]+","", k.lower()): v for k, v in row.items()}
                     key = re.sub(r"[^0-9a-z]+","", name.lower())
                     raw = lowmap.get(key)
-                # Finally cast
                 val = cast_value_for_field(field, raw)
                 attrs[name] = val
 
-            # Keep original row if model has raw_csv_data
             if "raw_csv_data" in fields:
                 attrs["raw_csv_data"] = row
 
@@ -809,7 +826,6 @@ def import_generic_csv(basename):
                         pass
                 obj.save()
             else:
-                # If any CharField exceeds max_length, trim before save
                 for k, v in list(attrs.items()):
                     f = fields.get(k)
                     attrs[k] = trim_to_max(f, v) if isinstance(f, models.CharField) else v
@@ -829,10 +845,10 @@ def import_all_remaining_csvs():
         base = os.path.basename(nm).lower()
         if base in EXPLICITLY_HANDLED:
             continue
-        # prevent double-run of already handled business CSVs by variants
-        if base in {"group.csv","member.csv","voucher.csv"}:
-            continue
-        import_generic_csv(os.path.basename(nm))
+        try:
+            import_generic_csv(os.path.basename(nm))
+        except Exception as e:
+            log(f"[Generic] {nm}: skipped due to error: {e}")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Entry
