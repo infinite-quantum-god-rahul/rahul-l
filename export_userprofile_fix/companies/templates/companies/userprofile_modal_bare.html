@@ -1,0 +1,202 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <base href="/">  <!-- make all relative links absolute from site root -->
+  <title>UserProfile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <style>
+    html,body{height:100%} body{margin:0;font:14px system-ui, -apple-system, Segoe UI, Roboto;background:#f6f7fb}
+    #entity-modal{position:fixed;inset:0;display:flex;align-items:flex-start;justify-content:center;padding:24px}
+    #entity-modal .modal-content{width:min(960px,92vw);border-radius:12px;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+    .modal-header,.modal-footer{position:sticky;background:#fff;z-index:2;padding:12px 16px}
+    .modal-header{top:0;border-bottom:1px solid #eee} .modal-footer{bottom:0;border-top:1px solid #eee}
+    .modal-body{padding:16px}
+    .row{display:flex;flex-wrap:wrap;gap:16px}
+    .col{flex:1 1 300px}
+    label{display:block;margin-bottom:6px;font-weight:600}
+    input,select,textarea,button{font:inherit}
+    input,select,textarea{width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:8px}
+    .btn{padding:8px 12px;border-radius:8px;border:0;cursor:pointer}
+    .btn-primary{background:#0d6efd;color:#fff}
+    .btn-primary[disabled]{opacity:.5;cursor:not-allowed}
+    .btn-secondary{background:#6c757d;color:#fff}
+    .text-danger{color:#c1121f}
+    .help{color:#6c757d;font-size:12px}
+    .search-lookup{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  </style>
+  <script>window.SML_DISABLE_UP_ROUTER = false;</script>
+</head>
+<body>
+  <div id="entity-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{% if edit_mode %}Edit{% else %}Create{% endif %} UserProfile</h5>
+        <button type="button" class="btn btn-secondary" onclick="closeEntityModal()">Close</button>
+      </div>
+
+      <div class="modal-body">
+        <div id="form-errors" class="text-danger" style="margin:0 0 8px"></div>
+
+        <form id="entity-form" data-entity="UserProfile" method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+
+          <div class="row">
+            {% for field in form.visible_fields %}
+              {% if field.name != 'extra_data' %}
+                <div class="col" data-field="{{ field.name }}">
+                  <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                  {{ field }}
+                  {% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}
+                  {% for err in field.errors %}<div class="text-danger">{{ err }}</div>{% endfor %}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+
+          {% for h in form.hidden_fields %}{{ h }}{% endfor %}
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeEntityModal()">Close</button>
+        <button id="modal-save-btn" class="btn btn-primary" type="button" disabled>Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    const form  = document.getElementById('entity-form');
+    const save  = document.getElementById('modal-save-btn');
+    const errors= document.getElementById('form-errors');
+
+    /* clear any persisted “open modal/entity” flags that other pages may read */
+    (function clearModalFlags(){
+      try{
+        const kill = (store) => {
+          const keys = Object.keys(store);
+          keys.forEach(k => { if(/modal|entity|userprofile|open/i.test(k)) try{ store.removeItem(k); }catch(_){} });
+        };
+        kill(localStorage); kill(sessionStorage);
+      }catch(_){}
+    })();
+
+    /* hard navigation for any link click to bypass SPA interceptors */
+    document.addEventListener('click', function(e){
+      const a = e.target.closest('a[href]');
+      if(!a) return;
+      const href = a.getAttribute('href');
+      if(!href || href[0]==='#') return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      const url = new URL(href, location.origin);
+      if (/\/UserProfile\/get\/?$/i.test(url.pathname)) url.pathname = '/UserProfile/';
+      window.location.href = url.href;
+    }, true);
+
+    /* features */
+    (function(){ // password toggle
+      const p = form.querySelector('input[name="password"]');
+      if(!p) return;
+      const btn = document.createElement('button');
+      btn.type='button'; btn.className='btn btn-secondary'; btn.textContent='Show';
+      btn.style.marginTop='6px';
+      p.insertAdjacentElement('afterend', btn);
+      btn.addEventListener('click', function(){
+        if(p.type==='password'){ p.type='text'; btn.textContent='Hide'; } else { p.type='password'; btn.textContent='Show'; }
+      });
+    })();
+
+    form.querySelectorAll('input[name="phone"],input[name="mobile"],input[name="contact1"],input[name="contactno"]').forEach(inp=>{ // phone mask
+      inp.setAttribute('inputmode','numeric'); inp.setAttribute('maxlength','10');
+      inp.addEventListener('input', e=>{ e.target.value=e.target.value.replace(/\D/g,'').slice(0,10); });
+    });
+
+    (function(){ // defaults + hide status
+      [['status','active'], ['is_active','1'], ['active','1']].forEach(([name,val])=>{
+        const el=form.querySelector(`[name="${CSS.escape(name)}"]`);
+        if(!el) return;
+        if(el.tagName==='SELECT'){ const opt=[...el.options].find(o=>String(o.value).toLowerCase()==='active' || String(o.value)==='1'); if(opt) el.value=opt.value; }
+        else if(el.type==='checkbox'){ el.checked = (val==='1'); }
+        else { el.value = val; }
+        const wrap=el.closest('.col'); if(wrap) wrap.style.display='none';
+      });
+    })();
+
+    (function(){ // async Staff search
+      const sel = form.querySelector('select[name="staff"]');
+      if(!sel) return;
+      const box = document.createElement('div'); box.className='search-lookup';
+      box.innerHTML = '<input type="text" id="staff-search" placeholder="Search staff (2+ chars)" autocomplete="off"><button type="button" id="staff-clear" class="btn btn-secondary btn-sm">Clear</button>';
+      sel.insertAdjacentElement('beforebegin', box);
+      const inp=box.querySelector('#staff-search'), clr=box.querySelector('#staff-clear');
+      function reset(ph){ sel.innerHTML=''; const o=document.createElement('option'); o.value=''; o.textContent=ph; sel.appendChild(o); }
+      reset('— Type 2+ chars —');
+      let t=null;
+      inp.addEventListener('input', function(){
+        const q=(inp.value||'').trim();
+        if(t) clearTimeout(t);
+        if(q.length<2){ reset('— Type 2+ chars —'); return; }
+        t=setTimeout(async function(){
+          try{
+            const resp=await fetch('/choices/Staff/?q='+encodeURIComponent(q),{headers:{'X-Requested-With':'XMLHttpRequest'}});
+            const data=await resp.json(); reset('— select —');
+            (data.results||[]).forEach(r=>{ const o=document.createElement('option'); o.value=String(r.id); o.textContent=r.text||String(r.id); sel.appendChild(o); });
+          }catch(_){}
+        }, 250);
+      });
+      clr.addEventListener('click', function(){ inp.value=''; reset('— Type 2+ chars —'); sel.value=''; inp.focus(); });
+    })();
+
+    /* save gating: disable until all visible fields filled (skip extra_data, hidden, checkboxes/radios) */
+    function eligibleFields(){
+      return Array.from(form.querySelectorAll('input,select,textarea')).filter(el=>{
+        if(!el.name || el.name==='csrfmiddlewaretoken' || el.name==='extra_data') return false;
+        if(el.type==='hidden' || el.offsetParent===null) return false;
+        if(el.type==='checkbox' || el.type==='radio') return false;
+        return true;
+      });
+    }
+    function filled(el){
+      if(el.disabled) return true;
+      if(el.tagName==='SELECT') return el.value !== '';
+      if(el.type==='file') return el.files && el.files.length>0;
+      return (el.value||'').toString().trim() !== '';
+    }
+    function allFilled(){ const els=eligibleFields(); return els.length>0 && els.every(filled) && form.checkValidity(); }
+    function updateSave(){ save.disabled = !allFilled(); }
+    form.addEventListener('input', updateSave, true);
+    form.addEventListener('change', updateSave, true);
+    window.addEventListener('load', updateSave);
+
+    /* submit */
+    save.addEventListener('click', async function(){
+      if(save.disabled) return;
+      const fd = new FormData(form);
+      const csrf = form.querySelector('input[name="csrfmiddlewaretoken"]').value;
+      try{
+        const resp = await fetch('/UserProfile/create/', {
+          method:'POST',
+          headers:{'X-CSRFToken':csrf,'X-Requested-With':'XMLHttpRequest','Accept':'application/json'},
+          body:fd, credentials:'same-origin'
+        });
+        const data = await resp.json();
+        if(data && data.success){ window.location.assign('/UserProfile/'); return; }
+        errors.innerHTML = data && data.errors
+          ? Object.entries(data.errors).map(([k,v])=>`<div><b>${k}</b>: ${Array.isArray(v)?v[0]:v}</div>`).join('')
+          : (data && data.error ? data.error : 'Save failed');
+      }catch(e){ errors.textContent = e.message || 'Network error'; }
+    });
+
+    /* close → go to list */
+    window.closeEntityModal = function(){ window.location.assign('/UserProfile/'); };
+
+    /* focus first field */
+    const first = form.querySelector('input:not([type=hidden]),select,textarea'); if(first) first.focus();
+  })();
+  </script>
+</body>
+</html>
