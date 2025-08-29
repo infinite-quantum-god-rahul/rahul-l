@@ -347,6 +347,7 @@
 
   // ---------- USERPROFILE page robust Add/Edit (hard navigate) ----------
   (function userProfilePatch(){
+    if (window.SML_DISABLE_UP_ROUTER) return; // global kill-switch unless page enables it
     // Activate strictly on real UserProfile routes only
     const isUP = /(^|\/)userprofile(\/|$)/i.test(location.pathname);
     if (!isUP) return;

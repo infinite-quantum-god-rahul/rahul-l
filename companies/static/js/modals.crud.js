@@ -225,6 +225,7 @@ const opts = { headers:{ "X-Requested-With":"XMLHttpRequest","Accept":"applicati
     else if (entityOrEvent?.currentTarget){ const el=entityOrEvent.currentTarget; entity = el.dataset.entity || el.getAttribute("data-entity") || ""; }
     if (!entity){ console.error("No entity for openEntityModal"); return; }
     if (isUserPermEntity(entity)){ const onUP = /\/userpermissions?\/?$/i.test(location.pathname); if (!onUP){ window.location.href="/UserPermission/"; return; } }
+    if (/^userprofile$/i.test(String(entity||"")) && (window.SML_DISABLE_UP_ROUTER===true)) { return; }
     const key = String(entity).replace(/\s+/g,"").toLowerCase(); if (window.__OPEN_MODAL_BUSY[key]) return; window.__OPEN_MODAL_BUSY[key]=true; const clear=()=>{ try{ delete window.__OPEN_MODAL_BUSY[key]; }catch(_){}}; const timer=setTimeout(clear,window.__FETCH_TIMEOUT_MS);
     loadEntityForm("Create", entity).finally(()=>{ clearTimeout(timer); clear(); });
   }
@@ -375,6 +376,7 @@ if (!entity) return;
     if (a.closest("#entity-modal")) return;
     const ent = mAdd ? mAdd[1] : (mEdit ? mEdit[1] : "");
     if (isUserProfileEntity(ent)) return; // allow default navigation for UserProfile
+    if (/^userprofile$/i.test(String(ent||"")) && (window.SML_DISABLE_UP_ROUTER===true)) return;
 e.preventDefault(); e.stopImmediatePropagation();
     if (mAdd) openEntityModal(mAdd[1]);
     else if (mEdit) editEntity(mEdit[1], mEdit[2]);
