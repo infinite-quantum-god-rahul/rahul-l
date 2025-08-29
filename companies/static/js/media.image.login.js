@@ -190,7 +190,7 @@
         const txt = (cell?.textContent||"").trim();
         if (/^\d+$/.test(txt)) rid = txt;
       }
-      let ent = el.dataset?.entity || row?.dataset?.entity || document.body?.dataset?.entity || "";
+      let ent = el.dataset?.entity || row?.dataset?.entity || "";
       if (!ent){
         const t = el.closest("table,[data-entity]"); if (t?.dataset?.entity) ent = t.dataset.entity;
       }
@@ -347,10 +347,9 @@
 
   // ---------- USERPROFILE page robust Add/Edit (hard navigate) ----------
   (function userProfilePatch(){
-    const isUP = /(^|\/)userprofile(\/|$)/i.test(location.pathname) || (/^userprofile$/i.test(document.body?.dataset?.entity||""));
+    // Activate strictly on real UserProfile routes only
+    const isUP = /(^|\/)userprofile(\/|$)/i.test(location.pathname);
     if (!isUP) return;
-
-    if (!document.body.dataset.entity) document.body.dataset.entity = "userprofile";
 
     addStyleOnce('userprofile-button-unlock', `
       a[href^="/userprofile/"], a[href^="/UserProfile/"] { pointer-events:auto!important; opacity:1!important; }
@@ -692,7 +691,7 @@
     const norm = normalizeMediaPath(raw);
     // Try to infer entity/id for fallback
     const row = el.closest && el.closest("[data-entity][data-id]");
-    const entity = row?.getAttribute?.("data-entity") || document.body?.dataset?.entity || "";
+    const entity = row?.getAttribute?.("data-entity") || "";
     const id = (row?.getAttribute?.("data-id") || "").replace(/^:/,"");
 
     if (!norm){
