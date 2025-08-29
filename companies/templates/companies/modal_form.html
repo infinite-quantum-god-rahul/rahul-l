@@ -76,6 +76,10 @@
   }
   #camera-capture-modal video, #camera-capture-modal canvas{ width:100%; border-radius: 10px; background:#000; }
   #camera-capture-modal .cam-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:10px; }
+
+  /* async choices UI */
+  .search-lookup{display:flex; align-items:center; gap:8px; margin-bottom:6px}
+  .search-lookup input[type="text"]{flex:1; min-width:180px}
 </style>
 
 <div id="entity-modal" class="modal" style="display:none;">
@@ -206,7 +210,7 @@
 
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" onclick="closeEntityModal()">Close</button>
-      <button id="modal-save-btn" class="btn btn-primary" onclick="return window._modalSave && window._modalSave();" role="button">Save</button>
+      <button id="modal-save-btn" class="btn btn-primary" onclick="return window._modalSave && window._modalSave();" role="button" disabled>Save</button>
     </div>
   </div>
 </div>
@@ -241,6 +245,9 @@
 
 <script>
 (function(){
+  // signal to loader that modal HTML has arrived
+  try{ window.__MODAL_GOT_RESPONSE = true; }catch(_){}
+
   var modal = document.getElementById('entity-modal');
 
   function getForm(){ return modal.querySelector('#entity-form'); }
@@ -429,6 +436,7 @@
     });
 
     saveBtn.dataset.canSave = ok ? "1" : "0";
+    if(saveBtn){ saveBtn.disabled = !ok; }
     return { ok: ok, firstBad: firstBad };
   }
 
@@ -483,7 +491,9 @@
     return null;
   }
 
+  let _saving = false;
   async function submitEntityForm(){
+    if(_saving) return;
     clearErrors();
     var v = validateFormLocal();
     var ok = v.ok, firstBad = v.firstBad;
@@ -499,9 +509,22 @@
     var objectId = objectIdEl ? objectIdEl.value : '';
 
     var patterns = objectId
-      ? ['/'+entity+'/update/'+objectId+'/', '/entities/'+entity+'/'+objectId+'/update/', '/'+entity+'/update/'+objectId]
-      : ['/'+entity+'/create/', '/entities/'+entity+'/create/', '/'+entity+'/create'];
+      ? [
+          '/'+entity+'/update/'+objectId+'/',
+          '/entities/'+entity+'/'+objectId+'/update/',
+          '/'+entity+'/update/'+objectId,
+          '/companies/'+entity+'/update/'+objectId+'/',
+          '/companies/'+entity+'/update/'+objectId
+        ]
+      : [
+          '/'+entity+'/create/',
+          '/entities/'+entity+'/create/',
+          '/'+entity+'/create',
+          '/companies/'+entity+'/create/',
+          '/companies/'+entity+'/create'
+        ];
 
+    _saving = true;
     saveBtn.disabled = true; saveBtn.innerText = 'Saving...';
 
     try{
@@ -537,6 +560,8 @@
     }catch(err){
       showMessageBox('Unexpected error: ' + (err && err.message ? err.message : err), null);
       var s=getSaveBtn(); if(s){ s.disabled=false; s.innerText='Save'; }
+    } finally {
+      _saving = false;
     }
   }
 
@@ -602,15 +627,134 @@
   camBtnClose.addEventListener('click', closeCameraSheet);
   camBtnCapture.addEventListener('click', captureFrameToInput);
 
+  /* ─────────────────────────────────────────────────────────────
+     Async choices: replace giant dropdowns with search + fetch.
+     Requires 2+ characters before querying. No bulk initial load.
+     Endpoint: /choices/<Entity>/ (choices_api)
+  ───────────────────────────────────────────────────────────── */
+  var ENTITY_MAP = {
+    client: 'Client',
+    staff: 'Staff',
+    branch: 'Branch',
+    product: 'Product',
+    center: 'Center',
+    group: 'Group',
+    user_profile: 'UserProfile'
+  };
+
+  function createLookupUI(selectEl, entityName){
+    var wrap = document.createElement('div');
+    wrap.className = 'search-lookup';
+    var inp = document.createElement('input');
+    inp.type = 'text';
+    inp.placeholder = 'Search ' + entityName;
+    inp.autocomplete = 'off';
+    inp.maxLength = 60;
+
+    var clearBtn = document.createElement('button');
+    clearBtn.type='button';
+    clearBtn.className='btn btn-outline-secondary btn-sm';
+    clearBtn.textContent='Clear';
+
+    wrap.appendChild(inp);
+    wrap.appendChild(clearBtn);
+    selectEl.parentNode.insertBefore(wrap, selectEl);
+
+    // show current label if there is a selection
+    var selOpt = selectEl.options[selectEl.selectedIndex];
+    if(selOpt && selOpt.text && selOpt.value){ inp.value = selOpt.text; }
+
+    // keep current option only
+    var keepVal = selectEl.value;
+    for(var i=selectEl.options.length-1;i>=0;i--){
+      var o = selectEl.options[i];
+      if(o.value !== keepVal) selectEl.remove(i);
+    }
+
+    // placeholder when not enough characters
+    function setPlaceholder(min){
+      selectEl.innerHTML = '';
+      var ph = document.createElement('option');
+      ph.value=''; ph.textContent='— Type ' + min + '+ chars —';
+      selectEl.appendChild(ph);
+    }
+
+    var minChars = parseInt(selectEl.dataset.minChars || "2", 10);
+    setPlaceholder(minChars);
+
+    clearBtn.addEventListener('click', function(){
+      selectEl.value = '';
+      inp.value = '';
+      setPlaceholder(minChars);
+      inp.focus();
+    });
+
+    var debounceTimer=null;
+    inp.addEventListener('input', function(){
+      if(debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(function(){
+        var q = (inp.value || '').trim();
+        if(q.length < minChars){
+          setPlaceholder(minChars);
+          return;
+        }
+        loadChoices(entityName, q, selectEl);
+      }, 250);
+    });
+  }
+
+  async function loadChoices(entityName, q, selectEl){
+    var min = parseInt(selectEl.dataset.minChars || "2", 10);
+    if(!q || q.length < min){ return; } // hard stop on short queries
+    try{
+      var url = new URL('/choices/' + encodeURIComponent(entityName) + '/', window.location.origin);
+      url.searchParams.set('q', q);
+      var resp = await fetch(url.toString(), { headers: { 'X-Requested-With':'XMLHttpRequest' }});
+      var data = await resp.json();
+      if(!data || !Array.isArray(data.results)) return;
+
+      var curr = selectEl.value || '';
+      selectEl.innerHTML = '';
+      var ph = document.createElement('option');
+      ph.value=''; ph.textContent='— Select —';
+      selectEl.appendChild(ph);
+
+      data.results.forEach(function(r){
+        var opt = document.createElement('option');
+        opt.value = String(r.id);
+        opt.textContent = r.text || String(r.id);
+        selectEl.appendChild(opt);
+      });
+
+      if(curr && selectEl.querySelector('option[value="'+CSS.escape(curr)+'"]')){
+        selectEl.value = curr;
+      }
+    }catch(_){}
+  }
+
+  function wireAsyncChoices(){
+    var form=getForm(); if(!form) return;
+    var targets = ['client','staff','branch','product','center','group','user_profile'];
+    targets.forEach(function(name){
+      var sel = form.querySelector('select[name="'+name+'"]');
+      if(!sel || sel.multiple || sel.dataset.enhanced === '1') return;
+      sel.dataset.minChars = sel.dataset.minChars || '2';
+      var entityName = sel.dataset.choicesEntity || (name === 'user_profile' ? 'UserProfile' : name.charAt(0).toUpperCase()+name.slice(1));
+      createLookupUI(sel, entityName);
+      sel.dataset.enhanced = '1';
+    });
+  }
+
   function onModalShown(){
     wireSpecialInputs();
     hideStatusAndDefault();
     wireStaffToBranch();
+    wireAsyncChoices();
     dedupePasswordToggles();
     var form=getForm();
     var first = form && form.querySelector('input:not([type=hidden]):not([readonly]), select, textarea');
     if(first) first.focus();
-    var s=getSaveBtn(); if(s) s.disabled=false;
+    var s=getSaveBtn(); if(s){ var st=validateFormLocal(); s.disabled = !(st && st.ok); }
   }
 
   var _origOpen = window.openEntityModal;

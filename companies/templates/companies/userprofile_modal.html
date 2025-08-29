@@ -1,0 +1,139 @@
+{# lightweight modal, no heavy dropdowns loaded #}
+<div id="entity-modal" class="modal" style="display:flex;align-items:flex-start;justify-content:center;padding:24px">
+  <div class="modal-content" style="width:min(960px,92vw);border-radius:12px">
+    <div class="modal-header" style="position:sticky;top:0;background:#fff">
+      <h5 class="modal-title">Create Userprofile</h5>
+      <button type="button" class="close-btn" onclick="closeEntityModal()">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <form id="entity-form" data-entity="UserProfile" method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label>Staff</label>
+            <div class="search-lookup" id="staff-lookup">
+              <input type="text" id="staff-search" placeholder="Search staff" autocomplete="off">
+              <button type="button" id="staff-clear" class="btn btn-outline-secondary btn-sm">Clear</button>
+            </div>
+            <select name="staff" id="id_staff" class="form-control">
+              <option value="">— select —</option>
+            </select>
+            <small class="form-text text-muted">Type 2+ chars to search</small>
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label>Username</label>
+            <input type="text" name="user" id="id_user" class="form-control" placeholder="Enter a unique username">
+            <small class="form-text text-muted">A Django user will be created or linked.</small>
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label>Password</label>
+            <div class="pro-passwrap">
+              <input type="password" name="password" id="id_password" class="form-control" autocomplete="new-password" placeholder="Set / Reset password">
+              <button type="button" class="btn btn-light btn-sm" id="toggle-pass" title="Show password">👁</button>
+            </div>
+            <small class="form-text text-muted">Leave blank to keep existing password.</small>
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label class="d-block">Is reports</label>
+            <input type="checkbox" name="is_reports" id="id_is_reports" checked>
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label>Full name</label>
+            <input type="text" name="full_name" id="id_full_name" class="form-control">
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label>Department</label>
+            <input type="text" name="department" id="id_department" class="form-control">
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label>Mobile</label>
+            <input type="text" name="mobile" id="id_mobile" class="form-control" inputmode="numeric" maxlength="10" placeholder="10-digit number">
+          </div>
+
+          <input type="hidden" name="status" value="active">
+        </div>
+      </form>
+      <div id="form-errors" class="text-danger" style="margin-top:8px"></div>
+    </div>
+
+    <div class="modal-footer" style="position:sticky;bottom:0;background:#fff">
+      <button type="button" class="btn btn-secondary" onclick="closeEntityModal()">Close</button>
+      <button id="modal-save-btn" class="btn btn-primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .search-lookup{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  .pro-passwrap{position:relative}
+  .pro-passwrap input{padding-right:42px!important}
+  #toggle-pass{position:absolute;right:6px;top:50%;transform:translateY(-50%);line-height:1;padding:6px 8px}
+</style>
+
+<script>
+(function(){
+  // password toggle
+  document.getElementById('toggle-pass').addEventListener('click', function(){
+    var i=document.getElementById('id_password');
+    if(i.type==='password'){ i.type='text'; this.title='Hide password'; } else { i.type='password'; this.title='Show password'; }
+  });
+
+  // phone mask
+  document.getElementById('id_mobile').addEventListener('input', function(e){
+    e.target.value = e.target.value.replace(/\D/g,'').slice(0,10);
+  });
+
+  // async staff search
+  const sel = document.getElementById('id_staff');
+  const inp = document.getElementById('staff-search');
+  const clr = document.getElementById('staff-clear');
+  function resetSel(ph){
+    sel.innerHTML=''; const o=document.createElement('option'); o.value=''; o.textContent=ph||'— select —'; sel.appendChild(o);
+  }
+  resetSel('— Type 2+ chars —');
+  let t = null;
+  inp.addEventListener('input', function(){
+    if(t) clearTimeout(t);
+    const q = (inp.value||'').trim();
+    if(q.length < 2){ resetSel('— Type 2+ chars —'); return; }
+    t = setTimeout(async function(){
+      try{
+        const resp = await fetch('/choices/Staff/?q='+encodeURIComponent(q), {headers:{'X-Requested-With':'XMLHttpRequest'}});
+        const data = await resp.json();
+        resetSel('— select —');
+        (data.results||[]).forEach(function(r){
+          const o=document.createElement('option'); o.value=String(r.id); o.textContent=r.text||String(r.id); sel.appendChild(o);
+        });
+      }catch(_){/*noop*/}
+    }, 250);
+  });
+  clr.addEventListener('click', function(){ inp.value=''; resetSel('— Type 2+ chars —'); sel.value=''; inp.focus(); });
+
+  // submit
+  document.getElementById('modal-save-btn').addEventListener('click', async function(){
+    const f = document.getElementById('entity-form');
+    const fd = new FormData(f);
+    const csrf = f.querySelector('input[name="csrfmiddlewaretoken"]').value;
+    try{
+      const resp = await fetch('/UserProfile/create/', {method:'POST', headers:{'X-CSRFToken':csrf,'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}, body:fd, credentials:'same-origin'});
+      const data = await resp.json();
+      if(data && data.success){ window.location.href='/UserProfile/'; return; }
+      const box = document.getElementById('form-errors');
+      box.innerHTML = data && data.errors ? Object.entries(data.errors).map(([k,v])=>`<div><b>${k}</b>: ${Array.isArray(v)?v[0]:v}</div>`).join('') : (data && data.error ? data.error : 'Save failed');
+    }catch(e){
+      document.getElementById('form-errors').textContent = e && e.message ? e.message : 'Network error';
+    }
+  });
+
+  // close handler for standalone page
+  window.closeEntityModal = function(){ window.location.href='/UserProfile/'; };
+})();
+</script>

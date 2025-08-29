@@ -16,6 +16,8 @@ from .models import (
     Company, Branch, Village, Center, Group, Role, UserProfile, Staff,
     Product, Client, LoanApplication, LoanApproval, Disbursement,
     BusinessSetting, FieldSchedule, FieldReport, WeeklyReport, MonthlyReport, Column, Cadre,
+    # savings / mortgage (added)
+    Prepaid, Mortgage, ExSaving,
     # new business tables
     AccountHead, Voucher, Posting, RecoveryPosting,
     # ⇣ auto-generated CSV models stay below ⇣
@@ -39,7 +41,9 @@ from .models import (
     # Separated permissions entity (added)
     UserPermission,
     # validators
-    phone_validator, aadhar_validator
+    phone_validator, aadhar_validator,
+    # ── sync add-ons (payments, webhook, notifications, risk) ──
+    Payment, GatewayEvent, Notification, EWIFlag, LoanRestructure, Repayment
 )
 
 ACTIVE_SENTINELS = ("active", "1", 1, True)
@@ -121,7 +125,7 @@ def _inject_spec_fields(form_obj: forms.ModelForm):
             f.widget.attrs.setdefault("data-required", "true")
 
 
-# ── permissive: accept PKs even if not in queryset (handles CSV-imported rows) ──
+# ── permissive: accept PKs and common alt keys (handles CSV-imported rows) ──
 class PermissiveModelChoiceField(forms.ModelChoiceField):
     default_error_messages = {
         "required": "This field is required.",
@@ -133,16 +137,29 @@ class PermissiveModelChoiceField(forms.ModelChoiceField):
             return str(value.pk)
         return super().prepare_value(value)
 
+    def _get_by_alternates(self, raw):
+        # Try common non-PK identifiers used in this project
+        for alt in ("staffcode", "smtcode", "code", "voucher_no", "VCode"):
+            if hasattr(self.queryset.model, alt):
+                try:
+                    return self.queryset.model._base_manager.get(**{alt: raw})
+                except self.queryset.model.DoesNotExist:
+                    pass
+        raise self.queryset.model.DoesNotExist
+
     def to_python(self, value):
         if value in self.empty_values:
             return None
         if isinstance(value, self.queryset.model):
             return value
+        raw = str(value).strip()
         try:
-            pk = str(value).strip()
-            return self.queryset.model._base_manager.get(pk=pk)
+            return self.queryset.model._base_manager.get(pk=raw)
         except (ValueError, self.queryset.model.DoesNotExist):
-            raise forms.ValidationError(self.error_messages["invalid_choice"], code="invalid_choice")
+            try:
+                return self._get_by_alternates(raw)
+            except self.queryset.model.DoesNotExist:
+                raise forms.ValidationError(self.error_messages["invalid_choice"], code="invalid_choice")
 
     def validate(self, value):
         if self.required and value in self.empty_values:
@@ -153,12 +170,16 @@ class PermissiveModelChoiceField(forms.ModelChoiceField):
             return True
         if isinstance(value, self.queryset.model):
             return True
+        raw = str(value).strip()
         try:
-            pk = str(value).strip()
-            self.queryset.model._base_manager.get(pk=pk)
+            self.queryset.model._base_manager.get(pk=raw)
             return True
         except self.queryset.model.DoesNotExist:
-            return False
+            try:
+                self._get_by_alternates(raw)
+                return True
+            except self.queryset.model.DoesNotExist:
+                return False
 
     def clean(self, value):
         if value in self.empty_values:
@@ -225,13 +246,25 @@ class ExcludeRawCSVDataForm(forms.ModelForm):
                     "oninput": "this.value=this.value.replace(/\\D/g,'')",
                 })
 
-            elif name in ("code", "voucher_no", "smtcode", "empcode", "staffcode", "VCode"):
-                field.widget.attrs.setdefault("class", "form-control autocode")
+            elif (
+                name.lower() == "code"
+                or name.lower().endswith("code")
+                or name in ("voucher_no", "smtcode", "empcode", "staffcode", "VCode")
+            ):
+                css = field.widget.attrs.get("class", "form-control")
                 if not self.instance.pk:
+                    field.widget.attrs["class"] = f"{css} autocode".strip()
                     field.widget.attrs["readonly"] = "readonly"
                     field.widget.attrs.setdefault("placeholder", "auto")
+                    field.disabled = False
                 else:
+                    field.widget.attrs["class"] = " ".join(
+                        c for c in str(css).split() if c != "autocode"
+                    ) or "form-control"
                     field.widget.attrs.pop("readonly", None)
+                    field.widget.attrs.pop("disabled", None)
+                    field.widget.attrs["data-force-editable"] = "1"
+                    field.disabled = False
 
             elif isinstance(field, (forms.ImageField, forms.FileField)):
                 field.widget = ClearableFileInput(attrs={"class": "form-control"})
@@ -303,10 +336,8 @@ class ExcludeRawCSVDataForm(forms.ModelForm):
 
             self.fields[f"extra__{col.field_name}"] = field_cls(**field_kwargs)
 
-        # Spec-driven modal extras from FORMS_SPEC
         _inject_spec_fields(self)
 
-        # Mark requireds
         for nm, f in self.fields.items():
             if not isinstance(f.widget, forms.HiddenInput):
                 if getattr(f, "required", False) or isinstance(f, forms.DateField):
@@ -320,6 +351,16 @@ class ExcludeRawCSVDataForm(forms.ModelForm):
             cleaned["is_active"] = True
         if "active" in self.fields and cleaned.get("active") in (None, ""):
             cleaned["active"] = 1
+
+        if getattr(self.instance, "pk", None):
+            explicit = {"voucher_no", "smtcode", "empcode", "staffcode", "VCode"}
+            dynamic = {nm for nm in self.fields if nm.lower() == "code" or nm.lower().endswith("code")}
+            for nm in (dynamic | explicit):
+                if nm in self.fields and cleaned.get(nm) in (None, ""):
+                    try:
+                        cleaned[nm] = getattr(self.instance, nm)
+                    except Exception:
+                        pass
         return cleaned
 
 
@@ -328,6 +369,40 @@ class CompanyForm(ExcludeRawCSVDataForm):
     class Meta(ExcludeRawCSVDataForm.Meta):
         model = Company
         fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Keep code value posted on edit. Use readonly, never disabled.
+        if "code" in self.fields:
+            self.fields["code"].widget.attrs.setdefault("readonly", "readonly")
+            try:
+                self.fields["code"].disabled = False
+            except Exception:
+                pass
+        # Logo optional on update
+        if "logo" in self.fields:
+            try:
+                self.fields["logo"].required = False
+            except Exception:
+                pass
+
+    # Fix: allow editing a company without tripping unique checks on same record
+    def clean_code(self):
+        code = (self.cleaned_data.get("code") or "").strip()
+        if not code and getattr(self.instance, "pk", None):
+            # Preserve existing when browsers omit readonly input
+            try:
+                return self.instance.code
+            except Exception:
+                return code
+        if not code:
+            return code
+        qs = Company.objects.filter(code__iexact=code)
+        if getattr(self.instance, "pk", None):
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError("Company code already exists.")
+        return code
 
 
 class BranchForm(ExcludeRawCSVDataForm):
@@ -360,6 +435,7 @@ class RoleForm(ExcludeRawCSVDataForm):
         exclude = ExcludeRawCSVDataForm.Meta.exclude + ["permissions"]
 
 
+
 class UserProfileForm(ExcludeRawCSVDataForm):
     user = forms.CharField(
         required=False,
@@ -372,10 +448,12 @@ class UserProfileForm(ExcludeRawCSVDataForm):
         label="Username",
     )
 
+    # Limited options to keep modal fast. Field still accepts values outside this slice.
     staff = PermissiveModelChoiceField(
-        queryset=Staff._base_manager.all(),
+        queryset=Staff._base_manager.none(),  # set in __init__
         required=False,
         error_messages={"invalid_choice": "Selected staff is not available."},
+        label="Staff",
     )
 
     password = forms.CharField(
@@ -386,6 +464,7 @@ class UserProfileForm(ExcludeRawCSVDataForm):
             "autocomplete": "new-password",
         }),
         help_text="Leave blank to keep existing password.",
+        label="Password",
     )
 
     class Meta(ExcludeRawCSVDataForm.Meta):
@@ -393,46 +472,18 @@ class UserProfileForm(ExcludeRawCSVDataForm):
         exclude = ExcludeRawCSVDataForm.Meta.exclude + [
             "user",
             "is_admin", "is_master", "is_data_entry", "is_accounting",
-            "is_recovery_agent", "is_auditor", "is_manager"
+            "is_recovery_agent", "is_auditor", "is_manager",
         ]
         field_classes = {"staff": PermissiveModelChoiceField}
 
     def __init__(self, *args, **kwargs):
-        from django.db.models import Q
         super().__init__(*args, **kwargs)
 
-        self.fields["staff"] = PermissiveModelChoiceField(
-            queryset=Staff._base_manager.all(),
-            required=False,
-            error_messages={"invalid_choice": "Selected staff is not available."},
-        )
-
-        edit_staff_id = getattr(self.instance, "staff_id", None)
-
-        raw_posted = self.data.get(self.add_prefix("staff")) or self.data.get("staff")
-        posted_id = str(raw_posted).strip() if raw_posted not in (None, "") else None
-
-        active_q = Q(status__iexact="active") | Q(status=1) | Q(status="1") | Q(status=True)
-        linked_ids = set(
-            UserProfile.objects.exclude(staff_id=edit_staff_id).values_list("staff_id", flat=True)
-        )
-        display_qs = Staff._base_manager.filter(active_q).exclude(id__in=linked_ids)
-
-        if edit_staff_id:
-            display_qs = display_qs | Staff._base_manager.filter(pk=edit_staff_id)
-        if posted_id:
-            display_qs = display_qs | Staff._base_manager.filter(pk=posted_id)
-
-        display_qs = display_qs.distinct().order_by("name")
-
-        if "staff" in self.fields:
-            field = self.fields["staff"]
-            field.queryset = Staff._base_manager.all()
-            field.empty_label = "— select —"
-            field.error_messages["invalid_choice"] = "Selected staff is not available."
-            field.widget.choices = [("", "— select —")] + [
-                (str(s.pk), getattr(s, "name", f"Staff #{s.pk}")) for s in display_qs
-            ]
+        base_qs = (Staff._base_manager
+                   .filter(status="active")
+                   .only("id", "staffcode", "name")
+                   .order_by("name")[:200])
+        self.fields["staff"].queryset = base_qs
 
         if "is_reports" in self.fields:
             self.fields["is_reports"].initial = True
@@ -446,15 +497,8 @@ class UserProfileForm(ExcludeRawCSVDataForm):
             self.fields["branch"].widget = forms.HiddenInput()
 
         try:
-            if getattr(self.instance, "user_id", None) and "user" in self.fields:
-                self.fields["user"].initial = self.instance.user.username
-        except Exception:
-            pass
-
-        try:
             want_first = ["staff", "user", "password"]
-            ordered = [f for f in want_first if f in self.fields] + \
-                      [f for f in self.fields if f not in want_first]
+            ordered = [f for f in want_first if f in self.fields] +                       [f for f in self.fields if f not in want_first]
             self.order_fields(ordered)
         except Exception:
             pass
@@ -463,42 +507,30 @@ class UserProfileForm(ExcludeRawCSVDataForm):
         staff = self.cleaned_data.get("staff")
         if not staff:
             return staff
-        if getattr(self.instance, "pk", None) and self.instance.staff_id == staff.id:
-            return staff
-        if not _truthy_active(getattr(staff, "status", None)):
+        if str(getattr(staff, "status", "")).lower() not in {"active", "1", "true"}:
             raise forms.ValidationError("Selected staff is inactive.")
-        if UserProfile.objects.filter(staff_id=staff.id).exclude(pk=getattr(self.instance, "pk", None)).exists():
+        exists = UserProfile.objects.filter(staff_id=staff.id)
+        if getattr(self.instance, "pk", None):
+            exists = exists.exclude(pk=self.instance.pk)
+        if exists.exists():
             raise forms.ValidationError("Selected staff is already linked to a user profile.")
         return staff
 
     def clean(self):
         cleaned = super().clean()
-
-        try:
-            if "staff" in getattr(self, "errors", {}):
-                raw = self.data.get(self.add_prefix("staff")) or self.data.get("staff")
-                if raw not in (None, "", []):
-                    inst = Staff._base_manager.get(pk=str(raw).strip())
-                    cleaned["staff"] = inst
-                    self._errors.pop("staff", None)
-        except Staff.DoesNotExist:
-            pass
-        except Exception:
-            pass
-
-        u = (cleaned.get("user") or (self.data.get(self.add_prefix("user")) or self.data.get("user") or "")).strip()
-        st = cleaned.get("staff")
-        if not st and not u:
+        username = (cleaned.get("user") or "").strip()
+        staff = cleaned.get("staff")
+        if not staff and not username:
             self.add_error("staff", "Select a staff or enter a username.")
             raise forms.ValidationError("Staff or Username is required.")
 
         try:
-            if not cleaned.get("branch") and cleaned.get("staff"):
-                st = cleaned["staff"]
-                if getattr(st, "branch_id", None):
-                    self.cleaned_data["branch"] = st.branch
+            if not cleaned.get("branch") and staff and getattr(staff, "branch_id", None):
+                cleaned["branch"] = staff.branch
+                self.cleaned_data["branch"] = staff.branch
         except Exception:
             pass
+
         if "is_reports" in self.fields:
             cleaned["is_reports"] = True
         return cleaned
@@ -518,7 +550,6 @@ class UserProfileForm(ExcludeRawCSVDataForm):
         return instance
 
 
-# ───────── NEW: User Permission Form ─────────
 class UserPermissionForm(ExcludeRawCSVDataForm):
     user_profile = PermissiveModelChoiceField(
         queryset=UserProfile._base_manager.all(),
@@ -741,6 +772,25 @@ class CadreForm(ExcludeRawCSVDataForm):
         fields = "__all__"
 
 
+# ───────── SAVINGS / PREPAID / MORTGAGE (added) ─────────
+class PrepaidForm(ExcludeRawCSVDataForm):
+    class Meta(ExcludeRawCSVDataForm.Meta):
+        model = Prepaid
+        fields = "__all__"
+
+
+class MortgageForm(ExcludeRawCSVDataForm):
+    class Meta(ExcludeRawCSVDataForm.Meta):
+        model = Mortgage
+        fields = "__all__"
+
+
+class ExSavingForm(ExcludeRawCSVDataForm):
+    class Meta(ExcludeRawCSVDataForm.Meta):
+        model = ExSaving
+        fields = "__all__"
+
+
 # ───────── FEATURE FORMS (added) ─────────
 class KYCDocumentForm(ExcludeRawCSVDataForm):
     """KYC uploads and metadata."""
@@ -767,6 +817,49 @@ class SalaryStatementForm(ExcludeRawCSVDataForm):
     """HRPM salary statements."""
     class Meta(ExcludeRawCSVDataForm.Meta):
         model = SalaryStatement
+        fields = "__all__"
+
+
+# ───────── SYNC ADD-ONS: PAYMENTS / RISK / RESTRUCTURE / REPAY ─────────
+class PaymentForm(ExcludeRawCSVDataForm):
+    """Payment intent creation; order_id is system-generated in views."""
+    class Meta(ExcludeRawCSVDataForm.Meta):
+        model = Payment
+        fields = "__all__"
+
+
+class NotificationForm(ExcludeRawCSVDataForm):
+    """Outbound notifications queue."""
+    class Meta(ExcludeRawCSVDataForm.Meta):
+        model = Notification
+        fields = "__all__"
+
+
+class GatewayEventForm(ExcludeRawCSVDataForm):
+    """Read-only webhook event viewer."""
+    class Meta(ExcludeRawCSVDataForm.Meta):
+        model = GatewayEvent
+        fields = "__all__"
+
+
+class EWIFlagForm(ExcludeRawCSVDataForm):
+    """Early warning indicator flags."""
+    class Meta(ExcludeRawCSVDataForm.Meta):
+        model = EWIFlag
+        fields = "__all__"
+
+
+class LoanRestructureForm(ExcludeRawCSVDataForm):
+    """Restructure terms."""
+    class Meta(ExcludeRawCSVDataForm.Meta):
+        model = LoanRestructure
+        fields = "__all__"
+
+
+class RepaymentForm(ExcludeRawCSVDataForm):
+    """Manual repayment entries (cash or reconciled)."""
+    class Meta(ExcludeRawCSVDataForm.Meta):
+        model = Repayment
         fields = "__all__"
 
 

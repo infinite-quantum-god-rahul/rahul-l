@@ -7,6 +7,7 @@ Keeps all prior logic and adds:
     • phone / Aadhaar validators + status choices remain
 """
 # companies/models.py
+
 from django.db import models, connection
 from django.db.models import Q
 from django.core.validators import MinValueValidator, RegexValidator
@@ -147,29 +148,30 @@ class Cadre(BaseRaw):
 
 class Staff(AutoCodeMixin, BaseRaw):
     CODE_FIELD    = "staffcode"
-    staffcode     = models.CharField("Empcode", max_length=50, unique=True, blank=True, null=True, db_index=True)
+    staffcode = models.CharField("Empcode", max_length=50, unique=True, db_index=True)    # ← non-null, non-blank
     name          = models.CharField(max_length=255, blank=True, null=True)
 
     branch = models.ForeignKey(
         Branch,
-        to_field="code",          # ← keep Branch.code as FK target
-        db_column="branch",       # ← legacy DB column name
         on_delete=models.SET_NULL,
         null=True, blank=True,
-        related_name="staff",
+        related_name="staff_members",  # ← unique
+        related_query_name="staff_member",  # ← unique
+        db_column="branch",  # ← use the INT FK column
+        # remove: to_field="code" and any db_column="branch" text mapping
     )
 
     cadre         = models.ForeignKey(Cadre, on_delete=models.SET_NULL, null=True, blank=True)
     designation   = models.CharField(max_length=100, blank=True, null=True)
     joining_date  = models.DateField(blank=True, null=True)
-    status        = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
+    status        = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active", db_index=True)
     bank          = models.CharField(max_length=100, blank=True, null=True)
     ifsc          = models.CharField(max_length=20, blank=True, null=True)
     contact1      = models.CharField(max_length=15, blank=True, null=True, validators=[phone_validator], unique=True)
     photo         = models.ImageField(upload_to="staff_photos/", blank=True, null=True)
 
     def __str__(self):
-        return self.name or f"Staff #{self.pk}"
+        return self.name or f"{self.staffcode}"
 
     # ✅ Normalize legacy truthy "active" values at save time
     def save(self, *args, **kwargs):
@@ -178,37 +180,42 @@ class Staff(AutoCodeMixin, BaseRaw):
         super().save(*args, **kwargs)
 
 
+
 class UserProfile(BaseRaw):
     user = models.ForeignKey(
-        AuthUser,
-        null=True, blank=True,
-        on_delete=models.SET_NULL,
-        db_column="user"
+        AuthUser, null=True, blank=True, on_delete=models.SET_NULL
     )
-    # ✅ Allow legacy truthy "active" values to pass FK constraint
+    # Link by PK for fast queries. Keep UI showing staffcode in labels only.
     staff = models.ForeignKey(
         Staff,
         on_delete=models.SET_NULL,
-        null=True, blank=True,
-        limit_choices_to=(
-            Q(status__iexact="active") |
-            Q(status="1") | Q(status=1) | Q(status=True)
-        ),
-        related_name="user_profile"
+        null=True,
+        blank=True,
+        related_name="user_profiles",
+        limit_choices_to=Q(status="active"),
     )
     full_name  = models.CharField(max_length=255, blank=True, null=True)
-    branch     = models.ForeignKey("Branch", on_delete=models.SET_NULL, null=True, blank=True)
+    branch     = models.ForeignKey(
+        Branch,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="user_profiles",
+        db_column="branch",
+    )
     department = models.CharField(max_length=100, blank=True, null=True)
     mobile     = models.CharField(max_length=20, blank=True, null=True, validators=[phone_validator])
-    is_admin        = models.BooleanField(default=False)
-    is_master       = models.BooleanField(default=False)
-    is_data_entry   = models.BooleanField(default=False)
-    is_reports      = models.BooleanField(default=False)
-    is_accounting   = models.BooleanField(default=False)
+
+    is_admin          = models.BooleanField(default=False)
+    is_master         = models.BooleanField(default=False)
+    is_data_entry     = models.BooleanField(default=False)
+    is_reports        = models.BooleanField(default=False)
+    is_accounting     = models.BooleanField(default=False)
     is_recovery_agent = models.BooleanField(default=False)
     is_auditor        = models.BooleanField(default=False)
     is_manager        = models.BooleanField(default=False)
-    status          = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
+
+    status   = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
     password = models.CharField(max_length=128, blank=True, null=True,
                                 help_text="Hashed password for non-Django auth use")
 
@@ -287,6 +294,63 @@ class Disbursement(BaseRaw):
     status           = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
 
 # ────────────────────────────────────────────────────────────────────────────
+# SAVINGS / PREPAID / MORTGAGE  ← added for forms parity
+# ────────────────────────────────────────────────────────────────────────────
+
+class Prepaid(AutoCodeMixin, BaseRaw):
+    CODE_PREFIX = "PRP"
+    code        = models.CharField(max_length=20, unique=True, blank=True, db_index=True)
+    member_code = models.CharField(max_length=30, blank=True, db_index=True)
+    voucher_no  = models.CharField(max_length=50, blank=True, null=True)   # SML parity
+    head        = models.CharField(max_length=120, blank=True, null=True)  # prepaid account head
+    amount      = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    date        = models.DateField(blank=True, null=True, db_index=True)
+    remarks     = models.TextField(blank=True, null=True)
+
+    class Meta:
+        indexes  = [
+            models.Index(fields=["member_code"]),
+            models.Index(fields=["date"]),
+        ]
+        ordering = ["-date", "-id"]
+
+
+class Mortgage(AutoCodeMixin, BaseRaw):
+    CODE_PREFIX     = "MOR"
+    code            = models.CharField(max_length=20, unique=True, blank=True, db_index=True)
+    member_code     = models.CharField(max_length=30, blank=True, db_index=True)
+    mortgage_date   = models.DateField(blank=True, null=True, db_index=True)
+    property_desc   = models.CharField(max_length=255, blank=True, null=True)
+    deed_no         = models.CharField(max_length=64, blank=True, null=True, db_index=True)
+    mortgage_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    collateral_val  = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    remarks         = models.TextField(blank=True, null=True)
+
+    # read-only alias to keep existing code that expects `.date`
+    @property
+    def date(self):
+        return self.mortgage_date
+
+    class Meta:
+        indexes  = [
+            models.Index(fields=["member_code"]),
+            models.Index(fields=["deed_no"]),
+            models.Index(fields=["mortgage_date"]),
+        ]
+        ordering = ["-mortgage_date", "-id"]
+
+
+class ExSaving(AutoCodeMixin, BaseRaw):
+    CODE_PREFIX = "SAV"
+    code        = models.CharField(max_length=20, unique=True, blank=True)
+    account_no  = models.CharField(max_length=30, blank=True)
+    member_code = models.CharField(max_length=30, blank=True)
+    open_date   = models.DateField(blank=True, null=True)
+    amount      = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    status      = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
+    remarks     = models.TextField(blank=True, null=True)
+
+# ────────────────────────────────────────────────────────────────────────────
 # HRPM
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -322,14 +386,11 @@ class BusinessSetting(BaseRaw):
 
 class FieldSchedule(BaseRaw):
     schedule_date = models.DateField(blank=True, null=True)
-    # ✅ Allow legacy truthy "active" values to pass FK constraint
-    staff  = models.ForeignKey(
+    # ✅ Allow only active and valid staffcodes
+    staff = models.ForeignKey(
         Staff, to_field="staffcode", db_column="StaffCode",
         on_delete=models.SET_NULL, null=True, blank=True,
-        limit_choices_to=(
-            Q(status__iexact="active") |
-            Q(status="1") | Q(status=1) | Q(status=True)
-        )
+        limit_choices_to=(Q(status="active") & ~Q(staffcode__isnull=True) & ~Q(staffcode="")),
     )
     center = models.ForeignKey(Center, to_field="code", db_column="CenterCode",
                                on_delete=models.SET_NULL, null=True, blank=True)
@@ -465,6 +526,114 @@ class AlertEvent(models.Model):
 
     def __str__(self):
         return f"{self.rule_name}:{self.object_pk}:{self.status}"
+
+# ────────────────────────────────────────────────────────────────────
+# PAYMENTS / GATEWAY / NOTIFICATIONS / EWI (additive sync)
+# ────────────────────────────────────────────────────────────────────
+
+class Payment(BaseRaw):
+    """Payment intent for an application. Reconciled via webhook or manual."""
+    loan_application = models.ForeignKey(LoanApplication, on_delete=models.PROTECT, related_name="payments")
+    amount    = models.DecimalField(max_digits=14, decimal_places=2)
+    order_id  = models.CharField(max_length=64, unique=True, db_index=True)
+    gateway   = models.CharField(max_length=32, default="stub")  # razorpay|cashfree|stub
+    status    = models.CharField(max_length=16, default="created")  # created|success|failed
+    txn_ref   = models.CharField(max_length=64, blank=True, null=True)
+    meta      = JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "companies_payment"
+
+    def __str__(self):
+        return f"{self.order_id} / {self.status}"
+
+class GatewayEvent(models.Model):
+    """Raw webhook events for audit and replay."""
+    gateway = models.CharField(max_length=32)
+    event   = models.CharField(max_length=64)
+    payload = JSONField()
+    signature_ok = models.BooleanField(default=False)
+    received_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "companies_gatewayevent"
+
+    def __str__(self):
+        return f"{self.gateway}:{self.event}"
+
+class Notification(models.Model):
+    """Outbound message queue."""
+    CHANNELS = [("sms","SMS"),("email","Email")]
+    channel = models.CharField(max_length=8, choices=CHANNELS)
+    to_address = models.CharField(max_length=128)  # phone or email
+    subject = models.CharField(max_length=120, blank=True, null=True)
+    body    = models.TextField()
+    status  = models.CharField(max_length=16, default="queued")  # queued|sent|failed
+    sent_at = models.DateTimeField(null=True, blank=True)
+    meta    = JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "companies_notification"
+
+    def __str__(self):
+        return f"{self.channel}:{self.to_address}:{self.status}"
+
+class EWIFlag(models.Model):
+    """Early warning indicator flags against an application."""
+    loan_application = models.ForeignKey(LoanApplication, on_delete=models.CASCADE, related_name="ewi_flags")
+    code    = models.CharField(max_length=32)  # e.g., OVERDUE_7D, LOW_CASHFLOW
+    detail  = models.TextField(blank=True, null=True)
+    active  = models.BooleanField(default=True)
+    raised_at  = models.DateTimeField(auto_now_add=True)
+    cleared_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "companies_ewiflag"
+        indexes = [models.Index(fields=["loan_application","active","code"])]
+
+    def __str__(self):
+        return f"{self.loan_application_id}:{self.code}:{'ON' if self.active else 'OFF'}"
+
+# ───────── REPAYMENTS ─────────
+class Repayment(BaseRaw):
+    loan_application = models.ForeignKey(LoanApplication, on_delete=models.CASCADE, related_name="repayments")
+    paid_on   = models.DateField(blank=True, null=True)
+    amount    = models.DecimalField(max_digits=14, decimal_places=2)
+    mode      = models.CharField(max_length=32, blank=True, null=True)  # cash|upi|neft|auto
+    reference = models.CharField(max_length=128, blank=True, null=True)
+    notes     = models.TextField(blank=True, null=True)
+    status    = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
+
+# ───────── LOAN RESTRUCTURE ─────────
+class LoanRestructure(BaseRaw):
+    loan_application = models.ForeignKey(LoanApplication, on_delete=models.CASCADE, related_name="restructures")
+    old_tenure = models.PositiveIntegerField()
+    old_rate   = models.DecimalField(max_digits=5, decimal_places=2)
+    new_tenure = models.PositiveIntegerField()
+    new_rate   = models.DecimalField(max_digits=5, decimal_places=2)
+    effective_from = models.DateField()
+    reason     = models.TextField(blank=True, null=True)
+    status     = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
+
+# ───────── AUDIT LOGS ─────────
+class AuditLog(models.Model):
+    user    = models.ForeignKey(AuthUser, on_delete=models.SET_NULL, null=True, blank=True)
+    path    = models.CharField(max_length=255)
+    method  = models.CharField(max_length=8)
+    ip      = models.GenericIPAddressField(null=True, blank=True)
+    status  = models.PositiveSmallIntegerField()
+    payload = JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "companies_auditlog"
+
+
+
+
 
 
 
