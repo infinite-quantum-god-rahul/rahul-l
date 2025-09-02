@@ -6,3 +6,4 @@ recommended filter=lfs diff=lfs merge=lfs -text
 *.zip filter=lfs diff=lfs merge=lfs -text
 \# filter=lfs diff=lfs merge=lfs -text
 *.csv filter=lfs diff=lfs merge=lfs -text
+sml8.zip filter=lfs diff=lfs merge=lfs -text

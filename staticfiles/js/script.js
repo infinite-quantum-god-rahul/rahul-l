@@ -1,5 +1,6 @@
 // ========== DOM READY ========== //
 document.addEventListener("DOMContentLoaded", function () {
+<<<<<<< HEAD
     ensureSidebarClickCSS();     // keeps click-only sidebar behaviour
     ensureImagePreviewModal();   // make sure preview modal exists
     ensureFormLayoutCSS();       // no-scroll form + two-column/checkbox grid
@@ -11,6 +12,10 @@ document.addEventListener("DOMContentLoaded", function () {
     dedupePasswordEyes(document);// remove extras (prefer manual)
     reMaskPasswords(document);   // keep masked by default
     startEyeObserver();          // MutationObserver to re-dedupe if any script injects another eye later
+=======
+    ensureSidebarClickCSS();     // ← keeps click-only sidebar behaviour
+    ensureImagePreviewModal();   // 🔄 make sure preview modal exists
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
 
     const toggleBtn  = document.getElementById("sidebar-toggle");
     const sidebar    = document.getElementById("sidebar");
@@ -30,9 +35,17 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     if (adminLink) {
+<<<<<<< HEAD
         adminLink.addEventListener("click", function (e) {
             e.preventDefault();
             const currentText = (adminLink.textContent || "").trim().toLowerCase();
+=======
+        // robust text check (icons/whitespace safe)
+        adminLink.addEventListener("click", function (e) {
+            e.preventDefault();
+            const currentText = (adminLink.textContent || "").trim().toLowerCase();
+
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
             if (!loginClickedOnce && currentText.includes("admin")) {
                 adminLink.textContent = "Login";
                 loginClickedOnce = true;
@@ -42,10 +55,33 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+<<<<<<< HEAD
     // enable actionable buttons/links regardless of server markup
     ensureEntityButtonsEnabled();
     // normalize buttons so router can always infer entity/id
     normalizeEntityButtons(document);
+=======
+    // Generic open entity binding (data-open-entity)
+    document.querySelectorAll("[data-open-entity]").forEach(btn => {
+        btn.addEventListener("click", function () {
+            const ent = btn.dataset.entity;
+            if (ent) openEntityModal(ent);
+        });
+    });
+
+    // Delegated edit entity binding
+    document.body.addEventListener("click", function (e) {
+        const target = e.target.closest("[data-edit-entity]");
+        if (!target) return;
+        const entity = target.dataset.editEntity;
+        let id = target.dataset.id || target.getAttribute("data-id");
+        console.log("Delegated edit click detected:", { entity, id, target });
+        if (entity && id) {
+            id = String(id).replace(/^:/, ""); // normalize stray colon
+            editEntity(entity, id);
+        }
+    });
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
 
     document.addEventListener("keydown", function (e) {
         if (e.key === "Escape") closeLoginModal();
@@ -59,8 +95,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const loginForm = document.querySelector('#admin-login-form');
     if (loginForm && !loginForm.dataset.boundAjaxHandler) {
+<<<<<<< HEAD
         loginForm.dataset.boundAjaxHandler = "1";
 
+=======
+        // Guard so we don't double-bind later
+        loginForm.dataset.boundAjaxHandler = "1";
+
+        // enable/disable Sign in & hide error while typing
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
         const u = document.getElementById("login-username");
         const p = document.getElementById("login-password");
         const errDiv = document.getElementById("login-error");
@@ -68,6 +111,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const updateSubmitState = () => {
             const ok = (u && u.value.trim().length > 0) && (p && p.value.trim().length > 0);
             if (submitBtn) ok ? submitBtn.removeAttribute("disabled") : submitBtn.setAttribute("disabled","disabled");
+<<<<<<< HEAD
+=======
+            // Only hide while typing (not immediately after we just showed an error from submit)
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
             if (document.activeElement === u || document.activeElement === p) {
                 if (errDiv) { errDiv.hidden = true; errDiv.style.display = ""; errDiv.textContent = ""; }
             }
@@ -76,6 +123,10 @@ document.addEventListener("DOMContentLoaded", function () {
         p && p.addEventListener("input", updateSubmitState);
         updateSubmitState();
 
+<<<<<<< HEAD
+=======
+        // ===== Primary AJAX submit (hardened to always show error on failure) =====
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
         loginForm.addEventListener("submit", function (e) {
             e.preventDefault();
             const formData = new FormData(loginForm);
@@ -83,9 +134,14 @@ document.addEventListener("DOMContentLoaded", function () {
             fetch(loginForm.action, {
                 method: 'POST',
                 headers: {
+<<<<<<< HEAD
                     'X-CSRFToken': getCsrfTokenSafe(),
                     'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json'
+=======
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest'
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
                 },
                 body: formData,
                 credentials: "include",
@@ -94,28 +150,57 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(async res => {
                 const ct = (res.headers.get("content-type") || "").toLowerCase();
 
+<<<<<<< HEAD
                 if (res.redirected && !ct.includes("application/json")) {
                     showInlineLoginError("Invalid credentials."); return;
                 }
                 if (res.status === 401 || res.status === 400 || res.status === 403) {
                     showInlineLoginError("Invalid credentials."); return;
+=======
+                // If server redirected (common on auth failure), treat as invalid creds
+                if (res.redirected && !ct.includes("application/json")) {
+                    console.warn("Redirected response on login (likely invalid creds).");
+                    showInlineLoginError("Invalid credentials.");
+                    return;
+                }
+
+                // Treat 401/400/403 as auth failure with a clear message
+                if (res.status === 401 || res.status === 400 || res.status === 403) {
+                    showInlineLoginError("Invalid credentials.");
+                    return;
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
                 }
 
                 if (ct.includes("application/json")) {
                     const data = await res.json();
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
                     if (data.success) {
                         closeLoginModal();
                         window.location.href = data.redirect_url || "/dashboard/";
                         return;
                     }
+<<<<<<< HEAD
+=======
+
+                    // Show OTP if requested
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
                     if (data.require_otp) {
                         const otpBlock = document.getElementById("otp-block");
                         if (otpBlock) otpBlock.hidden = false;
                     }
+<<<<<<< HEAD
+=======
+
+                    // Show backend error or fallback
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
                     showInlineLoginError(data.error || "Invalid credentials.");
                     return;
                 }
 
+<<<<<<< HEAD
                 showInlineLoginError("Invalid credentials.");
             })
             .catch(() => showInlineLoginError("Network error. Please try again."));
@@ -155,10 +240,46 @@ function showInlineLoginError(msg) {
   errDiv.textContent = msg || "Invalid credentials.";
   errDiv.hidden = false;
   errDiv.style.display = "block";
+=======
+                // Non-JSON fallback (e.g., Django template HTML on failure)
+                const text = await res.text().catch(() => "");
+                console.warn("Non-JSON response received (showing inline error):", text.slice(0,200));
+                showInlineLoginError("Invalid credentials.");
+            })
+            .catch(err => {
+                console.error("Login error:", err);
+                showInlineLoginError("Network error. Please try again.");
+            });
+        });
+    }
+
+    // helpers needed right away
+    setupSidebarDropdownToggle();
+    setupRoleSwitches();
+
+    // initial helpers (also re-run after loading forms)
+    initializeDatePickers();
+    setupPermissionSelectAll();
+    formatDateFields();
+    addMasks();                // ← phone & aadhaar masks
+    setupAadharTypeahead();    // ← search-aadhar live filter
+    initPhoneInputs();         // ← NEW
+    setupSaveButtonHandler();
+});
+
+// ===== Helper: force-show login error reliably (JSON/HTML/401/400/403/redirect) ===== //
+function showInlineLoginError(msg) {
+  const errDiv = document.getElementById("login-error");
+  if (!errDiv) return;
+  errDiv.textContent = msg || "Invalid credentials.";
+  errDiv.hidden = false;          // remove [hidden]
+  errDiv.style.display = "block"; // in case CSS tries to hide it
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
   errDiv.setAttribute("role", "alert");
   errDiv.setAttribute("aria-live", "assertive");
 }
 
+<<<<<<< HEAD
 /* ================= PASSWORD / EYE TOGGLE ================= */
 
 /* 1) HARD CSS GUARD: only FIRST toggle inside .pro-passwrap is ever visible.
@@ -369,6 +490,8 @@ function startEyeObserver(){
 
 /* ================= END PASSWORD / EYE ================= */
 
+=======
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
 // ===== NEW helper: make sure the click-only CSS rule is present ===== //
 function ensureSidebarClickCSS() {
     if (document.getElementById("force-sidebar-open-css")) return;
@@ -378,6 +501,7 @@ function ensureSidebarClickCSS() {
     document.head.appendChild(style);
 }
 
+<<<<<<< HEAD
 // ===== NEW helper: no-scroll modal forms + two-column fields + side-by-side options ===== //
 function ensureFormLayoutCSS() {
     if (document.getElementById("no-scroll-grid-form-css")) return;
@@ -439,6 +563,8 @@ function ensureFormLayoutCSS() {
     document.head.appendChild(style);
 }
 
+=======
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
 /* intercept <a class="image-link"> so we open the preview instantly */
 document.body.addEventListener("click", function (e) {
     const link = e.target.closest(".image-link");
@@ -469,6 +595,10 @@ document.body.addEventListener("click", function (e) {
     if (modal) modal.style.display = "flex";
 });
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
 // ===== ensure the preview modal HTML exists ===== //
 function ensureImagePreviewModal() {
     if (document.getElementById("image-preview-modal")) return;
@@ -510,6 +640,7 @@ function getCookie(name) {
     return cookieValue;
 }
 
+<<<<<<< HEAD
 // robust CSRF getter (works with form/meta; falls back to cookie if readable)
 function getCsrfTokenSafe() {
     const el =
@@ -586,14 +717,33 @@ function formatDateFields() {
 
     document.querySelectorAll(sel).forEach(input => {
         if (input.value && input.value.includes("-") && /^\d{4}-\d{2}-\d{2}$/.test(input.value)) {
+=======
+// ===== Flatpickr Setup ===== //
+function initializeDatePickers() {
+    if (typeof flatpickr !== "undefined") {
+        flatpickr(".date-field", {
+            dateFormat: "d/m/Y",
+            allowInput: true,
+            altInput: false
+        });
+    }
+}
+
+function formatDateFields() {
+    document.querySelectorAll("input.date-field").forEach(input => {
+        if (input.value.includes("-")) {
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
             const [yyyy, mm, dd] = input.value.split("-");
             input.value = `${dd}/${mm}/${yyyy}`;
         }
         input.pattern = "\\d{2}/\\d{2}/\\d{4}";
         input.placeholder = "dd/mm/yyyy";
         input.type = "text";
+<<<<<<< HEAD
         attachDateMask(input);
         input.addEventListener("input", ()=> input.setCustomValidity(""));
+=======
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
     });
 }
 
@@ -638,8 +788,12 @@ function setupAadharTypeahead() {
         const tgt = document.getElementById('aadhar-results');
         if (q.length < 2) { if (tgt) tgt.innerHTML = ""; return; }
         fetch(`/search/client/aadhar/?q=${q}`, {
+<<<<<<< HEAD
             headers: { "X-Requested-With": "XMLHttpRequest", "Accept": "application/json" },
             credentials: "include"
+=======
+            headers: { "X-Requested-With": "XMLHttpRequest" }
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
         })
         .then(r => r.json())
         .then(list => {
@@ -693,6 +847,7 @@ function setupRoleSwitches() {
     const staff  = document.getElementById('role-staff-switch');
     const report = document.getElementById('role-report-switch');
     if (!master || !staff || !report) return;
+<<<<<<< HEAD
     const checkboxes = Array.from(document.querySelectorAll('.perm-checkbox'));
     const loanAppPerms   = checkboxes.filter(cb => cb.dataset.perm?.includes('loanapplication'));
     const fieldSchedPerm = checkboxes.filter(cb => cb.dataset.perm?.includes('fieldschedule'));
@@ -700,6 +855,22 @@ function setupRoleSwitches() {
     const clearAll = () => {
         checkboxes.forEach(cb => { cb.checked = false; cb.disabled = false; });
     };
+=======
+
+    // All permission checkboxes
+    const checkboxes = Array.from(document.querySelectorAll('.perm-checkbox'));
+
+    // Buckets by feature
+    const loanAppPerms   = checkboxes.filter(cb => cb.dataset.perm?.includes('loanapplication'));
+    const fieldSchedPerm = checkboxes.filter(cb => cb.dataset.perm?.includes('fieldschedule'));
+    const fieldRepPerm   = checkboxes.filter(cb => cb.dataset.perm?.includes('fieldreport'));
+
+    const clearAll = () => {
+        checkboxes.forEach(cb => { cb.checked = false; cb.disabled = false; });
+    };
+
+    // MASTER → select everything, unlock all, uncheck others
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
     master.addEventListener('change', () => {
         clearAll();
         if (master.checked) {
@@ -707,6 +878,11 @@ function setupRoleSwitches() {
             staff.checked = report.checked = false;
         }
     });
+<<<<<<< HEAD
+=======
+
+    // STAFF → only loan application perms (locked), uncheck others
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
     staff.addEventListener('change', () => {
         clearAll();
         if (staff.checked) {
@@ -714,6 +890,11 @@ function setupRoleSwitches() {
             master.checked = report.checked = false;
         }
     });
+<<<<<<< HEAD
+=======
+
+    // REPORT → only field schedule + field report perms (locked), uncheck others
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
     report.addEventListener('change', () => {
         clearAll();
         if (report.checked) {
@@ -723,6 +904,10 @@ function setupRoleSwitches() {
     });
 }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
 // === Sidebar dropdown click-toggle === //
 function setupSidebarDropdownToggle() {
   const dropdowns = Array.from(document.querySelectorAll(".sidebar .dropdown"));
@@ -742,12 +927,17 @@ function setupSidebarDropdownToggle() {
   });
 }
 
+<<<<<<< HEAD
 // === Entity path helper (robust) === //
 function getEntityBase(entity) {
     if (entity) {
         const seg = String(entity).replace(/\s+/g, "").toLowerCase();
         return `/${encodeURIComponent(seg)}/`;
     }
+=======
+// === Entity path helper === //
+function getEntityBase() {
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
     let p = window.location.pathname;
     if (!p.endsWith('/')) p += '/';
     return p;
@@ -767,17 +957,26 @@ function ensureModalSkeleton() {
           <button type="button" class="close-btn" onclick="closeEntityModal()">&times;</button>
         </div>
         <div class="modal-body">
+<<<<<<< HEAD
           <div id="form-errors" role="alert" aria-live="assertive"></div>
+=======
+          <div id="form-errors"></div>
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
           <div id="entity-modal-body"></div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeEntityModal()">Close</button>
+<<<<<<< HEAD
           <button id="modal-save-btn" class="btn btn-primary save-disabled" disabled>Save</button>
+=======
+          <button id="modal-save-btn" class="btn btn-primary">Save</button>
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
         </div>
       </div>`;
     document.body.appendChild(modal);
 }
 
+<<<<<<< HEAD
 /* ===== Visibility and completeness checks ===== */
 function isVisible(el){ return !!(el && (el.offsetParent || el.getClientRects().length)); }
 function isGroupChecked(form, el){
@@ -969,11 +1168,42 @@ function setupSaveButtonHandler() {
             const ct = (res.headers.get("content-type") || "").toLowerCase();
             if (res.status === 401 || res.status === 403 || res.redirected) { handleAuthFailure("Not authenticated."); return; }
 
+=======
+// ===== Modal Save Logic ===== //
+function setupSaveButtonHandler() {
+    const saveBtn = document.getElementById("modal-save-btn");
+    if (!saveBtn) return;
+    const freshSave = saveBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(freshSave, saveBtn);
+    freshSave.addEventListener("click", function (e) {
+        e.preventDefault();
+        const form = document.getElementById("entity-form");
+        if (!form) return;
+        const url = form.action;
+        const formData = new FormData(form);
+        const errorDiv = document.getElementById("form-errors");
+        if (errorDiv) errorDiv.innerHTML = "";
+        freshSave.disabled = true;
+        freshSave.textContent = "Saving...";
+        fetch(url, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCookie("csrftoken"),
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            body: formData,
+            credentials: "include"
+        })
+        .then(async (res) => {
+            const ct = res.headers.get("content-type") || "";
+            if (res.status === 401) { alert("Authentication required."); return; }
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
             if (ct.includes("application/json")) {
                 const data = await res.json();
                 if (data.success) {
                     closeEntityModal();
                     location.reload();
+<<<<<<< HEAD
                     return;
                 }
                 if (data.errors) {
@@ -1012,19 +1242,36 @@ function setupSaveButtonHandler() {
             }
             alert("Server returned unexpected response. Reloading...");
             location.reload();
+=======
+                } else {
+                    showFormErrors(data.errors || {});
+                }
+            } else {
+                const text = await res.text();
+                console.error("Non-JSON response received:", text);
+                alert("Server returned unexpected response. Reloading...");
+                location.reload();
+            }
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
         })
         .catch(err => {
             console.error("Submission failed:", err);
             alert("Submission failed. Check console.");
         })
         .finally(() => {
+<<<<<<< HEAD
             saveBtn.disabled = false;
             saveBtn.classList.remove("save-disabled");
             saveBtn.textContent = prevTxt || "Save";
+=======
+            freshSave.disabled = false;
+            freshSave.textContent = "Save";
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
         });
     });
 }
 
+<<<<<<< HEAD
 function ensureFormErrorBox() {
     let box = document.getElementById("form-errors");
     if (!box) {
@@ -1127,6 +1374,18 @@ function replaceModalWithHTML(html) {
     reMaskPasswords(fresh);
 }
 
+=======
+function showFormErrors(errors) {
+    const errorDiv = document.getElementById("form-errors");
+    if (!errorDiv) return;
+    errorDiv.innerHTML = "";
+    for (let field in errors) {
+        const msgs = Array.isArray(errors[field]) ? errors[field].join(", ") : errors[field];
+        errorDiv.innerHTML += `<p><strong>${field}:</strong> ${msgs}</p>`;
+    }
+}
+
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
 // ===== Utility ===== //
 function prettyName(entity) {
     return entity.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
@@ -1134,6 +1393,7 @@ function prettyName(entity) {
 
 /* ===== Auto-code filler ===== */
 function fillAutoCode(entity) {
+<<<<<<< HEAD
     let target = document.querySelector('#entity-form input[name="code"]');
     if (!target) {
         target =
@@ -1161,11 +1421,28 @@ function fillAutoCode(entity) {
     .then(data => {
         if (data.code && target && !target.value) target.value = data.code;
     })
+=======
+    const codeInput = document.querySelector('#entity-form input[name="code"]');
+    if (!codeInput || codeInput.value) return;
+    fetch("/next_code/", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": getCookie("csrftoken"),
+            "X-Requested-With": "XMLHttpRequest",
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: `entity=${encodeURIComponent(entity)}`,
+        credentials: "include"
+    })
+    .then(r => r.json())
+    .then(data => { if (data.code) codeInput.value = data.code; })
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
     .catch(err => console.error("code-fetch error:", err));
 }
 
 // ===== Centralized Modal Injection ===== //
 function insertEntityModal(entity, html, mode, id) {
+<<<<<<< HEAD
     const base = getEntityBase(entity);
     const temp = document.createElement("div");
     temp.innerHTML = html.trim();
@@ -1180,16 +1457,31 @@ function insertEntityModal(entity, html, mode, id) {
         const titleEl = returnedModal.querySelector("#entity-modal-title");
         if (titleEl) titleEl.innerText = `${mode} ${prettyName(entity)}`;
 
+=======
+    const base = getEntityBase();
+    const temp = document.createElement("div");
+    temp.innerHTML = html.trim();
+    const returnedModal = temp.querySelector("#entity-modal");
+    if (returnedModal) {
+        const existing = document.getElementById("entity-modal");
+        if (existing) existing.remove();
+        document.body.appendChild(returnedModal);
+        const titleEl = returnedModal.querySelector("#entity-modal-title");
+        if (titleEl) titleEl.innerText = `${mode} ${prettyName(entity)}`;
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
         const form = returnedModal.querySelector("#entity-form");
         if (form) {
             form.dataset.entity = entity;
             if (mode === "Create") form.action = `${base}create/`;
             else if (mode === "Edit") form.action = `${base}update/${String(id).replace(/^:/, "")}/`;
         }
+<<<<<<< HEAD
 
         ensureFormErrorBox();
         returnedModal.style.display = "flex";
         executeInlineScripts(returnedModal);
+=======
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
     } else {
         ensureModalSkeleton();
         const modal = document.getElementById("entity-modal");
@@ -1207,6 +1499,7 @@ function insertEntityModal(entity, html, mode, id) {
             if (mode === "Create") {
                 const today = new Date();
                 const formatted = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
+<<<<<<< HEAD
                 form.querySelectorAll("input.date-field").forEach(input => { if (!input.value) input.value = formatted; });
             }
         }
@@ -1218,6 +1511,14 @@ function insertEntityModal(entity, html, mode, id) {
     ensureFormLayoutCSS();
     applyCheckboxGrid(document.getElementById("entity-modal") || document);
 
+=======
+                form.querySelectorAll("input.date-field").forEach(input => input.value = formatted);
+            }
+        }
+    }
+    const modalToShow = document.getElementById("entity-modal");
+    if (modalToShow) modalToShow.style.display = "flex";
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
     initializeDatePickers();
     setupPermissionSelectAll();
     formatDateFields();
@@ -1226,6 +1527,7 @@ function insertEntityModal(entity, html, mode, id) {
     formatAadharInput();
     initPhoneInputs();
     fillAutoCode(entity);
+<<<<<<< HEAD
 
     ensureFormErrorBox();
     setupSaveButtonHandler();
@@ -1309,10 +1611,81 @@ function editEntity(entity, id) {
         insertEntityModal(entity, html, "Edit", id);
     })
     .catch(err => { console.error("Edit load error:", err); alert("Failed to load data."); });
+=======
+    setupSaveButtonHandler();
+    setupRoleSwitches();
+}
+
+// ===== Open / Edit Entity ===== //
+function openEntityModal(entityOrEvent) {
+    let entity;
+    if (typeof entityOrEvent === "string") {
+        entity = entityOrEvent;
+    } else if (entityOrEvent && entityOrEvent.currentTarget) {
+        const el = entityOrEvent.currentTarget;
+        entity = el.dataset.entity || el.getAttribute("data-entity");
+    }
+    if (!entity) {
+        console.error("No entity provided to openEntityModal");
+        return;
+    }
+    const base = getEntityBase();
+    const url = `${base}get/`;
+    fetch(url, { headers:{"X-Requested-With":"XMLHttpRequest"}, credentials:"include" })
+    .then(async res => {
+        if (res.status === 401) { alert("Authentication required."); return; }
+        const ct = res.headers.get("content-type") || "";
+        let html;
+        if (ct.includes("application/json")) {
+            const data = await res.json();
+            if (!data.success) { alert(data.error || "Could not load form."); return; }
+            html = data.html;
+        } else {
+            const text = await res.text();
+            if (res.status === 404) { alert("Form endpoint not found."); return; }
+            if (text.toLowerCase().includes("login")) { alert("Not authenticated."); return; }
+            html = text;
+        }
+        insertEntityModal(entity, html, "Create");
+    })
+    .catch(err => {
+        console.error("Load create form error:", err);
+        alert("Failed to load create form.");
+    });
+}
+
+function editEntity(entity, id) {
+    if (!entity || !id) { console.error("editEntity requires entity and id"); return; }
+    id = String(id).replace(/^:/, "");
+    const base = getEntityBase();
+    const url = `${base}get/${id}/`;
+    fetch(url, { headers:{"X-Requested-With":"XMLHttpRequest"}, credentials:"include" })
+    .then(async res => {
+        if (res.status === 401) { alert("Authentication required."); return; }
+        const ct = res.headers.get("content-type") || "";
+        let html;
+        if (ct.includes("application/json")) {
+            const data = await res.json();
+            if (!data.success) { alert(data.error || "Could not load form."); return; }
+            html = data.html;
+        } else {
+            const text = await res.text();
+            if (res.status === 404) { alert("Edit form endpoint not found."); return; }
+            if (text.toLowerCase().includes("login")) { alert("Not authenticated."); return; }
+            html = text;
+        }
+        insertEntityModal(entity, html, "Edit", id);
+    })
+    .catch(err => {
+        console.error("Edit load error:", err);
+        alert("Failed to load data.");
+    });
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
 }
 
 function closeEntityModal() {
     const modal = document.getElementById("entity-modal");
+<<<<<<< HEAD
     if (modal) {
         // Remove modal display
         modal.style.display = "none";
@@ -1347,6 +1720,63 @@ function closeEntityModal() {
 // ===== Delete ===== //
 // deleteEntity function moved to companies/static/js/modals.crud.js
 // This prevents conflicts with the main delete functionality
+=======
+    if (modal) modal.style.display = "none";
+}
+
+// ===== Delete ===== //
+function deleteEntity(entity, id) {
+  if (!confirm("Delete this record?")) return;
+
+  const base = getEntityBase();       // e.g. "/userprofile/"
+  id = String(id).replace(/^:/, "");
+  const url = `${base}delete/${id}/`; // matches your urls.py
+
+  fetch(url, {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": getCookie("csrftoken"),
+      "X-Requested-With": "XMLHttpRequest"
+    },
+    credentials: "include"
+  })
+  .then(async res => {
+    const ct = (res.headers.get("content-type") || "").toLowerCase();
+    // Quick debug so we see what's coming back
+    console.log("DELETE status:", res.status, "content-type:", ct, "url:", url);
+
+    // If server sent HTML (error page), do NOT try to parse JSON
+    if (!ct.includes("application/json")) {
+      const text = await res.text().catch(() => "");
+      console.error("Non-JSON response:", text.slice(0, 400));
+      alert("Delete failed (server returned an HTML error). Check console.");
+      return;
+    }
+
+    const data = await res.json();
+
+    if (res.status === 401) {
+      alert("Please log in again.");
+      return;
+    }
+
+    if (data.success) {
+      location.reload();
+      return;
+    }
+
+    const extras = data.blocked_by
+      ? "\nBlocked by: " + Object.entries(data.blocked_by).map(([m, c]) => `${m} (${c})`).join(", ")
+      : "";
+    alert((data.error || "Delete failed.") + extras);
+  })
+  .catch(err => {
+    console.error("Delete network error:", err);
+    alert("Network error during delete.");
+  });
+}
+
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
 
 /* ===== Fresh login modal state helper ===== */
 function resetLoginModalState() {
@@ -1356,9 +1786,17 @@ function resetLoginModalState() {
     const err = document.getElementById("login-error");
     const submitBtn = document.getElementById("login-submit");
 
+<<<<<<< HEAD
     if (u) { u.value = ""; u.setAttribute("readonly","readonly"); }
     if (p) { p.value = ""; p.setAttribute("readonly","readonly"); }
 
+=======
+    // Clear fields
+    if (u) { u.value = ""; u.setAttribute("readonly","readonly"); }
+    if (p) { p.value = ""; p.setAttribute("readonly","readonly"); }
+
+    // Re-arm unlock on user intent
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
     [u,p].forEach(el => {
         if (!el) return;
         const unlock = () => el.removeAttribute("readonly");
@@ -1367,9 +1805,17 @@ function resetLoginModalState() {
         );
     });
 
+<<<<<<< HEAD
     if (otpBlock) otpBlock.hidden = true;
     if (err) { err.hidden = true; err.style.display = ""; err.textContent = ""; }
 
+=======
+    // Hide OTP + Error
+    if (otpBlock) otpBlock.hidden = true;
+    if (err) { err.hidden = true; err.style.display = ""; err.textContent = ""; }
+
+    // Disable submit until typing
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
     if (submitBtn) submitBtn.setAttribute("disabled","disabled");
 }
 
@@ -1377,6 +1823,7 @@ function resetLoginModalState() {
 function openLoginModal() {
     const loginModal = document.getElementById("login-modal");
     if (loginModal) {
+<<<<<<< HEAD
         resetLoginModalState();
         loginModal.classList.add("show");
         loginModal.style.display = "flex";
@@ -1390,6 +1837,13 @@ function openLoginModal() {
         if (u) setTimeout(()=>u.focus(), 0);
     } else {
         alert("Not authenticated.");
+=======
+        resetLoginModalState();                 // ← ensure fresh every time
+        loginModal.classList.add("show");
+        loginModal.style.display = "flex";
+        const u = document.getElementById("login-username");
+        if (u) setTimeout(()=>u.focus(), 0);
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
     }
 }
 function closeLoginModal() {
@@ -1397,7 +1851,11 @@ function closeLoginModal() {
     if (loginModal) {
         loginModal.classList.remove("show");
         loginModal.style.display = "none";
+<<<<<<< HEAD
         resetLoginModalState();
+=======
+        resetLoginModalState();                 // ← prepare next open as fresh
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
     }
 }
 
@@ -1412,11 +1870,18 @@ function openImageModal(id, entity, field) {
     if (metaContainer) metaContainer.innerHTML = "";
 
     id = String(id).replace(/^:/, "");
+<<<<<<< HEAD
     const base = getEntityBase(entity);
     const url = `${base}get/${id}/`;
     fetch(url, { headers:{ "X-Requested-With":"XMLHttpRequest", "Accept": "application/json" }, credentials:"include", cache:"no-store", redirect:"follow" })
     .then(async res => {
         if (res.status === 401 || res.status === 403 || res.redirected) { handleAuthFailure("Not authenticated."); return; }
+=======
+    const url = `${getEntityBase()}get/${id}/`;
+    fetch(url, { headers:{"X-Requested-With":"XMLHttpRequest"}, credentials:"include" })
+    .then(async res => {
+        if (res.status === 401) { alert("Authentication required."); return; }
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
 
         const ct = res.headers.get("content-type") || "";
         let data = {};
@@ -1440,7 +1905,14 @@ function openImageModal(id, entity, field) {
         metaContainer.innerHTML = lines.join("");
         modal.style.display = "flex";
     })
+<<<<<<< HEAD
     .catch(err => { console.error("Image preview error:", err); alert("Failed to load image preview."); });
+=======
+    .catch(err => {
+        console.error("Image preview error:", err);
+        alert("Failed to load image preview.");
+    });
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
 }
 
 function closeImageModal() {
@@ -1448,6 +1920,7 @@ function closeImageModal() {
     if (modal) modal.style.display = "none";
 }
 
+<<<<<<< HEAD
 // === CREDIT BUREAU MODAL + CALL === //
 function openCreditPullModal() {
   let modal = document.getElementById("credit-modal");
@@ -1792,3 +2265,188 @@ function locateField(form, fieldName) {
   if (!el) el = form.querySelector(`[id$="${CSS.escape(fieldName)}"]`);
   return el;
 }
+=======
+// === expose globally for inline handlers ===
+window.openEntityModal  = openEntityModal;
+window.editEntity       = editEntity;
+window.deleteEntity     = deleteEntity;
+window.closeEntityModal = closeEntityModal;
+window.openImageModal   = openImageModal;
+window.closeImageModal  = closeImageModal;
+
+// === Pro Login UX — additive, preserves previous logic ===
+document.addEventListener("DOMContentLoaded", function () {
+  const form  = document.getElementById("admin-login-form");
+  const modal = document.getElementById("login-modal");
+  if (!form || !modal) return;
+
+  const u = document.getElementById("login-username");
+  const p = document.getElementById("login-password");
+  const otpBlock = document.getElementById("otp-block");
+  const otp = document.getElementById("login-otp");
+  const err = document.getElementById("login-error");
+  const submitBtn = document.getElementById("login-submit");
+  const caps = document.getElementById("caps-warning");
+
+  // Ensure we always use flex (matches CSS) and always reset to fresh
+  window.openLoginModal = function () {
+    resetLoginModalState();      // ← fresh before opening
+    modal.classList.add("show");
+    modal.style.display = "flex";
+    setTimeout(() => u && u.focus(), 0);
+  };
+
+  window.closeLoginModal = window.closeLoginModal || function () {
+    modal.classList.remove("show");
+    modal.style.display = "none";
+    resetLoginModalState();      // ← prepare fresh for next open
+  };
+
+  // Enter-to-submit from anywhere in the form
+  form.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submitBtn && submitBtn.click();
+    }
+  });
+
+  // Caps Lock hint
+  ["keydown","keyup"].forEach(ev => {
+    p && p.addEventListener(ev, e => {
+      if (e.getModifierState && e.getModifierState("CapsLock")) { caps.hidden = false; }
+      else { caps.hidden = true; }
+    });
+  });
+
+  function setLoading(on) {
+    if (!submitBtn) return;
+    if (on) { submitBtn.classList.add("loading"); submitBtn.setAttribute("disabled","disabled"); }
+    else    { submitBtn.classList.remove("loading"); /* inputs control enable state */ }
+  }
+  function showErr(msg) {
+    showInlineLoginError(msg || "Login failed."); // unify single show method
+  }
+  function clearErr() {
+    if (err) { err.hidden = true; err.style.display = ""; err.textContent = ""; }
+  }
+
+  if (!form.dataset.enhancedSubmit) {
+    form.dataset.enhancedSubmit = "1";
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      clearErr();
+      setLoading(true);
+
+      try {
+        const res = await fetch(form.action, {
+          method: "POST",
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRFToken": getCookie("csrftoken")
+          },
+          body: new FormData(form),
+          credentials: "include",
+          redirect: "follow"
+        });
+
+        // Handle auth failures even if server doesn't return JSON
+        if (res.redirected && !(res.headers.get("content-type") || "").toLowerCase().includes("application/json")) {
+          setLoading(false);
+          showErr("Invalid credentials.");
+          return;
+        }
+        if (res.status === 401 || res.status === 400 || res.status === 403) {
+          setLoading(false);
+          showErr("Invalid credentials.");
+          return;
+        }
+
+        if ((res.headers.get("content-type") || "").toLowerCase().includes("application/json")) {
+          const data = await res.json();
+
+          if (data.require_otp) {
+            otpBlock.hidden = false;
+            otp && otp.focus();
+            setLoading(false);
+            return;
+          }
+
+          if (data.success) {
+            window.location.href = data.redirect_url || data.redirect || "/dashboard/";
+          } else {
+            setLoading(false);
+            showErr(data.error || "Invalid credentials.");
+          }
+        } else {
+          // Non-JSON fallback: keep modal, show inline error
+          setLoading(false);
+          showErr("Invalid credentials.");
+        }
+      } catch (ex) {
+        console.error("Login error:", ex);
+        setLoading(false);
+        showErr("Network error. Please try again.");
+      }
+    });
+  }
+
+  // Hide error and control submit enable while typing
+  function updateSubmitState(){
+    const ok = (u && u.value.trim().length>0) && (p && p.value.trim().length>0);
+    if (ok) submitBtn && submitBtn.removeAttribute("disabled");
+    else    submitBtn && submitBtn.setAttribute("disabled","disabled");
+    // Do not nuke an error that was just shown by submit; only clear while actually typing
+    if (document.activeElement === u || document.activeElement === p) {
+      clearErr();
+    }
+  }
+  u && u.addEventListener("input", updateSubmitState);
+  p && p.addEventListener("input", updateSubmitState);
+  updateSubmitState();
+});
+
+/* ===== Bulletproof password visibility toggle (icon-based) ===== */
+function eyeSVG(){ return '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>'; }
+function eyeOffSVG(){ return '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20C5 20 1 12 1 12A21.78 21.78 0 0 1 7.05 5.05"></path><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M1 1l22 22"></path></svg>'; }
+
+document.addEventListener("click", function (e) {
+  const btn = e.target.closest("[data-toggle-pass]");
+  if (!btn) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  const wrap = btn.closest(".pro-passwrap");
+  const input = wrap ? wrap.querySelector('input[type="password"], input[type="text"]') : null;
+  if (!input) return;
+
+  const nextType = input.getAttribute("type") === "password" ? "text" : "password";
+  input.setAttribute("type", nextType);
+
+  const showing = nextType === "text";
+  btn.setAttribute("aria-pressed", showing ? "true" : "false");
+  btn.setAttribute("title", showing ? "Hide password" : "Show password");
+  btn.innerHTML = showing ? eyeOffSVG() : eyeSVG();
+
+  input.focus();
+});
+
+// ultra-safe inline fallback for Show/Hide (kept for backward compatibility, now icon-based)
+window.togglePass = function (btn) {
+  try {
+    const wrap = btn.closest(".pro-passwrap");
+    const input = wrap ? wrap.querySelector('input[type="password"], input[type="text"]') : null;
+    if (!input) return false;
+    const next = input.type === "password" ? "text" : "password";
+    input.type = next;
+    const showing = next === "text";
+    btn.setAttribute("aria-pressed", showing ? "true" : "false");
+    btn.setAttribute("title", showing ? "Hide password" : "Show password");
+    btn.innerHTML = showing ? eyeOffSVG() : eyeSVG();
+    input.focus();
+  } catch (e) {
+    console.error("togglePass error:", e);
+  }
+  return false;
+};
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
