@@ -147,41 +147,25 @@ class Cadre(BaseRaw):
 # companies/models.py
 
 class Staff(AutoCodeMixin, BaseRaw):
-    CODE_FIELD    = "staffcode"
-    staffcode = models.CharField("Empcode", max_length=50, unique=True, db_index=True)    # ← non-null, non-blank
-    name          = models.CharField(max_length=255, blank=True, null=True)
-
-    branch = models.ForeignKey(
-        Branch,
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name="staff_members",  # ← unique
-        related_query_name="staff_member",  # ← unique
-        db_column="branch",  # ← use the INT FK column
-        # remove: to_field="code" and any db_column="branch" text mapping
-    )
-
-    cadre         = models.ForeignKey(Cadre, on_delete=models.SET_NULL, null=True, blank=True)
-    designation   = models.CharField(max_length=100, blank=True, null=True)
-    joining_date  = models.DateField(blank=True, null=True)
-    status        = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active", db_index=True)
-    bank          = models.CharField(max_length=100, blank=True, null=True)
-    ifsc          = models.CharField(max_length=20, blank=True, null=True)
-    contact1      = models.CharField(max_length=15, blank=True, null=True, validators=[phone_validator], unique=True)
-    photo         = models.ImageField(upload_to="staff_photos/", blank=True, null=True)
+    CODE_PREFIX = "STF"
+    staffcode   = models.CharField(max_length=50, unique=True, blank=True, db_index=True)
+    name        = models.CharField(max_length=255, blank=True, null=True)
+    branch      = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name="staff_members")
+    cadre       = models.ForeignKey(Cadre, on_delete=models.SET_NULL, null=True, blank=True)
+    designation = models.CharField(max_length=100, blank=True, null=True)
+    joining_date = models.DateField(blank=True, null=True)
+    status      = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
+    bank        = models.CharField(max_length=100, blank=True, null=True)
+    ifsc        = models.CharField(max_length=20, blank=True, null=True)
+    contact1    = models.CharField(max_length=15, blank=True, null=True, validators=[phone_validator])
+    photo       = models.ImageField(upload_to="staff_photos/", blank=True, null=True)
 
     def __str__(self):
         return self.name or f"{self.staffcode}"
 
-    # ✅ Normalize legacy truthy "active" values at save time
-    def save(self, *args, **kwargs):
-        if str(self.status).strip().lower() in {"1", "true", "active"} or self.status in (1, True):
-            self.status = "active"
-        super().save(*args, **kwargs)
 
 
-
-class UserProfile(BaseRaw):
+class Users(BaseRaw):
     user = models.ForeignKey(
         AuthUser, null=True, blank=True, on_delete=models.SET_NULL
     )
@@ -192,7 +176,6 @@ class UserProfile(BaseRaw):
         null=True,
         blank=True,
         related_name="user_profiles",
-        limit_choices_to=Q(status="active"),
     )
     full_name  = models.CharField(max_length=255, blank=True, null=True)
     branch     = models.ForeignKey(
@@ -206,18 +189,20 @@ class UserProfile(BaseRaw):
     department = models.CharField(max_length=100, blank=True, null=True)
     mobile     = models.CharField(max_length=20, blank=True, null=True, validators=[phone_validator])
 
-    is_admin          = models.BooleanField(default=False)
-    is_master         = models.BooleanField(default=False)
-    is_data_entry     = models.BooleanField(default=False)
-    is_reports        = models.BooleanField(default=False)
-    is_accounting     = models.BooleanField(default=False)
-    is_recovery_agent = models.BooleanField(default=False)
-    is_auditor        = models.BooleanField(default=False)
-    is_manager        = models.BooleanField(default=False)
+    is_reports        = models.BooleanField(default=True)  # Users only have reports role
 
     status   = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
     password = models.CharField(max_length=128, blank=True, null=True,
                                 help_text="Hashed password for non-Django auth use")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['staff'],
+                name='unique_user_per_staff',
+                condition=models.Q(staff__isnull=False)
+            )
+        ]
 
     def set_password(self, raw_password):
         from django.contrib.auth.hashers import make_password
@@ -229,7 +214,7 @@ class UserProfile(BaseRaw):
 
 
 class UserPermission(BaseRaw):
-    user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name="permissions_set")
+    user_profile = models.ForeignKey(Users, on_delete=models.CASCADE, related_name="permissions_set")
     is_admin        = models.BooleanField(default=False)
     is_master       = models.BooleanField(default=False)
     is_data_entry   = models.BooleanField(default=False)
@@ -1543,7 +1528,7 @@ class Temp(BaseRaw):
     date1 = models.CharField(max_length=50, blank=True, null=True)
     raw_csv_data = models.JSONField(blank=True, null=True)
 
-class Users(BaseRaw):
+class User(BaseRaw):
     uname = models.FloatField(blank=True, null=True)
     creat_date = models.CharField(max_length=50, blank=True, null=True)
     valid_date = models.CharField(max_length=50, blank=True, null=True)

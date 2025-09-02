@@ -1,0 +1,75 @@
+<!-- Edit Form in Dashboard -->
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Edit {{ entity|title }}</h2>
+        <a href="/{{ entity|lower }}/" class="btn btn-secondary">
+          <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+      </div>
+
+      <!-- Form -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data" action="/{{ entity|lower }}/update/{{ object_id }}/">
+            {% csrf_token %}
+            
+            <!-- Errors -->
+            {% if form.errors %}
+              <div class="alert alert-danger">
+                <strong>Please correct the following errors:</strong>
+                <ul class="mb-0">
+                  {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                      <li>{{ error }}</li>
+                    {% endfor %}
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+
+            <!-- Form Fields -->
+            <div class="row">
+              {% for field in form %}
+                <div class="col-md-6 mb-3">
+                  <label for="{{ field.id_for_label }}" class="form-label">
+                    {{ field.label }}
+                    {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                  </label>
+                  
+                  {{ field }}
+                  
+                  {% if field.help_text %}
+                    <div class="form-text">{{ field.help_text }}</div>
+                  {% endif %}
+                  
+                  {% if field.errors %}
+                    <div class="text-danger small">
+                      {% for error in field.errors %}
+                        {{ error }}
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+
+            <!-- Hidden Fields -->
+            <input type="hidden" name="entity" value="{{ entity }}">
+            <input type="hidden" name="object_id" value="{{ object_id }}">
+            
+            <!-- Form Actions -->
+            <div class="d-flex justify-content-end gap-2 mt-4">
+              <a href="/{{ entity|lower }}/" class="btn btn-secondary">Cancel</a>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Update
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UserProfile Quick Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-btn { 
+            background: #007bff; color: white; padding: 10px 20px; 
+            border: none; border-radius: 5px; margin: 10px; cursor: pointer; 
+        }
+        .test-btn:hover { background: #0056b3; }
+        .status { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <h1>UserProfile Modal Test</h1>
+    
+    <div id="status"></div>
+    
+    <button class="test-btn" onclick="testUserProfileModal()">Test UserProfile Modal</button>
+    <button class="test-btn" onclick="testUserProfileList()">Test UserProfile List</button>
+    <button class="test-btn" onclick="checkModalSystem()">Check Modal System</button>
+    
+    <script>
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        function checkModalSystem() {
+            updateStatus('Checking modal system...', 'info');
+            
+            const checks = [
+                { name: 'openEntityModal function', check: () => typeof window.openEntityModal === 'function' },
+                { name: 'editEntity function', check: () => typeof window.editEntity === 'function' },
+                { name: 'UserProfile fix script loaded', check: () => document.querySelector('script[src*="userprofile_fix.js"]') !== null }
+            ];
+            
+            let results = [];
+            checks.forEach(check => {
+                const result = check.check();
+                results.push(`${check.name}: ${result ? '✅' : '❌'}`);
+            });
+            
+            updateStatus('Modal System Check:<br>' + results.join('<br>'), results.every(r => r.includes('✅')) ? 'success' : 'error');
+        }
+        
+        function testUserProfileModal() {
+            updateStatus('Testing UserProfile modal...', 'info');
+            
+            if (typeof window.openEntityModal === 'function') {
+                try {
+                    window.openEntityModal('UserProfile');
+                    updateStatus('UserProfile modal opened successfully!', 'success');
+                } catch (error) {
+                    updateStatus('Error opening UserProfile modal: ' + error.message, 'error');
+                }
+            } else {
+                updateStatus('Modal system not available. Please load the dashboard first.', 'error');
+            }
+        }
+        
+        function testUserProfileList() {
+            updateStatus('Testing UserProfile list navigation...', 'info');
+            
+            try {
+                window.location.href = '/UserProfile/';
+                updateStatus('Navigating to UserProfile list...', 'info');
+            } catch (error) {
+                updateStatus('Error navigating to UserProfile list: ' + error.message, 'error');
+            }
+        }
+        
+        // Auto-check on load
+        window.addEventListener('load', function() {
+            setTimeout(checkModalSystem, 1000);
+        });
+    </script>
+</body>
+</html>
+

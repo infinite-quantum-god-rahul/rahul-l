@@ -1,3 +1,6 @@
+
+
+
 /* Extracted from script.js — app.modals.js */
 /* ====== MODALS, ROUTING, ENTITY CRUD (UserProfile hard-nav + stable) ====== */
 (function(){
@@ -137,28 +140,32 @@ try{ __markModalResponse(); }catch(_){ }
   function buildTryUrls(mode, entity, id){
     const raw = String(entity).replace(/\s+/g,"");
     const baseLower = `/${encodeURIComponent(raw.toLowerCase())}/`;
-    const baseOrig  = `/${encodeURIComponent(raw)}/`;
     const idClean   = String(id||"").replace(/^:/,'');
     const q = `_=${Date.now()}`;
     const qsOpts = ["", "?partial=1", "?modal=1", "?format=partial", "?ajax=1"].map(s=> s+(s?("&"+q):("?"+q)));
     const list = [];
 
+    // Always use lowercase URLs for consistency
     if (mode==="Create"){
-      [baseLower, baseOrig].forEach(b=>{
-        ["get/","Get/"].forEach(seg=>{ qsOpts.forEach(qs=> list.push(b+seg+qs)); });
-        ["create/","Create/"].forEach(seg=>{ qsOpts.forEach(qs=> list.push(b+seg+qs)); });
-      });
+      qsOpts.forEach(qs=> list.push(baseLower+"get/"+qs));
     }else{
-      [baseLower, baseOrig].forEach(b=>{
-        ["get/","Get/"].forEach(seg=>{ qsOpts.forEach(qs=> list.push(`${b}${seg}${encodeURIComponent(idClean)}/${qs}`)); });
-        ["update/","Update/"].forEach(seg=>{ qsOpts.forEach(qs=> list.push(`${b}${seg}${encodeURIComponent(idClean)}/${qs}`)); });
-      });
+      qsOpts.forEach(qs=> list.push(`${baseLower}get/${encodeURIComponent(idClean)}/${qs}`));
     }
-    return { list, baseLower, baseOrig };
+    
+    return { list, baseLower, baseLower };
   }
 
   function loadEntityForm(mode, entity, id){
-    const { list, baseLower, baseOrig } = buildTryUrls(mode, entity, id);
+    const { list, baseLower } = buildTryUrls(mode, entity, id);
+
+    // Debug logging for UserProfile
+    if (isUserProfileEntity(entity)) {
+      console.log('=== UserProfile Modal Debug ===');
+      console.log('Mode:', mode);
+      console.log('Entity:', entity);
+      console.log('URLs to try:', list);
+      console.log('Base URL:', baseLower);
+    }
 
   // guard: modal response arrived
   function __markModalResponse(){
@@ -179,7 +186,7 @@ const opts = { headers:{ "X-Requested-With":"XMLHttpRequest","Accept":"applicati
       if (window.__CANCEL_MODAL) return;
       if (window.__MODAL_LOADING && !window.__MODAL_GOT_RESPONSE && !qs("#entity-modal .modal-body form") && !window.__HARD_NAV_ISSUED){
         window.__HARD_NAV_ISSUED = true;
-        window.location.href = (mode==="Create" ? `${baseOrig}get/` : `${baseOrig}update/${encodeURIComponent(String(id).replace(/^:/,''))}/`);
+        window.location.href = (mode==="Create" ? `${baseLower}get/` : `${baseLower}update/${encodeURIComponent(String(id).replace(/^:/,''))}/`);
       }
     }, 3500);
 
@@ -187,24 +194,63 @@ const opts = { headers:{ "X-Requested-With":"XMLHttpRequest","Accept":"applicati
     return (async ()=>{
       for (const u of list){
         if (window.__CANCEL_MODAL) break;
+        
+        // Debug logging for UserProfile
+        if (isUserProfileEntity(entity)) {
+          console.log('Trying URL:', u);
+        }
+        
         const res = await tryFetch(u, opts);
-        if (!res) continue;
+        if (!res) {
+          if (isUserProfileEntity(entity)) {
+            console.log('Fetch failed for URL:', u);
+          }
+          continue;
+        }
+        
+        if (isUserProfileEntity(entity)) {
+          console.log('Response for URL:', u, 'Status:', res.status);
+        }
+        
         window.__MODAL_GOT_RESPONSE = true;
         if (res.status===401 || res.status===403 || res.redirected){ window.__MODAL_LOADING=false; handleAuthFailure("Not authenticated."); return; }
-        if (res.status===404) continue;
+        if (res.status===404) {
+          if (isUserProfileEntity(entity)) {
+            console.log('404 for URL:', u);
+          }
+          continue;
+        }
         if (isJsonCt(res)){
           const d=await res.json().catch(()=>null);
           if (d){
+            if (isUserProfileEntity(entity)) {
+              console.log('JSON response for UserProfile:', d);
+            }
             const h = (d && typeof d==='object' && (d.html || d.body || d.template)) ? (d.html||d.body||d.template) : (typeof d==='string'?d:deepFindHtml(d));
-            if (h){ insertEntityModal(entity, h, mode, id, u.startsWith(baseOrig)?baseOrig:baseLower); return; }
-            if (d.success && d.html){ insertEntityModal(entity, d.html, mode, id, u.startsWith(baseOrig)?baseOrig:baseLower); return; }
+            if (h){
+              if (isUserProfileEntity(entity)) {
+                console.log('Found HTML in JSON response, inserting modal');
+              }
+              insertEntityModal(entity, h, mode, id, baseLower); return;
+            }
+            if (d.success && d.html){
+              if (isUserProfileEntity(entity)) {
+                console.log('Found success response with HTML, inserting modal');
+              }
+              insertEntityModal(entity, d.html, mode, id, baseLower); return;
+            }
           }
         }else{
           let t=await res.text().catch(()=> "");
           if (t && t.trim().startsWith("{")){
             try{ const j=JSON.parse(t); const h2=deepFindHtml(j); if (h2){ t=h2; } }catch(_){}
           }
-          if (t){ insertEntityModal(entity, t, mode, id, u.startsWith(baseOrig)?baseOrig:baseLower); return; }
+          if (t){
+            if (isUserProfileEntity(entity)) {
+              console.log('Found text response, inserting modal. Length:', t.length);
+            }
+            insertEntityModal(entity, t, mode, id, baseLower); return;
+          }
         }
       }
       window.__MODAL_LOADING=false;
@@ -213,7 +259,7 @@ const opts = { headers:{ "X-Requested-With":"XMLHttpRequest","Accept":"applicati
       window.__MODAL_LOADING=false;
       if (err?.name==="AbortError"){ abortModal("Request timed out. Please try again."); return; }
       console.error(`${mode} load error:`, err); alert(`Failed to load ${mode.toLowerCase()} form. Opening full page…`);
-      window.location.href = (mode==="Create" ? `${baseOrig}get/` : `${baseOrig}update/${encodeURIComponent(String(id).replace(/^:/,''))}/`);
+      window.location.href = (mode==="Create" ? `${baseLower}get/` : `${baseLower}update/${encodeURIComponent(String(id).replace(/^:/,''))}/`);
     }).finally(()=>{ if (__FALLBACK_TIMER){ clearTimeout(__FALLBACK_TIMER); __FALLBACK_TIMER=null; } });
   }
 
@@ -230,7 +276,6 @@ const opts = { headers:{ "X-Requested-With":"XMLHttpRequest","Accept":"applicati
   }
   function editEntity(entity, id){
     if (!entity || !id){ console.error("editEntity requires entity and id"); return; }
-    if (isUserPermEntity(entity)){ alert("Use the User Permissions page to manage permissions."); return; }
     return loadEntityForm("Edit", entity, String(id).replace(/^:/,''));
   }
   function closeEntityModal(){
@@ -246,27 +291,67 @@ const opts = { headers:{ "X-Requested-With":"XMLHttpRequest","Accept":"applicati
   // delete
   function getCurrentRole(){ try{ return (document.body?.dataset?.role||"").toLowerCase(); }catch(_){ return ""; } }
   function deleteEntity(entity, id){
-    if (!confirm("Are you sure you want to delete this item?")) return;
-    if (getCurrentRole()==="master"){ alert("Delete is disabled for Master role."); return; }
-    if (isUserPermEntity(entity)){ alert("This is a settings page with no table. Use the User Permissions UI."); return; }
-    id=String(id).replace(/^:/,''); const seg=String(entity).replace(/\s+/g,"").toLowerCase();
-    fetch(`/${encodeURIComponent(seg)}/delete/${encodeURIComponent(id)}/`,{
-      method:"POST", headers:{ "X-CSRFToken":getCsrfTokenSafe(),"X-Requested-With":"XMLHttpRequest","Accept":"application/json" }, credentials:"include", redirect:"follow", keepalive:true
+    try {
+      const confirmed = confirm("Are you sure you want to delete this item?");
+      if (!confirmed) {
+        return;
+      }
+      
+      id = String(id).replace(/^:/,''); 
+      const seg = String(entity).replace(/\s+/g,"").toLowerCase();
+      
+      const csrfToken = getCsrfTokenSafe();
+      if (!csrfToken) {
+        alert("CSRF token not found. Please refresh the page and try again.");
+        return;
+      }
+      
+      fetch(`/${encodeURIComponent(seg)}/delete/${encodeURIComponent(id)}/`,{
+        method:"POST", 
+        headers:{ 
+          "X-CSRFToken":csrfToken,
+          "X-Requested-With":"XMLHttpRequest",
+          "Accept":"application/json" 
+        }, 
+        credentials:"include"
     }).then(async res=>{
+      console.log("=== DELETE RESPONSE RECEIVED ===");
+      console.log("Response status:", res.status);
+      console.log("Response headers:", res.headers);
+      console.log("Response redirected:", res.redirected);
+      
       const ct=(res.headers.get("content-type")||"").toLowerCase();
       if (res.status===401){ handleAuthFailure("Not authenticated."); return; }
       if (res.status===403 || res.redirected){ handleAuthFailure("Not authenticated."); return; }
       if (ct.includes("application/json")){
+        console.log("=== PROCESSING JSON RESPONSE ===");
         const d=await res.json();
-        if (d.success){ location.reload(); return; }
+        console.log("Response data:", d);
+        if (d.success){ 
+          console.log("Delete successful, reloading page");
+          location.reload(); 
+          return; 
+        }
         const msg=String(d.error||"").toLowerCase();
+        console.log("Error message:", msg);
         const tblMissing=/no such table|does not exist|undefinedtable/.test(msg); const limited=(seg==="userprofile"||seg==="hrpm");
         alert(tblMissing && limited ? "Table missing. Run migrations, then retry delete." : (d.error||"Delete failed.")); return;
       }
+      console.log("=== PROCESSING NON-JSON RESPONSE ===");
       const t = await res.text().catch(()=> "");
+      console.log("Response text:", t);
       if (res.status===403 && /csrf|forgery/i.test(t)) alert("CSRF validation failed or session expired. Refresh and try again.");
       else { alert("Server returned unexpected response while deleting."); console.error("Delete non-JSON:", t.slice(0,500)); }
-    }).catch(err=>{ console.error("Delete error:", err); alert("Delete request failed. Check console."); });
+    }).catch(err=>{ 
+      console.log("=== DELETE REQUEST FAILED ===");
+      console.error("Delete error:", err); 
+      alert("Delete request failed. Check console."); 
+    });
+    } catch (error) {
+      console.log("=== DELETE FUNCTION ERROR ===");
+      console.error("Function error:", error);
+      alert("Delete function error: " + error.message);
+    }
   }
 
   // entity button normalization + router
@@ -291,7 +376,7 @@ const opts = { headers:{ "X-Requested-With":"XMLHttpRequest","Accept":"applicati
       const mDel  = href.match(/^\/([^\/]+)\/delete\/([^\/]+)\/?(\?.*)?$/i);
       if (mAdd){
         const ent = mAdd[1];
-        if (isUserProfileEntity(ent)) return; // don't convert UserProfile links into modal triggers
+
         if (!el.dataset.openEntity) el.dataset.openEntity = ent;
         if (!el.dataset.entity) el.dataset.entity = ent;
         el.classList.add("btn-add");
@@ -353,7 +438,7 @@ const opts = { headers:{ "X-Requested-With":"XMLHttpRequest","Accept":"applicati
 
     if (href && /^mailto:|^tel:/i.test(href)) return;
 if (!entity) return;
-    if (isUserProfileEntity(entity)) return; // let UserProfile links navigate normally
+
     e.preventDefault();
     e.stopImmediatePropagation();
 
@@ -374,7 +459,7 @@ if (!entity) return;
     if (!mAdd && !mEdit) return;
     if (a.closest("#entity-modal")) return;
     const ent = mAdd ? mAdd[1] : (mEdit ? mEdit[1] : "");
-    if (isUserProfileEntity(ent)) return; // allow default navigation for UserProfile
+
 e.preventDefault(); e.stopImmediatePropagation();
     if (mAdd) openEntityModal(mAdd[1]);
     else if (mEdit) editEntity(mEdit[1], mEdit[2]);

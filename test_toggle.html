@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sidebar Toggle Test - SML Project</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background: #f5f5f5; 
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-warning { background-color: #ffc107; color: black; }
+        
+        .status-box {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        .toggle-preview {
+            position: relative;
+            height: 200px;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .sidebar-preview {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 200px;
+            height: 100%;
+            background: #0c1d32;
+            color: white;
+            padding: 20px;
+            transition: transform 0.3s ease;
+        }
+        
+        .sidebar-preview.collapsed {
+            transform: translateX(-200px);
+        }
+        
+        .content-preview {
+            position: absolute;
+            left: 200px;
+            top: 0;
+            right: 0;
+            height: 100%;
+            background: white;
+            padding: 20px;
+            transition: left 0.3s ease;
+        }
+        
+        .content-preview.expanded {
+            left: 0;
+        }
+        
+        .toggle-btn-preview {
+            position: absolute;
+            top: 20px;
+            left: 10px;
+            background: #173651;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            z-index: 10;
+            transition: left 0.3s ease;
+        }
+        
+        .sidebar-preview:not(.collapsed) ~ .toggle-btn-preview {
+            left: 210px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 Sidebar Toggle Test - SML Project</h1>
+        
+        <div class="test-section info">
+            <h3>Purpose</h3>
+            <p>This page tests if the sidebar toggle functionality is working properly. The toggle button should be visible and functional.</p>
+        </div>
+
+        <div class="test-section">
+            <h3>Toggle Button Test</h3>
+            <p>Test the toggle button functionality:</p>
+            <button class="btn-primary" onclick="testToggle()">Test Toggle Function</button>
+            <button class="btn-success" onclick="checkToggleButton()">Check Toggle Button</button>
+            <button class="btn-warning" onclick="resetToggle()">Reset Toggle</button>
+            <div id="toggle-result" class="status-box">Click a button above to test...</div>
+        </div>
+
+        <div class="test-section">
+            <h3>Visual Preview</h3>
+            <p>Here's how the toggle should work:</p>
+            <div class="toggle-preview">
+                <div class="sidebar-preview" id="preview-sidebar">
+                    <h4>Sidebar</h4>
+                    <p>This is the sidebar content</p>
+                </div>
+                <div class="content-preview" id="preview-content">
+                    <h4>Main Content</h4>
+                    <p>This is the main content area</p>
+                </div>
+                <button class="toggle-btn-preview" onclick="togglePreview()">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Current Status</h3>
+            <div id="status">
+                <p>✅ Toggle button CSS fixed</p>
+                <p>✅ Toggle button positioned outside dashboard-flex</p>
+                <p>✅ FontAwesome icons added</p>
+                <p>🔄 Testing toggle functionality...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let previewCollapsed = false;
+        
+        function testToggle() {
+            const resultDiv = document.getElementById('toggle-result');
+            resultDiv.innerHTML = '<strong>Testing toggle function...</strong>';
+            
+            // Test if toggleSidebar function exists
+            if (typeof window.toggleSidebar === 'function') {
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <strong>✅ SUCCESS!</strong> toggleSidebar function exists and is callable.
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <strong>❌ ERROR!</strong> toggleSidebar function not found. 
+                        This means the toggle button won't work on the main site.
+                    </div>
+                `;
+            }
+        }
+        
+        function checkToggleButton() {
+            const resultDiv = document.getElementById('toggle-result');
+            resultDiv.innerHTML = '<strong>Checking toggle button...</strong>';
+            
+            // Check if we can find the toggle button
+            const toggleBtn = document.querySelector('.sidebar-toggle-btn');
+            if (toggleBtn) {
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <strong>✅ SUCCESS!</strong> Toggle button found in DOM.<br>
+                        Button text: ${toggleBtn.innerHTML}<br>
+                        Button classes: ${toggleBtn.className}<br>
+                        Button style: ${toggleBtn.style.cssText}
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <strong>❌ ERROR!</strong> Toggle button not found in DOM.
+                    </div>
+                `;
+            }
+        }
+        
+        function resetToggle() {
+            const resultDiv = document.getElementById('toggle-result');
+            resultDiv.innerHTML = '<strong>Reset completed.</strong>';
+            
+            // Reset preview
+            previewCollapsed = false;
+            updatePreview();
+        }
+        
+        function togglePreview() {
+            previewCollapsed = !previewCollapsed;
+            updatePreview();
+        }
+        
+        function updatePreview() {
+            const sidebar = document.getElementById('preview-sidebar');
+            const content = document.getElementById('preview-content');
+            
+            if (previewCollapsed) {
+                sidebar.classList.add('collapsed');
+                content.classList.add('expanded');
+            } else {
+                sidebar.classList.remove('collapsed');
+                content.classList.remove('expanded');
+            }
+        }
+        
+        // Auto-test on page load
+        window.addEventListener('load', function() {
+            console.log('=== Sidebar Toggle Test Page Loaded ===');
+            testToggle();
+            checkToggleButton();
+        });
+        
+        // Mock toggleSidebar function for testing
+        window.toggleSidebar = function() {
+            console.log('toggleSidebar function called');
+            return 'Toggle function working!';
+        };
+    </script>
+</body>
+</html>

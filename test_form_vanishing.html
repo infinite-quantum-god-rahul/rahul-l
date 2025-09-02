@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Vanishing Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+        }
+        .close-btn {
+            float: right;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Form Vanishing Test</h1>
+        <p>This page tests if clicking on form inputs causes the modal to vanish.</p>
+        
+        <button onclick="openModal()">Open Test Modal</button>
+        <button onclick="testClicks()">Test All Clicks</button>
+        <button onclick="clearLog()">Clear Log</button>
+        
+        <div class="status" id="status">
+            <strong>Status:</strong> Ready to test
+        </div>
+    </div>
+
+    <!-- Test Modal -->
+    <div id="test-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2>Test Modal</h2>
+            <p>Click on the form inputs below. The modal should NOT vanish.</p>
+            
+            <form id="test-form">
+                <div class="form-group">
+                    <label>Text Input:</label>
+                    <input type="text" id="text-input" name="text_input" placeholder="Click here..." />
+                </div>
+                
+                <div class="form-group">
+                    <label>Email Input:</label>
+                    <input type="email" id="email-input" name="email_input" placeholder="Click here..." />
+                </div>
+                
+                <div class="form-group">
+                    <label>Select:</label>
+                    <select id="select-input" name="select_input">
+                        <option value="">Click here...</option>
+                        <option value="1">Option 1</option>
+                        <option value="2">Option 2</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Textarea:</label>
+                    <textarea id="textarea-input" name="textarea_input" placeholder="Click here..." rows="3"></textarea>
+                </div>
+                
+                <button type="button" onclick="testSubmit()">Test Submit</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let modalVanished = false;
+        let clickCount = 0;
+        const status = document.getElementById('status');
+        const modal = document.getElementById('test-modal');
+        const inputs = document.querySelectorAll('#test-form input, #test-form select, #test-form textarea');
+        
+        function updateStatus(message, isError = false) {
+            status.textContent = message;
+            status.className = 'status ' + (isError ? 'error' : 'success');
+        }
+        
+        function openModal() {
+            modal.style.display = 'block';
+            modalVanished = false;
+            clickCount = 0;
+            updateStatus('Modal opened - click on form inputs to test');
+        }
+        
+        function closeModal() {
+            modal.style.display = 'none';
+            updateStatus('Modal closed manually');
+        }
+        
+        function testClicks() {
+            if (modal.style.display !== 'block') {
+                updateStatus('Please open the modal first', true);
+                return;
+            }
+            
+            updateStatus('Testing clicks on all form inputs...');
+            
+            // Simulate clicks on each input
+            inputs.forEach((input, index) => {
+                setTimeout(() => {
+                    input.click();
+                    input.focus();
+                    clickCount++;
+                    
+                    if (modal.style.display === 'none') {
+                        modalVanished = true;
+                        updateStatus('❌ ERROR: Modal vanished when clicking on ' + input.name, true);
+                    } else if (clickCount === inputs.length) {
+                        if (!modalVanished) {
+                            updateStatus('✅ SUCCESS: Modal stayed open after all clicks!');
+                        }
+                    }
+                }, index * 500);
+            });
+        }
+        
+        function testSubmit() {
+            updateStatus('Submit button clicked - modal should still be open');
+        }
+        
+        function clearLog() {
+            updateStatus('Log cleared - ready to test again');
+        }
+        
+        // Monitor modal visibility
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    if (modal.style.display === 'none' && !modalVanished) {
+                        modalVanished = true;
+                        updateStatus('❌ ERROR: Modal vanished unexpectedly!', true);
+                    }
+                }
+            });
+        });
+        
+        observer.observe(modal, { attributes: true });
+        
+        // Monitor clicks on inputs
+        inputs.forEach(input => {
+            input.addEventListener('click', function(e) {
+                console.log('Input clicked:', input.name);
+            });
+            
+            input.addEventListener('focus', function(e) {
+                console.log('Input focused:', input.name);
+            });
+        });
+        
+        // Initial status
+        updateStatus('Ready to test - click "Open Test Modal" to start');
+    </script>
+</body>
+</html>
+
+
+
+
+

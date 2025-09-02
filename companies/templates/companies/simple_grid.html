@@ -1,0 +1,112 @@
+{% load static %}
+{% load custom_tags %}
+
+<div class="simple-grid-container">
+  <h2>{{ pretty_entity }}</h2>
+  
+  <!-- Debug Info -->
+  <div class="alert alert-info">
+    <strong>Debug Info:</strong><br>
+    Entity: {{ entity }}<br>
+    Column Fields Count: {{ column_fields|length }}<br>
+    Spec Grid Count: {{ spec_grid|length }}<br>
+    {% if column_fields %}
+      Custom Fields: {% for col in column_fields %}{{ col.field_name }}{% if not forloop.last %}, {% endif %}{% endfor %}<br>
+    {% endif %}
+    {% if spec_grid %}
+      Spec Fields: {% for f in spec_grid %}{{ f }}{% if not forloop.last %}, {% endif %}{% endfor %}<br>
+    {% endif %}
+  </div>
+
+  <!-- Add Button -->
+  <div class="mb-3">
+    <button class="btn btn-success" onclick="openEntityModal('{{ entity }}')">
+      <i class="fas fa-plus"></i> Add {{ pretty_entity }}
+    </button>
+  </div>
+
+  <!-- Simple Table -->
+  {% if grouped_objects.All_Records %}
+    <div class="table-responsive">
+      <table class="table table-striped table-hover">
+        <thead class="table-dark">
+          <tr>
+            <!-- Standard Fields from spec_grid -->
+            {% if spec_grid %}
+              {% for f in spec_grid %}
+                <th>{{ f|cut:"extra__"|replace_underscore }}</th>
+              {% endfor %}
+            {% endif %}
+            
+            <!-- Custom Fields from Column table -->
+            {% if column_fields %}
+              {% for col in column_fields %}
+                <th>{{ col.label }}</th>
+              {% endfor %}
+            {% endif %}
+            
+            <th>Actions</th>
+          </tr>
+        </thead>
+        
+        <tbody>
+          {% for obj in grouped_objects.All_Records %}
+            <tr>
+              <!-- Standard Field Values -->
+              {% if spec_grid %}
+                {% for f in spec_grid %}
+                  <td>
+                    {% if f|slice:":7" == "extra__" %}
+                      <!-- Handle extra_data fields -->
+                      {% with extra_val=obj.extra_data|get_item:f %}
+                        {% if extra_val %}
+                          {{ extra_val }}
+                        {% else %}
+                          <span class="text-muted">-</span>
+                        {% endif %}
+                      {% endwith %}
+                    {% else %}
+                      <!-- Handle regular fields -->
+                      {{ obj|attr:f|default:"-" }}
+                    {% endif %}
+                  </td>
+                {% endfor %}
+              {% endif %}
+              
+              <!-- Custom Field Values -->
+              {% if column_fields %}
+                {% for col in column_fields %}
+                  <td>
+                    {% with extra_val=obj.extra_data|get_item:col.field_name %}
+                      {% if extra_val %}
+                        {{ extra_val }}
+                      {% else %}
+                        <span class="text-muted">-</span>
+                      {% endif %}
+                    {% endwith %}
+                  </td>
+                {% endfor %}
+              {% endif %}
+              
+              <!-- Actions -->
+              <td>
+                <button class="btn btn-sm btn-warning" onclick="editEntity('{{ entity }}', {{ obj.pk }})">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+                <form method="POST" action="/{{ entity|lower }}/delete/{{ obj.pk }}/" style="display: inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this item?')">
+                    <i class="fas fa-trash"></i> Delete
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="alert alert-warning">No records found.</div>
+  {% endif %}
+</div>
+
