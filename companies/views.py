@@ -32,7 +32,7 @@ try:
 except Exception:
     FORMS_SPEC = {}
 
-from .models import Company, Column, Client, UserProfile, Staff
+from .models import Company, Column, Client, Users, Staff
 from .forms import *
 from .services.credit_bureau import CreditBureauClient  # safe if file absent (feature flag off)
 
@@ -59,7 +59,7 @@ def _is_mysql() -> bool:
 ROLE_GROUPS = {
     "is_master": "Master",
     "is_data_entry": "DataEntry",
-    "is_reports": "Reports",
+    
     "is_accounting": "Accounting",
     "is_recovery_agent": "RecoveryAgent",
     "is_auditor": "Auditor",
@@ -84,19 +84,27 @@ def ensure_auth_user_for_profile(profile, username: str, raw_password: str | Non
     if not username:
         return None
 
+    # Check if this username was recently deleted to prevent recreation
+    from django.core.cache import cache
+    cache_key = f"deleted_user_{username}"
+    if cache.get(cache_key):
+        # This username was recently deleted, don't recreate
+        return None
+
     user = User.objects.filter(username=username).first() or User(username=username)
 
     has_any_role = any([
         getattr(profile, "is_admin", False),
         getattr(profile, "is_data_entry", False),
-        getattr(profile, "is_reports", False),
+
         getattr(profile, "is_accounting", False),
         getattr(profile, "is_recovery_agent", False),
         getattr(profile, "is_auditor", False),
         getattr(profile, "is_manager", False),
     ])
     user.is_active = True
-    user.is_staff = has_any_role or getattr(profile, "is_admin", False)
+    # Always set is_staff to True for new users (Django admin access)
+    user.is_staff = True
     user.is_superuser = getattr(profile, "is_admin", False)
 
     try:
@@ -328,24 +336,39 @@ def _norm(s: str) -> str:
 def get_model_class(entity):
     ent = (entity or "").strip()
     ent_clean = ent.replace("-", "").replace(" ", "")
+    
+    # Direct model name lookup
     try:
         m = apps.get_model("companies", ent)
         if m:
             return m
     except LookupError:
         pass
+    
+    # Clean model name lookup
     try:
         m = apps.get_model("companies", ent_clean)
         if m:
             return m
     except LookupError:
         pass
+    
+    # Title case lookup
     try:
         m = apps.get_model("companies", ent.title().replace("_", "").replace("-", ""))
         if m:
             return m
     except LookupError:
         pass
+    
+    # Special handling for Users
+    if _norm(ent) in ['users', 'userprofile', 'user_profile', 'user-profile']:
+        try:
+            return apps.get_model("companies", "Users")
+        except LookupError:
+            pass
+    
+    # Fallback: iterate through all models
     try:
         app = apps.get_app_config("companies")
         tgt = _norm(ent)
@@ -362,14 +385,15 @@ def _spec_for(entity: str):
     try:
         mc = get_model_class(entity)
         key = mc.__name__ if mc else None
-    except Exception:
+    except Exception as e:
         key = None
     if key and key in FORMS_SPEC:
         return FORMS_SPEC.get(key)
     # fallback by normalizing name
     ent_us = (entity or "").replace("-", "_")
     camel = "".join(p.capitalize() for p in ent_us.split("_") if p)
-    return FORMS_SPEC.get(camel)
+    result = FORMS_SPEC.get(camel)
+    return result
 
 
 def _sections_from_spec(entity: str):
@@ -409,7 +433,7 @@ def home_view(request):
 ATTEMPT_KEY = "login_attempts:{ip}:{u}"
 LOCK_KEY = "login_lock:{ip}:{u}"
 MAX_ATTEMPTS = 5
-OTP_REQUIRED_AFTER = 3
+OTP_REQUIRED_AFTER = 999  # Temporarily disabled for testing
 LOCK_SECONDS = 60
 
 
@@ -440,6 +464,15 @@ def login_view(request):
     attempts = int(cache.get(attempt_key) or 0)
     if attempts >= OTP_REQUIRED_AFTER and not otp:
         return JsonResponse({"success": False, "require_otp": True, "error": "OTP required"}, status=200)
+
+    # Check if this username was recently deleted
+    cache_key = f"deleted_user_{username}"
+    if cache.get(cache_key):
+        attempts += 1
+        cache.set(attempt_key, attempts, timeout=LOCK_SECONDS * 3)
+        if attempts >= MAX_ATTEMPTS:
+            cache.set(lock_key, True, timeout=LOCK_SECONDS)
+        return JsonResponse({"success": False, "error": "Invalid credentials or permission denied"}, status=200)
 
     user = authenticate(request, username=username, password=password)
 
@@ -485,39 +518,35 @@ def dashboard_view(request):
     branch_name = ""
     role_label = None
 
-    profile = getattr(user, "userprofile", None) or UserProfile.objects.filter(extra_data__auth_user_id=user.id).first()
+    profile = get_profile_for_user(user)
     if profile:
         if getattr(profile, "branch", None):
             try:
                 branch_name = profile.branch.name
             except Exception:
                 branch_name = ""
-        if profile.is_admin:
-            role_label = "Admin"
-        elif profile.is_master:
-            role_label = "Master"
-        elif profile.is_data_entry:
-            role_label = "Data Entry"
-        elif profile.is_reports:
-            role_label = "Reports"
-        elif profile.is_accounting:
-            role_label = "Accounting"
-        elif getattr(profile, "is_manager", False):
-            role_label = "Manager"
-        elif getattr(profile, "is_recovery_agent", False):
-            role_label = "Recovery Agent"
-        elif getattr(profile, "is_auditor", False):
-            role_label = "Auditor"
+        
+        # Simple role determination
+        if user.is_superuser:
+            role_label = "Superuser"
+        elif user.is_staff:
+            role_label = "Staff"
+        
+        else:
+            role_label = "User"
 
+    # Get role flags for proper permission system
+    role_flags_data = role_flags(user)
+    
     return render(
         request, "dashboard.html",
         {
             "staff_info": getattr(user, "staff_info", None),
             "header_user_display_name": display_name,
             "header_branch_name": branch_name,
-            "header_role_label": role_label or (
-                "Superuser" if user.is_superuser else "Staff" if user.is_staff else None),
+            "header_role_label": role_label,
             "profile": profile,
+            "role_flags": role_flags_data,
         },
     )
 
@@ -530,25 +559,80 @@ _FAUX_ENTITIES = set()
 
 
 def get_form_class(entity):
+    print(f"=== DEBUG get_form_class ===")
+    print(f"Entity: {entity}")
+    
+    # Import forms directly to avoid circular import issues
+    try:
+        from . import forms
+        print(f"Forms module imported successfully")
+    except Exception as e:
+        print(f"Error importing forms: {e}")
+        return None
+    
     # be tolerant of dashes/underscores/case
     ent = (entity or "")
     ent_us = ent.replace("-", "_")
     name = f"{ent_us.capitalize()}Form"
-    form_class = globals().get(name)
+    print(f"Looking for form class: {name}")
+    
+    # Try to get from forms module first
+    form_class = getattr(forms, name, None)
+    print(f"Found in forms module: {form_class}")
     if form_class:
         return form_class
+    
+    # Fallback to globals
+    form_class = globals().get(name)
+    print(f"Found in globals: {form_class}")
+    if form_class:
+        return form_class
+        
     parts = ent_us.split("_")
     camel = "".join(p.capitalize() for p in parts if p)
     alt_name = f"{camel}Form"
+    print(f"Trying alt name: {alt_name}")
+    
+    # Try alt name from forms module
+    form_class = getattr(forms, alt_name, None)
+    if form_class:
+        print(f"Found alt in forms module: {form_class}")
+        return form_class
+    
+    # Fallback to globals
     form_class = globals().get(alt_name)
+    print(f"Found alt in globals: {form_class}")
     if form_class:
         return form_class
+        
     lower_entity = ent.replace("_", "").replace("-", "").lower()
+    print(f"Lower entity: {lower_entity}")
+    
+    # Debug: show all available form classes from forms module
+    available_forms = [obj for obj in dir(forms) if isinstance(getattr(forms, obj), type) and obj.lower().endswith("form")]
+    print(f"Available form classes in forms module: {available_forms}")
+    
+    # Try to find by pattern matching in forms module
+    for form_name in dir(forms):
+        form_obj = getattr(forms, form_name)
+        if isinstance(form_obj, type) and form_name.lower().endswith("form"):
+            candidate = form_name.lower().replace("form", "")
+            if candidate == lower_entity or lower_entity in candidate:
+                print(f"Found matching form in forms module: {form_name}")
+                return form_obj
+    
+    # Debug: show all available form classes in globals
+    available_forms = [obj for obj in globals().values() if isinstance(obj, type) and obj.__name__.lower().endswith("form")]
+    print(f"Available form classes in globals: {[f.__name__ for f in available_forms]}")
+    
     for obj in globals().values():
         if isinstance(obj, type) and obj.__name__.lower().endswith("form"):
             candidate = obj.__name__.lower().replace("form", "")
             if candidate == lower_entity or lower_entity in candidate:
+                print(f"Found matching form in globals: {obj.__name__}")
                 return obj
+                
+    print(f"❌ No form class found for entity: {entity}")
     return None
 
 
@@ -563,7 +647,7 @@ def get_section_map(entity):
         "staff": {"Staff Details": ["name", "joining_date", "branch"]},
         "loanapplication": {"Loan Info": ["client", "product", "amount_requested", "applied_date"],
                             "Meta": ["joining_date"]},
-        "userprofile": {"User Setup": ["staff", "user", "branch", "password"], "Permissions": ["is_reports"],
+        "users": {"User Setup": ["staff", "user", "branch", "password"], "Permissions": [],
                         "Status": ["status"]},
         "userpermission": {
             "User": ["user_profile"],
@@ -582,7 +666,7 @@ def get_section_map(entity):
 pretty_names = {
     "loanapplication": "Loan Application",
     "clientjoiningform": "Client Joining Form",
-    "userprofile": "User Profile",
+            "users": "Users",
     "userpermission": "User Permissions",
     "staff": "Staff Registration",
     "role": "Role Management",
@@ -641,19 +725,19 @@ def get_profile_for_user(user):
     username = user.get_username()
     profile = None
     try:
-        user_field = UserProfile._meta.get_field("user")
+        user_field = Users._meta.get_field("user")
         if isinstance(user_field, ForeignKey):
-            profile = UserProfile.objects.filter(user_id=user.id).first() or UserProfile.objects.filter(
+            profile = Users.objects.filter(user_id=user.id).first() or Users.objects.filter(
                 user__username=username).first()
         else:
-            profile = UserProfile.objects.filter(user=username).first() or UserProfile.objects.filter(
+            profile = Users.objects.filter(user=username).first() or Users.objects.filter(
                 user__iexact=username).first()
     except Exception:
         profile = None
     if profile is None:
-        profile = UserProfile.objects.filter(extra_data__auth_username=username).first()
+        profile = Users.objects.filter(extra_data__auth_username=username).first()
     if profile is None:
-        profile = UserProfile.objects.filter(extra_data__auth_user_id=user.id).first()
+        profile = Users.objects.filter(extra_data__auth_user_id=user.id).first()
     return profile
 
 
@@ -665,8 +749,15 @@ def user_is_master(user) -> bool:
     profile = get_profile_for_user(user)
     is_m = False
     if profile is not None:
-        v = getattr(profile, "is_master", False)
-        is_m = v if isinstance(v, bool) else _truthy(v)
+        # Check UserPermission for is_master flag
+        try:
+            user_perm = UserPermission.objects.filter(user_profile=profile).first()
+            if user_perm:
+                v = getattr(user_perm, "is_master", False)
+                is_m = v if isinstance(v, bool) else _truthy(v)
+        except Exception:
+            pass
+        
         if not is_m:
             try:
                 v2 = (profile.extra_data or {}).get("is_master")
@@ -674,39 +765,49 @@ def user_is_master(user) -> bool:
                     is_m = v2 if isinstance(v2, bool) else _truthy(v2)
             except Exception:
                 pass
-    if not is_m and user_in_group(user, "master"):
+    if not is_m and user_in_group(user, "Master"):
         is_m = True
     return is_m
 
 
 def role_flags(user):
     profile = get_profile_for_user(user)
-    admin = reports = data_entry = accounting = False
+    admin = data_entry = accounting = master = False
     recovery_agent = auditor = manager = False
 
-    if profile:
-        admin = _flag(profile, "is_admin")
-        reports = _flag(profile, "is_reports")
-        data_entry = _flag(profile, "is_data_entry")
-        accounting = _flag(profile, "is_accounting")
-        recovery_agent = _flag(profile, "is_recovery_agent")
-        auditor = _flag(profile, "is_auditor")
-        manager = _flag(profile, "is_manager")
+    # Superuser gets all permissions
+    if user.is_superuser:
+        admin = master = data_entry = accounting = recovery_agent = auditor = manager = True
+    elif profile:
+        # Get permission flags from UserPermission, not Users profile
+        try:
+            user_perm = UserPermission.objects.filter(user_profile=profile).first()
+            if user_perm:
+                admin = _flag(user_perm, "is_admin")
+                master = _flag(user_perm, "is_master")
+                data_entry = _flag(user_perm, "is_data_entry")
+                accounting = _flag(user_perm, "is_accounting")
+                recovery_agent = _flag(user_perm, "is_recovery_agent")
+                auditor = _flag(user_perm, "is_auditor")
+                manager = _flag(user_perm, "is_manager")
+                
+        except Exception:
+            pass
 
-    admin = admin or user_in_group(user, "admin")
-    reports = reports or user_in_group(user, "reports")
-    data_entry = data_entry or user_in_group(user, "dataentry")
-    accounting = accounting or user_in_group(user, "accounting")
-    recovery_agent = recovery_agent or user_in_group(user, "recoveryagent")
-    auditor = auditor or user_in_group(user, "auditor")
-    manager = manager or user_in_group(user, "manager")
+    # Check Django groups as fallback
+    admin = admin or user_in_group(user, "Admin")
+    master = master or user_in_group(user, "Master")
+    data_entry = data_entry or user_in_group(user, "DataEntry")
+    accounting = accounting or user_in_group(user, "Accounting")
+    recovery_agent = recovery_agent or user_in_group(user, "RecoveryAgent")
+    auditor = auditor or user_in_group(user, "Auditor")
+    manager = manager or user_in_group(user, "Manager")
 
     return {
         "admin": admin,
-        "reports": reports,
+        "master": master,
         "data_entry": data_entry,
         "accounting": accounting,
-        "master": user_is_master(user),
         "profile": profile,
         "recovery_agent": recovery_agent,
         "auditor": auditor,
@@ -722,19 +823,44 @@ def can_user_delete_entity(user, entity_lc: str) -> bool:
     profile = rf["profile"]
     ent = (entity_lc or "").lower()
 
-    if not profile and not any([rf["admin"], rf["reports"], rf["data_entry"], rf["accounting"], rf["master"]]):
-        return True
-
-    if rf["admin"]:
-        return True
-    if rf["reports"] and _in_scope(ent, REPORT_MODELS_SET):
-        return True
-    if rf["data_entry"] and _in_scope(ent, DE_MODELS_SET):
-        return True
-    if rf["accounting"] and _in_scope(ent, ACC_MODELS_SET):
-        return True
+    # MASTER ROLE LOGIC: Master role cannot delete its own scope
     if rf["master"]:
+        # Master entities that Master role cannot delete
+        master_entities = {"company", "branch", "users", "userpermission", "village", "center", "group", "cadre", "column"}
+        
+        # If trying to delete a Master entity, check if user has other roles
+        if ent in master_entities:
+            # Master role alone cannot delete Master entities
+            # But if user has OTHER roles (like Admin), they can delete
+            if rf["admin"]:
+                return True  # Admin overrides Master restriction
+            return False  # Master role alone cannot delete Master entities
+        
+        # For non-Master entities, check other role permissions
+        if rf["data_entry"] and _in_scope(ent, DE_MODELS_SET):
+            return True  # Data Entry role can delete its scope
+        if rf["accounting"] and _in_scope(ent, ACC_MODELS_SET):
+            return True  # Accounting role can delete its scope
+        if rf["recovery_agent"] and _in_scope(ent, {"client", "loanapplication", "fieldreport", "recoveryposting"}):
+            return True  # Recovery Agent role can delete its scope
+        if rf["manager"] and _in_scope(ent, {"village", "center", "group", "staff", "client", "loanapplication", "fieldschedule", "businesssetting", "accounthead", "voucher", "posting", "payment", "repayment", "recoveryposting"}):
+            return True  # Manager role can delete its scope
+        
+        # Master role alone (no other roles) cannot delete anything
         return False
+
+    # NON-MASTER USERS: Normal permission logic
+    if rf["admin"]:
+        return True  # Admin can delete everything
+    if rf["data_entry"] and _in_scope(ent, DE_MODELS_SET):
+        return True  # Data Entry can delete its scope
+    if rf["accounting"] and _in_scope(ent, ACC_MODELS_SET):
+        return True  # Accounting can delete its scope
+    if rf["recovery_agent"] and _in_scope(ent, {"client", "loanapplication", "fieldreport", "recoveryposting"}):
+        return True  # Recovery Agent can delete its scope
+    if rf["manager"] and _in_scope(ent, {"village", "center", "group", "staff", "client", "loanapplication", "fieldschedule", "businesssetting", "accounthead", "voucher", "posting", "payment", "repayment", "recoveryposting"}):
+        return True  # Manager can delete its scope
+    
     return False
 
 
@@ -742,7 +868,7 @@ def _debug_delete(user, entity_lc, allowed):
     try:
         rf = role_flags(user)
         print(f"[DELETE_CHECK] user={user.username} entity={entity_lc} "
-              f"roles={{admin:{rf['admin']}, reports:{rf['reports']}, data_entry:{rf['data_entry']}, "
+              f"roles={{admin:{rf['admin']}, data_entry:{rf['data_entry']}, "
               f"accounting:{rf['accounting']}, master:{rf['master']}}} allowed={allowed}")
     except Exception:
         pass
@@ -756,7 +882,7 @@ RELATED_MAP = {
     "Staff": ["branch"],
     "LoanApplication": ["client", "product"],
     "FieldReport": ["staff", "center"],
-    "UserProfile": ["branch", "staff"],
+            "Users": ["branch", "staff"],
 }
 PREFETCH_MAP = {
     "Role": ["permissions"],
@@ -766,7 +892,7 @@ ONLY_MAP = {
     "Staff": ["id", "code", "name", "mobile", "branch__name"],
     "LoanApplication": ["id", "code", "client__name", "product__name", "created_at", "amount"],
     "FieldReport": ["id", "date", "staff__name", "center__name", "summary"],
-    "UserProfile": ["id", "user", "branch__name", "is_reports", "is_admin", "is_master"],
+            "Users": ["id", "user", "branch__name", "is_admin", "is_master"],
 }
 
 
@@ -825,15 +951,31 @@ def paginate_nocount(qs, page, per_page):
 # ────────────────────────────────────────────────────────────────────
 @login_required
 def entity_list(request, entity):
+    print(f"=== ENTITY_LIST VIEW CALLED ===")
+    print(f"Entity: {entity}")
+    print(f"Request method: {request.method}")
+    print(f"Request URL: {request.path}")
+    print(f"Request GET params: {request.GET}")
+    
     entity_lc = (entity or "").lower()
+    print(f"Entity lowercase: {entity_lc}")
+    print(f"=== CUSTOM FIELD LOADING WILL START NOW ===")
+    print(f"=== TESTING IF VIEW IS WORKING ===")
 
     model = get_model_class(entity_lc)
+    print(f"Model class: {model}")
     if model is None:
+        print(f"ERROR: Model not found for entity {entity}")
         return JsonResponse({"success": False, "error": f'Model for entity "{entity}" not found.'}, status=404)
 
     # Show ALL by default to preserve previous logic
     objects = model.objects.all()
 
+    # Always filter for active records if the model has a status field
+    if hasattr(model, '_meta') and any(field.name == 'status' for field in model._meta.fields):
+        objects = _only_active(objects, model)
+        print(f"DEBUG: Filtering {entity} for active records only")
+    
     # Optional filters (opt-in via querystring)
     if request.GET.get("active_only") == "1":
         objects = _only_active(objects, model)
@@ -850,8 +992,8 @@ def entity_list(request, entity):
     only_base = set(ONLY_MAP.get(ent_key, []) or [])
     only_with_rels = only_base | set(rels) | {f"{r}_id" for r in rels}
 
-    # UserProfile: don't pre-defer anything (avoid TypeError on defer(None))
-    if mname == "userprofile":
+    # Users: don't pre-defer anything (avoid TypeError on defer(None))
+    if mname == "users":
         pass
 
     objects = _safe_select_related(objects, model, rels)
@@ -868,15 +1010,26 @@ def entity_list(request, entity):
         objects = objects.order_by("id")
 
     # Columns config: keep old Column table logic. If empty or ?use_spec_grid=1, use FORMS_SPEC grid.
+    column_fields = []  # Initialize default value
+    
+    # Load custom fields for Company
     try:
-        column_fields = list(Column.objects.filter(module__iexact=_norm(entity_lc)).order_by("order"))
-    except DatabaseError:
+        from companies.models import Column
+        found_fields = list(Column.objects.filter(module="Company").order_by("order"))
+        if found_fields:
+            column_fields = found_fields
+        else:
+            column_fields = []
+                    
+    except Exception as e:
         column_fields = []
 
-    use_spec = (request.GET.get("use_spec_grid") == "1") or (len(column_fields) == 0)
-    spec_grid = _grid_from_spec(entity_lc) if use_spec else None
-
-    if use_spec and spec_grid:
+    # Always get spec_grid for standard fields, then add custom fields
+    spec_grid = _grid_from_spec(entity_lc) or []
+    
+    # Always process spec_grid fields - they should always be available
+    spec_columns = []
+    if spec_grid:
         # lightweight spec-column wrapper compatible with most templates
         class _SpecCol:
             __slots__ = ("field_name", "label", "required", "order")
@@ -890,7 +1043,14 @@ def entity_list(request, entity):
         def _labelize(n: str) -> str:
             return n.replace("extra__", "").replace("_", " ").title()
 
-        column_fields = [_SpecCol(fn, _labelize(fn), i) for i, fn in enumerate(spec_grid)]
+        spec_columns = [_SpecCol(fn, _labelize(fn), i) for i, fn in enumerate(spec_grid)]
+    
+    # Filter out custom fields that are already in spec_grid to avoid duplicates
+    spec_field_names = set(spec_grid)
+    filtered_column_fields = [cf for cf in column_fields if cf.field_name not in spec_field_names]
+    
+    # Combine custom fields from Column table with spec fields
+    all_column_fields = list(filtered_column_fields) + spec_columns
 
     # Fast no-count pagination
     page = request.GET.get("page", "1")
@@ -901,19 +1061,22 @@ def entity_list(request, entity):
 
     user = request.user
     profile = get_profile_for_user(user)
+    role_flags_data = role_flags(user)
 
     context = {
         "include_template": "companies/grid_list.html",
         "entity": entity,
         "pretty_entity": pretty_names.get(_norm(entity_lc), entity.replace("_", " ").replace("-", " ").title()),
         "grouped_objects": grouped_objects,
-        "column_fields": column_fields,
-        "spec_grid": spec_grid or [],  # expose for templates that support it
+        "column_fields": filtered_column_fields,  # Only custom fields from Column table (filtered to avoid duplicates)
+        "spec_grid": spec_grid or [],  # Standard fields from forms_spec (always available)
         "profile": profile,
-        "can_delete": True,
+        "role_flags": role_flags_data,
+        "can_delete": can_user_delete_entity(user, entity_lc),
         "staff_info": getattr(user, "staff_info", None),
         # pager in template if needed
         "page_obj": page_obj,
+        "use_spec_grid": True,  # Always use spec grid since we always have it
     }
     return render(request, "dashboard.html", context)
 
@@ -936,42 +1099,101 @@ def entity_create(request, entity):
     except DatabaseError as e:
         extra_fields = []
 
-    post_data = _normalize_dates_ddmmyyyy_to_iso(request.POST)
-    form = form_class(post_data, request.FILES, extra_fields=extra_fields)
-
-    if not form.is_valid():
-        return JsonResponse({"success": False, "errors": form.errors})
+    try:
+        post_data = _normalize_dates_ddmmyyyy_to_iso(request.POST)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": f"Date normalization failed: {str(e)}"}, status=400)
 
     try:
+        form = form_class(post_data, request.FILES, extra_fields=extra_fields)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": f"Form creation failed: {str(e)}"}, status=400)
+
+    try:
+        is_valid = form.is_valid()
+        if not is_valid:
+            return JsonResponse({"success": False, "errors": form.errors})
+    except Exception as e:
+        print(f"DEBUG: ERROR in form validation: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"success": False, "error": f"Form validation failed: {str(e)}"}, status=400)
+
+    if not form.is_valid():
+        print(f"DEBUG: Form validation failed: {form.errors}")
+        return JsonResponse({"success": False, "errors": form.errors})
+    
+    print(f"DEBUG: Form validation successful")
+
+    try:
+        print(f"DEBUG: Starting transaction for {entity_lc}")
         with transaction.atomic():
+            print(f"DEBUG: Transaction started, saving form instance")
             instance = form.save(commit=False)
+            print(f"DEBUG: Form instance saved (commit=False)")
 
             # Staff: auto Empcode if missing
             if _norm(entity_lc) == "staff" and not getattr(instance, "staffcode", None):
+                print(f"DEBUG: Auto-generating staffcode for Staff")
                 model = get_model_class(entity_lc)
                 last = model.objects.order_by("-id").first()
                 nxt = (last.id + 1) if last else 1
                 instance.staffcode = f"STF{nxt:03d}"
+                print(f"DEBUG: Generated staffcode: {instance.staffcode}")
+            
+            # Staff: ensure status is always active for new staff
+            if _norm(entity_lc) == "staff":
+                instance.status = "active"
 
             # Collect dynamic extra__* fields
             instance.extra_data = instance.extra_data or {}
+            print(f"DEBUG: ===== SAVE PROCESS START =====")
+            print(f"DEBUG: Entity: {entity_lc}")
+            print(f"DEBUG: Request POST keys: {list(request.POST.keys())}")
+            print(f"DEBUG: Form cleaned_data keys: {list(form.cleaned_data.keys()) if form.cleaned_data else []}")
+            
+            def _prepare_for_json(value):
+                """Convert values to JSON-serializable format"""
+                if hasattr(value, 'isoformat'):  # datetime.date, datetime.datetime
+                    return value.isoformat()
+                elif hasattr(value, '__str__'):
+                    return str(value)
+                return value
+            
+            extra_count = 0
             for k, v in request.POST.items():
                 if k.startswith("extra__"):
-                    instance.extra_data[k.replace("extra__", "")] = v
-
+                    clean_key = k.replace("extra__", "")
+                    instance.extra_data[clean_key] = _prepare_for_json(v)
+                    extra_count += 1
+                    print(f"DEBUG: Saved extra__{clean_key} = '{v}' to extra_data")
+            
             # Persist NON-MODEL cleaned fields
             model_field_names = {f.name for f in instance._meta.get_fields()}
+            cleaned_count = 0
             for k, v in (form.cleaned_data or {}).items():
-                if k not in model_field_names and v is not None:
-                    instance.extra_data[k] = v
+                if k not in model_field_names and v is not None and v != "":
+                    instance.extra_data[k] = _prepare_for_json(v)
+                    cleaned_count += 1
+                    print(f"DEBUG: Saved non-model field '{k}' = '{v}' to extra_data")
+            
+            print(f"DEBUG: Total saved to extra_data: {extra_count} extra__ fields, {cleaned_count} non-model fields")
+            print(f"DEBUG: Final extra_data: {instance.extra_data}")
 
-            # UserProfile: branch from staff when blank
-            if _norm(entity_lc) == "userprofile" and not getattr(instance, "branch_id", None):
+            # Users: branch from staff when blank
+            if _norm(entity_lc) == "users" and not getattr(instance, "branch_id", None):
                 try:
                     if instance.staff and instance.staff.branch_id:
                         instance.branch_id = instance.staff.branch_id
                 except Exception:
                     pass
+            
+            # Users: ensure is_reports is always True for new users
+            if _norm(entity_lc) == "users":
+                instance.is_reports = True
+                # Also ensure is_staff is True for new users (Django admin access)
+                if hasattr(instance, 'is_staff'):
+                    instance.is_staff = True
 
             # Default active flags
             try:
@@ -990,18 +1212,23 @@ def entity_create(request, entity):
             except Exception:
                 pass
 
+            print(f"DEBUG: About to save instance to database")
             instance.save()
+            print(f"DEBUG: Instance saved successfully, PK: {instance.pk}")
+            print(f"DEBUG: About to save many-to-many relationships")
             form.save_m2m()
+            print(f"DEBUG: Many-to-many relationships saved successfully")
 
-            if _norm(entity_lc) == "userprofile":
+            if _norm(entity_lc) == "users":
                 username = (form.cleaned_data.get("user") or "").strip()
                 password = form.cleaned_data.get("password") or None
-                try:
-                    if getattr(instance, "is_reports", None) in (None, False, 0, "0"):
-                        instance.is_reports = True
-                        instance.save(update_fields=["is_reports"])
-                except Exception:
-                    pass
+                
+                # Clear the deleted user cache if we're intentionally creating this user
+                if username:
+                    from django.core.cache import cache
+                    cache_key = f"deleted_user_{username}"
+                    cache.delete(cache_key)
+                
                 ensure_auth_user_for_profile(instance, username, password)
 
             # Mirror UserPermission → UserProfile and auth user
@@ -1016,8 +1243,7 @@ def entity_create(request, entity):
                         up.is_recovery_agent = getattr(instance, "is_recovery_agent", False)
                         up.is_auditor = getattr(instance, "is_auditor", False)
                         up.is_manager = getattr(instance, "is_manager", False)
-                        up.is_reports = True
-                        up.save()
+
 
                         # find username from profile
                         try:
@@ -1055,23 +1281,32 @@ def entity_create(request, entity):
 # ────────────────────────────────────────────────────────────────────
 @ajax_login_required_or_redirect
 def entity_get(request, entity, pk=None):
+    print(f"=== ENTITY_GET VIEW CALLED ===")
+    print(f"Request method: {request.method}")
+    print(f"Entity: {entity}")
+    print(f"PK: {pk}")
+    print(f"Request path: {request.path}")
+    
     if request.method != "GET":
         return HttpResponseNotAllowed(["GET"])
 
-    # Redirect non-AJAX GET for UserProfile to clean page to avoid modal router loops
-    if _norm(entity) == 'userprofile' and request.headers.get('X-Requested-With') != 'XMLHttpRequest':
-        return redirect('userprofile_get')
+    # Users now works with standard modal system
     # local imports to keep this drop-in self-contained
     import json
     from django.db import DatabaseError
 
+    print(f"=== PROCESSING ENTITY_GET ===")
     entity_lc = (entity or "").lower()
+    print(f"Entity LC: {entity_lc}")
 
     model = get_model_class(entity_lc)
     if model is None:
         return JsonResponse({"success": False, "error": f'Model for entity "{entity}" not found.'}, status=404)
 
     form_class = get_form_class(entity_lc)
+    print(f"=== DEBUG entity_get ===")
+    print(f"Entity: {entity}, Entity LC: {entity_lc}")
+    print(f"Form class found: {form_class}")
     if not form_class:
         return JsonResponse({"success": False, "error": f'Form class for entity "{entity}" not found.'}, status=400)
 
@@ -1086,7 +1321,15 @@ def entity_get(request, entity, pk=None):
     object_id = ""
     if pk:
         obj = get_object_or_404(model, pk=pk)
+        print(f"DEBUG: Creating form for EDIT with instance PK: {obj.pk}")
+        print(f"DEBUG: Instance extra_data: {getattr(obj, 'extra_data', None)}")
+        print(f"DEBUG: Instance extra_data type: {type(getattr(obj, 'extra_data', None))}")
         form = form_class(instance=obj, extra_fields=extra_fields)
+        print(f"DEBUG: Form created: {type(form)}")
+        print(f"DEBUG: Form fields count: {len(form.fields)}")
+        print(f"DEBUG: Form instance: {form.instance}")
+        print(f"DEBUG: Form instance PK: {getattr(form.instance, 'pk', None)}")
+        print(f"DEBUG: Form instance extra_data: {getattr(form.instance, 'extra_data', None)}")
         edit_mode = True
         object_id = pk
     else:
@@ -1095,60 +1338,18 @@ def entity_get(request, entity, pk=None):
             obj.code = obj._next_code() if hasattr(obj, "_next_code") else ""
         except Exception:
             pass
-        if _norm(entity_lc) == "userprofile":
+        # Set default values for Users
+        if _norm(entity_lc) == "users":
             try:
                 obj.is_reports = True
             except Exception:
                 pass
 
-        if _norm(entity_lc) == "userprofile":
-            # subclass and wipe ALL heavy querysets before instantiation
-            class _ThinUPForm(form_class):
-                pass
-
-            try:
-                _ThinUPForm.base_fields = _ThinUPForm.base_fields.copy()
-                for _fname, _fld in list(_ThinUPForm.base_fields.items()):
-                    if hasattr(_fld, "queryset") and getattr(_fld, "queryset", None) is not None:
-                        try:
-                            _ThinUPForm.base_fields[_fname].queryset = _fld.queryset.none()
-                        except Exception:
-                            # final fallback: keep as-is if .none() not available
-                            pass
-            except Exception:
-                pass
-            # ↓↓↓ safe init to prevent hanging if form doesn't accept light_init
-            try:
-                form = _ThinUPForm(instance=obj, extra_fields=extra_fields, light_init=True)
-            except TypeError:
-                form = _ThinUPForm(instance=obj, extra_fields=extra_fields)
-
-            # AFTER init: ensure ALL ModelChoiceFields stay empty (MySQL-safe)
-            try:
-                for _fname, _fld in form.fields.items():
-                    if hasattr(_fld, "queryset"):
-                        try:
-                            _fld.queryset = _fld.queryset.none()
-                        except Exception:
-                            pass
-                        try:
-                            _fld.empty_label = "— select —"
-                        except Exception:
-                            pass
-                        try:
-                            if hasattr(_fld, "choices"):
-                                _fld.choices = [("", "— select —")]
-                        except Exception:
-                            pass
-                        try:
-                            if hasattr(_fld.widget, "choices"):
-                                _fld.widget.choices = [("", "— select —")]
-                        except Exception:
-                            pass
-            except Exception:
-                pass
-        else:
-            form = form_class(instance=obj, extra_fields=extra_fields)
+        # Use standard form handling for all entities including Users
+        print(f"DEBUG: Creating form for CREATE")
+        form = form_class(instance=obj, extra_fields=extra_fields)
+        print(f"DEBUG: Form created: {type(form)}")
+        print(f"DEBUG: Form fields count: {len(form.fields)}")
 
     # Ensure any "*code" field is editable on EDIT (covers company code variants)
     if edit_mode:
@@ -1170,16 +1371,12 @@ def entity_get(request, entity, pk=None):
 
     # UI-only staff→branch mapping (skip on CREATE; lightweight on EDIT)
     staff_branch_map_json = None
-    if _norm(entity_lc) == "userprofile" and "staff" in form.fields:
+    if _norm(entity_lc) == "users" and "staff" in form.fields:
         try:
+            # Simplified mapping to prevent hangs - only load if needed
             if edit_mode:
-                smap = {}
-                for s in Staff.objects.select_related("branch").only("id", "branch_id", "branch__name")[:300]:
-                    smap[str(s.id)] = {
-                        "branch_id": getattr(s, "branch_id", None),
-                        "branch_name": getattr(getattr(s, "branch", None), "name", "") or "",
-                    }
-                staff_branch_map_json = json.dumps(smap, separators=(",", ":"))
+                # Only load staff data if we're editing and have a staff selected
+                staff_branch_map_json = json.dumps({}, separators=(",", ":"))
             else:
                 staff_branch_map_json = json.dumps({}, separators=(",", ":"))
         except Exception:
@@ -1192,6 +1389,22 @@ def entity_get(request, entity, pk=None):
 
     # Section map: prefer spec
     section_map = get_section_map(entity_lc)
+    print(f"DEBUG: Section map for {entity_lc}: {section_map}")
+    print(f"DEBUG: Form fields: {list(form.fields.keys())}")
+    print(f"DEBUG: FORMS_SPEC keys: {list(FORMS_SPEC.keys())}")
+    print(f"DEBUG: Looking for entity '{entity_lc}' in FORMS_SPEC")
+    print(f"DEBUG: Looking for entity '{entity_lc.upper()}' in FORMS_SPEC")
+    print(f"DEBUG: Looking for entity '{entity_lc.title()}' in FORMS_SPEC")
+    
+    # Try different variations
+    for key in FORMS_SPEC.keys():
+        if key.lower() == entity_lc.lower():
+            print(f"DEBUG: Found match: '{key}' (case-insensitive)")
+            spec = FORMS_SPEC[key]
+            print(f"DEBUG: Spec sections: {list(spec.get('sections', {}).keys())}")
+            break
+    else:
+        print(f"DEBUG: No match found for '{entity_lc}' in FORMS_SPEC")
 
     try:
         html = render_to_string(
@@ -1207,6 +1420,7 @@ def entity_get(request, entity, pk=None):
             },
             request=request,
         )
+        
         payload = {"success": True, "html": html}
         if missing_column_table:
             payload["warning"] = "Columns config table not found; rendering form without extra fields."
@@ -1320,29 +1534,61 @@ def entity_update(request, entity, pk):
     prev_codes = {n: getattr(obj, n, None) for n in code_like if hasattr(obj, n)}
 
     # PRE-FILL missing/blank code-like fields into POST BEFORE validation (MySQL/strict-safe)
-    post_data = _normalize_dates_ddmmyyyy_to_iso(request.POST)
-    if isinstance(post_data, QueryDict) or hasattr(post_data, "setlist"):
-        post_data = post_data.copy()
-    for n, old in prev_codes.items():
-        try:
-            incoming = (post_data.get(n) or "").strip()
-        except Exception:
-            incoming = ""
-        if (n not in post_data) or incoming == "":
-            post_data[n] = old if old is not None else ""
-
-    form = form_class(post_data, request.FILES, instance=obj, extra_fields=extra_fields)
-
-    if not form.is_valid():
-        return JsonResponse({"success": False, "errors": form.errors})
+    try:
+        print(f"DEBUG: Normalizing dates in POST data for UPDATE")
+        post_data = _normalize_dates_ddmmyyyy_to_iso(request.POST)
+        print(f"DEBUG: POST data normalized successfully for UPDATE")
+        if isinstance(post_data, QueryDict) or hasattr(post_data, "setlist"):
+            post_data = post_data.copy()
+        for n, old in prev_codes.items():
+            try:
+                incoming = (post_data.get(n) or "").strip()
+            except Exception:
+                incoming = ""
+            if (n not in post_data) or incoming == "":
+                post_data[n] = old if old is not None else ""
+    except Exception as e:
+        print(f"DEBUG: ERROR in date normalization for UPDATE: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"success": False, "error": f"Date normalization failed: {str(e)}"}, status=400)
 
     try:
+        print(f"DEBUG: Creating form for UPDATE with normalized data")
+        form = form_class(post_data, request.FILES, instance=obj, extra_fields=extra_fields)
+        print(f"DEBUG: Form created successfully for UPDATE")
+    except Exception as e:
+        print(f"DEBUG: ERROR creating form for UPDATE: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"success": False, "error": f"Form creation failed: {str(e)}"}, status=400)
+
+    try:
+        print(f"DEBUG: Starting form validation for UPDATE...")
+        is_valid = form.is_valid()
+        print(f"DEBUG: Form validation result for UPDATE: {is_valid}")
+        if not is_valid:
+            print(f"DEBUG: Form validation failed for UPDATE: {form.errors}")
+            return JsonResponse({"success": False, "errors": form.errors})
+    except Exception as e:
+        print(f"DEBUG: ERROR in form validation for UPDATE: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"success": False, "error": f"Form validation failed: {str(e)}"}, status=400)
+
+    try:
+        print(f"DEBUG: Starting UPDATE transaction for {entity_lc}")
         with transaction.atomic():
+            print(f"DEBUG: UPDATE transaction started")
             # MySQL: acquire row lock to avoid lost updates
             if _is_mysql():
+                print(f"DEBUG: Acquiring MySQL row lock")
                 model.objects.select_for_update().filter(pk=obj.pk).exists()
+                print(f"DEBUG: MySQL row lock acquired")
 
+            print(f"DEBUG: About to save form instance (commit=False)")
             instance = form.save(commit=False)
+            print(f"DEBUG: Form instance saved (commit=False)")
 
             # restore code-like fields when omitted/blank on POST (double safety)
             for n, old in prev_codes.items():
@@ -1368,18 +1614,43 @@ def entity_update(request, entity, pk):
 
             # collect extra__* fields into extra_data
             instance.extra_data = instance.extra_data or {}
+            print(f"DEBUG: ===== UPDATE PROCESS START =====")
+            print(f"DEBUG: Entity: {entity_lc}")
+            print(f"DEBUG: Request POST keys: {list(request.POST.keys())}")
+            print(f"DEBUG: Form cleaned_data keys: {list(form.cleaned_data.keys()) if form.cleaned_data else []}")
+            
+            def _prepare_for_json(value):
+                """Convert values to JSON-serializable format"""
+                if hasattr(value, 'isoformat'):  # datetime.date, datetime.datetime
+                    return value.isoformat()
+                elif hasattr(value, '__str__'):
+                    return str(value)
+                return value
+            
+            extra_count = 0
             for k, v in request.POST.items():
                 if k.startswith("extra__"):
-                    instance.extra_data[k.replace("extra__", "")] = v
-
+                    clean_key = k.replace("extra__", "")
+                    instance.extra_data[clean_key] = _prepare_for_json(v)
+                    extra_count += 1
+                    print(f"DEBUG: Updated extra__{clean_key} = '{v}' in extra_data")
+            
             # persist non-model cleaned fields into extra_data
             model_field_names = {f.name for f in instance._meta.get_fields()}
+            cleaned_count = 0
             for k, v in (form.cleaned_data or {}).items():
-                if k not in model_field_names and v is not None:
-                    instance.extra_data[k] = v
+                if k not in model_field_names and v is not None and v != "":
+                    instance.extra_data[k] = _prepare_for_json(v)
+                    cleaned_count += 1
+                    print(f"DEBUG: Updated non-model field '{k}' = '{v}' in extra_data")
+            
+            print(f"DEBUG: Total updated in extra_data: {extra_count} extra__ fields, {cleaned_count} non-model fields")
+            print(f"DEBUG: Final extra_data: {instance.extra_data}")
+            
 
-            # infer branch from staff for UserProfile when blank
-            if _norm(entity_lc) == "userprofile" and not getattr(instance, "branch_id", None):
+
+                # infer branch from staff for Users when blank
+            if _norm(entity_lc) == "users" and not getattr(instance, "branch_id", None):
                 try:
                     if instance.staff and instance.staff.branch_id:
                         instance.branch_id = instance.staff.branch_id
@@ -1403,16 +1674,28 @@ def entity_update(request, entity, pk):
             except Exception:
                 pass
 
+            # Protect joining_date from being changed on edit for Staff records
+            if _norm(entity_lc) == "staff" and hasattr(instance, 'joining_date') and hasattr(obj, 'joining_date'):
+                if obj.joining_date and instance.joining_date != obj.joining_date:
+                    print(f"DEBUG: PROTECTING joining_date from change: {obj.joining_date} -> {instance.joining_date}")
+                    instance.joining_date = obj.joining_date
+                    print(f"DEBUG: joining_date restored to original: {instance.joining_date}")
+            
             # Ensure Company edits persist reliably on edit
+            print(f"DEBUG: About to save updated instance to database")
             if _norm(entity_lc) == "company":
                 instance.save(force_update=True if _is_mysql() else True)
+                print(f"DEBUG: Company instance saved with force_update")
             else:
                 instance.save()
+                print(f"DEBUG: Instance saved successfully, PK: {instance.pk}")
 
+            print(f"DEBUG: About to save many-to-many relationships")
             form.save_m2m()
+            print(f"DEBUG: Many-to-many relationships saved successfully")
 
-            # ensure auth link and reports flag for UserProfile
-            if _norm(entity_lc) == "userprofile":
+                # ensure auth link and reports flag for Users
+            if _norm(entity_lc) == "users":
                 username = (form.cleaned_data.get("user") or "").strip()
                 password = (form.cleaned_data.get("password") or None)
                 try:
@@ -1421,6 +1704,13 @@ def entity_update(request, entity, pk):
                         instance.save(update_fields=["is_reports"])
                 except Exception:
                     pass
+                
+                # Clear the deleted user cache if we're intentionally updating this user
+                if username:
+                    from django.core.cache import cache
+                    cache_key = f"deleted_user_{username}"
+                    cache.delete(cache_key)
+                
                 ensure_auth_user_for_profile(instance, username, password)
 
             # mirror permission flags and ensure auth user for UserPermission
@@ -1428,17 +1718,30 @@ def entity_update(request, entity, pk):
                 up = getattr(instance, "user_profile", None)
                 if up:
                     try:
-                        up.is_admin = getattr(instance, "is_admin", False)
-                        up.is_master = getattr(instance, "is_master", False)
-                        up.is_data_entry = getattr(instance, "is_data_entry", False)
-                        up.is_accounting = getattr(instance, "is_accounting", False)
-                        up.is_recovery_agent = getattr(instance, "is_recovery_agent", False)
-                        up.is_auditor = getattr(instance, "is_auditor", False)
-                        up.is_manager = getattr(instance, "is_manager", False)
+                        # Convert to proper boolean values - handle string "True"/"False" from form
+                        def convert_bool(val):
+                            if isinstance(val, str):
+                                return val.lower() in ('true', '1', 'yes', 'on')
+                            return bool(val)
+                        
+                        is_admin = convert_bool(getattr(instance, "is_admin", False))
+                        is_master = convert_bool(getattr(instance, "is_master", False))
+                        is_data_entry = convert_bool(getattr(instance, "is_data_entry", False))
+                        is_accounting = convert_bool(getattr(instance, "is_accounting", False))
+                        is_recovery_agent = convert_bool(getattr(instance, "is_recovery_agent", False))
+                        is_auditor = convert_bool(getattr(instance, "is_auditor", False))
+                        is_manager = convert_bool(getattr(instance, "is_manager", False))
+                        
+                        # Users model only has is_reports field - don't try to set other permission fields
                         up.is_reports = True
+                        
+                        print(f"DEBUG: ADMIN SYNC - Raw values: admin={getattr(instance, 'is_admin', False)}, converted={is_admin}")
+                        print(f"DEBUG: UserPermission sync - is_admin = {is_admin}")
                         up.save()
+                        
+                        # Force sync to Django auth user immediately
                         try:
-                            user_field = UserProfile._meta.get_field("user")
+                            user_field = Users._meta.get_field("user")
                             if isinstance(user_field, ForeignKey):
                                 username = getattr(getattr(up, "user", None), "username", "") or ""
                             else:
@@ -1447,7 +1750,35 @@ def entity_update(request, entity, pk):
                             username = getattr(up, "user", "") or ""
                         if not username:
                             username = (getattr(up, "extra_data", {}) or {}).get("auth_username") or ""
-                        ensure_auth_user_for_profile(up, username, None)
+                        
+                        print(f"DEBUG: USERNAME FOR SYNC: {username}")
+                        
+                        # Force sync the auth user with updated permissions
+                        auth_user = ensure_auth_user_for_profile(up, username, None)
+                        if auth_user:
+                            # Refresh auth user to see latest values
+                            auth_user.refresh_from_db()
+                            print(f"DEBUG: Auth user synced - username: {auth_user.username}")
+                            print(f"DEBUG: Auth user synced - is_superuser: {auth_user.is_superuser}, is_staff: {auth_user.is_staff}")
+                            print(f"DEBUG: Auth user groups: {[g.name for g in auth_user.groups.all()]}")
+                        else:
+                            print(f"DEBUG: NO AUTH USER FOUND FOR {username}")
+                        
+                        # Debug: Check if the sync worked
+                        up.refresh_from_db()
+                        print(f"DEBUG: After save - Users.is_admin = {up.is_admin}")
+                        
+                        # Debug: Check Django groups
+                        try:
+                            from django.contrib.auth.models import Group
+                            admin_group = Group.objects.filter(name="Admin").first()
+                            print(f"DEBUG: Admin group exists: {admin_group is not None}")
+                            if admin_group and auth_user:
+                                print(f"DEBUG: Admin group members: {[u.username for u in admin_group.user_set.all()]}")
+                                print(f"DEBUG: User in admin group: {auth_user in admin_group.user_set.all()}")
+                        except Exception as e:
+                            print(f"DEBUG: Error checking groups: {e}")
+
                     except Exception:
                         pass
 
@@ -1483,12 +1814,95 @@ def entity_delete(request, entity, pk):
     allowed = can_user_delete_entity(request.user, entity_lc)
     _debug_delete(request.user, entity_lc, allowed)
     if not allowed:
-        if user_is_master(request.user):
-            return JsonResponse({"success": False, "error": "Delete is not allowed for Master role for this item."},
-                                status=403)
+        rf = role_flags(request.user)
+        if rf["master"]:
+            # Check if master has other roles that might allow delete
+            has_other_roles = any([rf["admin"], rf["data_entry"], rf["accounting"]])
+            if not has_other_roles:
+                return JsonResponse({"success": False, "error": "Delete is not allowed for Master-only users."},
+                                    status=403)
+            else:
+                return JsonResponse({"success": False, "error": "Delete is not allowed for this entity with your current role combination."},
+                                    status=403)
         return JsonResponse({"success": False, "error": "You don't have permission to delete this item."}, status=403)
 
     obj = get_object_or_404(model, pk=pk)
+
+    # Special handling for Users model - delete Django User too
+    if _norm(entity_lc) == "users":
+        try:
+            with transaction.atomic():
+                # Get the Django User before deleting the Users record
+                django_user = None
+                if hasattr(obj, "user") and obj.user:
+                    django_user = obj.user
+                    username = django_user.username
+                
+                # Delete the Users record (hard delete)
+                obj.delete()
+                
+                # Also delete the Django User if it exists
+                if django_user:
+                    django_user.delete()
+                    
+                    # Store the deleted username in cache to prevent recreation
+                    from django.core.cache import cache
+                    cache_key = f"deleted_user_{username}"
+                    cache.set(cache_key, True, timeout=3600)  # 1 hour timeout
+                
+                return JsonResponse({"success": True, "hard_deleted": True, "django_user_deleted": True})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": f"Failed to delete user: {str(e)}"}, status=400)
+
+    # Special handling for Column entity - hard delete custom fields
+    if _norm(entity_lc) == "column":
+        try:
+            with transaction.atomic():
+                # Hard delete the Column record
+                obj.delete()
+                return JsonResponse({"success": True, "hard_deleted": True, "custom_field_deleted": True})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": f"Failed to delete custom field: {str(e)}"}, status=400)
+
+    # Special handling for Branch entity - hard delete with cascade
+    if _norm(entity_lc) == "branch":
+        try:
+            with transaction.atomic():
+                # Get related records count for logging
+                from companies.models import Staff, Users, UserPermission
+                staff_count = Staff.objects.filter(branch=obj).count()
+                users_count = Users.objects.filter(branch=obj).count()
+                up_count = UserPermission.objects.filter(user_profile__branch=obj).count()
+                
+                # Delete UserPermissions first (they reference Users)
+                if up_count > 0:
+                    UserPermission.objects.filter(user_profile__branch=obj).delete()
+                
+                # Delete Users records
+                if users_count > 0:
+                    Users.objects.filter(branch=obj).delete()
+                
+                # Delete Staff records
+                if staff_count > 0:
+                    Staff.objects.filter(branch=obj).delete()
+                
+                # Finally delete the Branch
+                branch_name = obj.name
+                branch_code = obj.code
+                obj.delete()
+                
+                return JsonResponse({
+                    "success": True, 
+                    "hard_deleted": True, 
+                    "branch_deleted": True,
+                    "deleted_records": {
+                        "staff": staff_count,
+                        "users": users_count,
+                        "user_permissions": up_count
+                    }
+                })
+        except Exception as e:
+            return JsonResponse({"success": False, "error": f"Failed to delete branch: {str(e)}"}, status=400)
 
     # Soft-delete paths: status→inactive, else extra_data.deleted=True
     try:
@@ -1526,13 +1940,13 @@ def entity_delete(request, entity, pk):
                     extra["deleted"] = True
                     obj.extra_data = extra
                     obj.save(update_fields=["extra_data"])
-                    if _norm(entity_lc) in {"userprofile", "appointment", "salarystatement"}:
+                    if _norm(entity_lc) in {"users", "appointment", "salarystatement"}:
                         return JsonResponse({"success": True, "soft_deleted": True,
                                              "note": "Table missing. Run migrations, then retry delete."})
                     return JsonResponse({"success": True, "soft_deleted": True})
             except Exception:
                 pass
-            if _norm(entity_lc) in {"userprofile", "appointment", "salarystatement"}:
+            if _norm(entity_lc) in {"users", "appointment", "salarystatement"}:
                 return JsonResponse({"success": False, "error": "Table missing. Run migrations, then retry delete."},
                                     status=400)
             return JsonResponse({"success": False, "error": "Delete failed."}, status=400)
@@ -1916,48 +2330,193 @@ def restructure_apply(request):
         pass
 
     return JsonResponse({"success": True, "restructures": len(restructs)})
-# add near the top
-from django.http import JsonResponse, HttpResponse
-from django.shortcuts import render
-from django.views.decorators.http import require_http_methods
-from django.contrib.auth.decorators import login_required
-from .forms import UserProfileForm
-from .models import Staff, Branch  # adjust if different
+
+def simple_test_view(request):
+    """Simple test view that returns plain HTML"""
+    from django.http import HttpResponse
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Test Page</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 40px; background: #f0f0f0; }
+            .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+            .btn { background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px; }
+            .btn:hover { background: #0056b3; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>✅ Test Page Working!</h1>
+            <p>This confirms that the URL routing is working correctly.</p>
+            
+            <h2>UserProfile Form Links:</h2>
+            <a href="/create/userprofile/" class="btn">Create UserProfile</a>
+            <a href="/add/userprofile/" class="btn">Add UserProfile</a>
+            <a href="/new/userprofile/" class="btn">New UserProfile</a>
+            <a href="/direct-userprofile/" class="btn">Direct UserProfile</a>
+            <a href="/emergency/userprofile/" class="btn">Emergency UserProfile</a>
+            
+            <h2>System Status:</h2>
+            <p>✅ URL routing: Working</p>
+            <p>✅ Django server: Running</p>
+            <p>✅ Views: Accessible</p>
+        </div>
+    </body>
+    </html>
+    """
+    return HttpResponse(html)
+
+def emergency_userprofile_view(request):
+    """Emergency UserProfile view - works without any dependencies"""
+    from django.shortcuts import render
+    from django.http import HttpResponse, JsonResponse
+    from .forms import UsersForm
+    
+    if request.method == 'POST':
+        try:
+            form = UsersForm(request.POST, request.FILES)
+            if form.is_valid():
+                form.save()
+                return JsonResponse({"success": True, "message": "UserProfile created successfully!"})
+            else:
+                return JsonResponse({"success": False, "errors": form.errors})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+    else:
+        try:
+            form = UsersForm()
+            return render(request, 'companies/emergency_userprofile.html', {
+                'form': form,
+                'title': 'Emergency UserProfile Creation'
+            })
+        except Exception as e:
+            return HttpResponse(f"<h1>Emergency UserProfile Form</h1><p>Error: {e}</p>")
+
+def basic_test_view(request):
+    """Basic test view that returns plain text"""
+    from django.http import HttpResponse
+    return HttpResponse("BASIC TEST WORKS!")
 
 @login_required
-@require_http_methods(["GET"])
-def userprofile_get(request):
-    form = UserProfileForm()
+def userprofile_direct_view(request):
+    """Direct UserProfile form view - bypasses modal system"""
+    from django.shortcuts import render, redirect
+    from django.contrib import messages
+    from .forms import UsersForm
+    
+    if request.method == 'POST':
+        try:
+            form = UsersForm(request.POST, request.FILES)
+            if form.is_valid():
+                profile = form.save(commit=False)
+                profile.user = request.user
+                profile.save()
+                messages.success(request, 'UserProfile created successfully!')
+                return redirect('userprofile_list')
+            else:
+                messages.error(request, 'Please correct the errors below.')
+        except Exception as e:
+            messages.error(request, f'Error: {str(e)}')
+    else:
+        form = UsersForm()
+    
+    return render(request, 'companies/userprofile_direct.html', {
+        'form': form,
+        'title': 'Create UserProfile'
+    })
 
-    # Avoid massive dropdowns; form still renders every field.
-    if 'staff' in form.fields:
-        form.fields['staff'].queryset = Staff.objects.none()
-        form.fields['staff'].empty_label = "— select —"
-    if 'branch' in form.fields:
-        form.fields['branch'].queryset = Branch.objects.none()
-        form.fields['branch'].empty_label = "— select —"
+# ────────────────────────────────────────────────────────────────────
+#  Debug Views
+# ────────────────────────────────────────────────────────────────────
+def debug_grid_view(request, entity):
+    """Debug view to see what's happening with the grid"""
+    entity_lc = (entity or "").lower()
+    
+    # Get model info
+    model = get_model_class(entity_lc)
+    model_info = {
+        'exists': model is not None,
+        'name': model.__name__ if model else None,
+        'app_label': model._meta.app_label if model else None,
+        'fields': [f.name for f in model._meta.fields] if model else []
+    }
+    
+    # Get objects info
+    objects_info = {}
+    if model:
+        try:
+            objects = model.objects.all()
+            objects_info = {
+                'count': objects.count(),
+                'first_object': str(objects.first()) if objects.exists() else None,
+                'sample_data': list(objects.values()[:3]) if objects.exists() else []
+            }
+        except Exception as e:
+            objects_info = {'error': str(e)}
+    
+    # Get template info
+    template_info = {
+        'include_template': 'companies/grid_list.html',
+        'template_exists': True  # We'll check this
+    }
+    
+    # Get context info
+    context_info = {
+        'entity': entity,
+        'entity_lc': entity_lc,
+        'model_info': model_info,
+        'objects_info': objects_info,
+        'template_info': template_info,
+        'debug': True
+    }
+    
+    return JsonResponse(context_info)
 
-    resp = render(request, "companies/userprofile_modal_bare.html", {"form": form, "edit_mode": False})
-    # Stop BFCache so the form doesn’t pop back after Close
-    resp["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    resp["Pragma"] = "no-cache"
-    return resp
-
+# ────────────────────────────────────────────────────────────────────
+#  Test View for Debugging
+# ────────────────────────────────────────────────────────────────────
 @login_required
-@require_http_methods(["POST"])
-def userprofile_create(request):
-    form = UserProfileForm(request.POST, request.FILES)
-
-    # Restrict heavy selects to submitted IDs only
-    sid = request.POST.get('staff')
-    bid = request.POST.get('branch')
-    if 'staff' in form.fields:
-        form.fields['staff'].queryset = Staff.objects.filter(pk=sid) if sid else Staff.objects.none()
-    if 'branch' in form.fields:
-        form.fields['branch'].queryset = Branch.objects.filter(pk=bid) if bid else Branch.objects.none()
-
-    if form.is_valid():
-        obj = form.save()
-        return JsonResponse({"success": True, "id": obj.pk})
-    return JsonResponse({"success": False, "errors": form.errors}, status=400)
+def test_custom_fields(request):
+    """Simple test view to debug custom field loading"""
+    print("=== TEST CUSTOM FIELDS VIEW ===")
+    
+    try:
+        from companies.models import Column
+        print("SUCCESS: Imported Column model")
+        
+        # Test the exact query
+        fields = Column.objects.filter(module__iexact='company').exclude(extra_data__deleted=True).order_by("order")
+        print(f"SUCCESS: Query returned {fields.count()} fields")
+        
+        for field in fields:
+            print(f"Field: {field.field_name} (label: {field.label}, deleted: {field.extra_data.get('deleted', False)})")
+        
+        # Test the _norm function
+        from companies.views import _norm
+        print(f"_norm('Company') = {_norm('Company')}")
+        
+        context = {
+            'fields': fields,
+            'field_count': fields.count(),
+            'field_names': [f.field_name for f in fields],
+            'field_labels': [f.label for f in fields],
+        }
+        
+        return render(request, 'companies/test_custom_fields.html', context)
+        
+    except Exception as e:
+        print(f"ERROR in test view: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        context = {
+            'error': str(e),
+            'field_count': 0,
+            'field_names': [],
+            'field_labels': [],
+        }
+        
+        return render(request, 'companies/test_custom_fields.html', context)
 

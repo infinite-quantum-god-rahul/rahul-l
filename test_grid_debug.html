@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grid Debug Test - SML Project</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .debug-panel { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .status-box { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .status-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .grid-test { margin: 20px 0; }
+        .function-test { margin: 10px 0; padding: 10px; background: #fff; border: 1px solid #ddd; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">
+            <i class="fas fa-bug text-warning"></i>
+            Grid Debug Test - SML Project
+        </h1>
+        
+        <div class="alert alert-info">
+            <strong>Purpose:</strong> This page helps debug why the grid is not displaying when you press options/buttons.
+        </div>
+
+        <!-- Debug Panel -->
+        <div class="debug-panel">
+            <h3><i class="fas fa-info-circle"></i> Debug Information</h3>
+            <div id="debug-info">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid Test Section -->
+        <div class="grid-test">
+            <h3><i class="fas fa-table"></i> Grid Functionality Test</h3>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Test Grid Display</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Test if the grid can display data for different entities:</p>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-primary" onclick="testGrid('Staff')">
+                                    <i class="fas fa-users"></i> Test Staff Grid
+                                </button>
+                                <button class="btn btn-success" onclick="testGrid('Client')">
+                                    <i class="fas fa-user"></i> Test Client Grid
+                                </button>
+                                <button class="btn btn-info" onclick="testGrid('Company')">
+                                    <i class="fas fa-building"></i> Test Company Grid
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Test Modal Functions</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Test if modal functions are working:</p>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-warning" onclick="testModal('Staff')">
+                                    <i class="fas fa-plus"></i> Test Add Staff Modal
+                                </button>
+                                <button class="btn btn-secondary" onclick="testModal('Client')">
+                                    <i class="fas fa-plus"></i> Test Add Client Modal
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Function Test Results -->
+        <div class="function-test">
+            <h3><i class="fas fa-check-circle"></i> Function Availability Test</h3>
+            <div id="function-results">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Testing functions...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Console Output -->
+        <div class="function-test">
+            <h3><i class="fas fa-terminal"></i> Console Output</h3>
+            <div id="console-output" style="background: #000; color: #0f0; padding: 15px; border-radius: 4px; font-family: monospace; max-height: 300px; overflow-y: auto;">
+                <div>Console output will appear here...</div>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary mt-2" onclick="clearConsole()">
+                <i class="fas fa-trash"></i> Clear Console
+            </button>
+        </div>
+
+        <!-- Grid Display Test -->
+        <div class="grid-test">
+            <h3><i class="fas fa-eye"></i> Live Grid Display Test</h3>
+            <div id="grid-display">
+                <div class="alert alert-info">
+                    Click a test button above to see the grid display here.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Console logging override
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function addToConsole(message, type = 'log') {
+            const consoleOutput = document.getElementById('console-output');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ff6b6b' : type === 'warn' ? '#ffd93d' : '#6bcf7f';
+            
+            consoleOutput.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole(args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addToConsole(args.join(' '), 'warn');
+        };
+
+        function clearConsole() {
+            document.getElementById('console-output').innerHTML = '<div>Console cleared...</div>';
+        }
+
+        // Debug information collection
+        function collectDebugInfo() {
+            const debugInfo = document.getElementById('debug-info');
+            const info = {
+                'User Agent': navigator.userAgent,
+                'Page URL': window.location.href,
+                'Window Size': `${window.innerWidth}x${window.innerHeight}`,
+                'Screen Size': `${screen.width}x${screen.height}`,
+                'Django CSRF Token': document.querySelector('[name=csrfmiddlewaretoken]')?.value || 'Not found',
+                'Bootstrap Version': '5.1.3',
+                'FontAwesome Version': '6.0.0',
+                'JavaScript Enabled': true,
+                'Local Storage': typeof(Storage) !== "undefined",
+                'Session Storage': typeof(sessionStorage) !== "undefined"
+            };
+            
+            let html = '<div class="row">';
+            Object.entries(info).forEach(([key, value]) => {
+                html += `
+                    <div class="col-md-6 mb-2">
+                        <strong>${key}:</strong> 
+                        <span class="text-muted">${value}</span>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            debugInfo.innerHTML = html;
+        }
+
+        // Function availability test
+        function testFunctions() {
+            const results = document.getElementById('function-results');
+            const functions = [
+                'openEntityModal',
+                'editEntity', 
+                'deleteEntity',
+                'closeEntityModal',
+                'insertEntityModal'
+            ];
+            
+            let html = '<div class="row">';
+            functions.forEach(funcName => {
+                const exists = typeof window[funcName] === 'function';
+                const status = exists ? 'success' : 'error';
+                const icon = exists ? 'fa-check' : 'fa-times';
+                const text = exists ? 'Available' : 'Missing';
+                
+                html += `
+                    <div class="col-md-4 mb-2">
+                        <div class="status-box status-${status}">
+                            <i class="fas ${icon}"></i> 
+                            <strong>${funcName}:</strong> ${text}
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            results.innerHTML = html;
+        }
+
+        // Grid test function
+        function testGrid(entity) {
+            console.log(`Testing grid for entity: ${entity}`);
+            
+            const gridDisplay = document.getElementById('grid-display');
+            gridDisplay.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-spinner fa-spin"></i> Loading grid for ${entity}...
+                </div>
+            `;
+            
+            // Try to fetch grid data
+            const url = `/${entity.toLowerCase()}/`;
+            console.log(`Fetching from: ${url}`);
+            
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html,application/json'
+                }
+            })
+            .then(response => {
+                console.log(`Response status: ${response.status}`);
+                console.log(`Response headers:`, response.headers);
+                return response.text();
+            })
+            .then(html => {
+                console.log(`Response length: ${html.length}`);
+                console.log(`Response preview:`, html.substring(0, 500));
+                
+                if (html.includes('grid-container')) {
+                    gridDisplay.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check"></i> Grid HTML loaded successfully for ${entity}!
+                        </div>
+                        <div class="border p-3" style="max-height: 400px; overflow-y: auto;">
+                            <pre style="font-size: 12px;">${html.substring(0, 2000)}...</pre>
+                        </div>
+                    `;
+                } else {
+                    gridDisplay.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> Grid HTML loaded but doesn't contain expected content for ${entity}.
+                        </div>
+                        <div class="border p-3" style="max-height: 400px; overflow-y: auto;">
+                            <pre style="font-size: 12px;">${html.substring(0, 2000)}...</pre>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error(`Error testing grid for ${entity}:`, error);
+                gridDisplay.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times"></i> Error loading grid for ${entity}: ${error.message}
+                    </div>
+                `;
+            });
+        }
+
+        // Modal test function
+        function testModal(entity) {
+            console.log(`Testing modal for entity: ${entity}`);
+            
+            if (typeof window.openEntityModal === 'function') {
+                try {
+                    window.openEntityModal(entity);
+                    console.log(`Modal opened successfully for ${entity}`);
+                } catch (error) {
+                    console.error(`Error opening modal for ${entity}:`, error);
+                }
+            } else {
+                console.error(`openEntityModal function not found!`);
+                alert(`openEntityModal function not found! This is why the grid options are not working.`);
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== Grid Debug Test Page Loaded ===');
+            collectDebugInfo();
+            testFunctions();
+            
+            // Test if we can access the main script
+            console.log('Testing script access...');
+            if (typeof window.openEntityModal === 'function') {
+                console.log('✅ openEntityModal function is available');
+            } else {
+                console.log('❌ openEntityModal function is NOT available');
+                console.log('This explains why the grid options are not working!');
+            }
+        });
+
+        // Add some test data
+        window.testData = {
+            staff: [
+                { id: 1, name: 'John Doe', designation: 'Manager', contact: '1234567890' },
+                { id: 2, name: 'Jane Smith', designation: 'Developer', contact: '0987654321' }
+            ],
+            client: [
+                { id: 1, name: 'Client A', aadhar: '1234 5678 9012', contact: '1111111111' },
+                { id: 2, name: 'Client B', aadhar: '2345 6789 0123', contact: '2222222222' }
+            ]
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Reminder</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #2c3e50; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background: #f9f9f9; }
+        .highlight { background: #e74c3c; color: white; padding: 15px; margin: 20px 0; }
+        .footer { background: #34495e; color: white; padding: 15px; text-align: center; font-size: 12px; }
+        .button { display: inline-block; padding: 10px 20px; background: #3498db; color: white; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Spoorthi MACS Ltd.</h1>
+            <p>Payment Reminder</p>
+        </div>
+        
+        <div class="content">
+            <h2>Dear {{ borrower_name }},</h2>
+            
+            <p>This is a friendly reminder that your loan payment is due soon.</p>
+            
+            <div class="highlight">
+                <h3>Payment Details:</h3>
+                <p><strong>Loan ID:</strong> #{{ loan_id }}</p>
+                <p><strong>Due Date:</strong> {{ due_date }}</p>
+                <p><strong>Amount Due:</strong> ₹{{ amount }}</p>
+                <p><strong>Days Remaining:</strong> {{ days_before }} days</p>
+            </div>
+            
+            <p>Please ensure timely payment to:</p>
+            <ul>
+                <li>Avoid late payment penalties</li>
+                <li>Maintain a good credit history</li>
+                <li>Keep your loan account in good standing</li>
+            </ul>
+            
+            <p><strong>Payment Methods:</strong></p>
+            <ul>
+                <li>Online Banking</li>
+                <li>UPI Transfer</li>
+                <li>Cash Deposit at Branch</li>
+                <li>Cheque/DD</li>
+            </ul>
+            
+            <p style="text-align: center; margin: 30px 0;">
+                <a href="#" class="button">Make Payment Now</a>
+            </p>
+            
+            <p>If you have already made the payment, please ignore this reminder.</p>
+            
+            <p>For any queries, please contact our customer support:</p>
+            <p><strong>Phone:</strong> 1800-XXX-XXXX<br>
+            <strong>Email:</strong> support@spoorthimacs.com</p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>&copy; 2025 Spoorthi MACS Ltd. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+
+
+
+

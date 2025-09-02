@@ -1245,25 +1245,12 @@ function isUserPermEntity(ent) {
     return /^userpermissions?$/i.test(String(ent || ""));
 }
 
-function openEntityModal(entityOrEvent) {
-    let entity;
-    if (typeof entityOrEvent === "string") {
-        entity = entityOrEvent;
-    } else if (entityOrEvent && entityOrEvent.currentTarget) {
-        const el = entityOrEvent.currentTarget;
-        entity = getEntityFromElement(el) || el.dataset.entity || el.getAttribute("data-entity");
-    }
-    if (!entity) { console.error("No entity provided to openEntityModal"); return; }
-
-    // Allow modal on the UserPermission list page, otherwise redirect there.
-    if (isUserPermEntity(entity)) {
-        const onUserPermPage = /\/userpermissions?\/?$/i.test(window.location.pathname);
-        if (!onUserPermPage) { window.location.href = "/UserPermission/"; return; }
-        // fall through to open the modal normally on /UserPermission/
-    }
-
+function openEntityModal(entity) {
+    console.log('=== openEntityModal called ===', entity);
     const base = getEntityBase(entity);
-    const url = `${base}get/`;
+    const url = `${base}get/`; // Changed back to get/
+    console.log('=== URL to fetch ===', url);
+    
     fetch(url, {
         headers: { "X-Requested-With": "XMLHttpRequest", "Accept": "application/json,text/html" },
         credentials: "include",
@@ -1293,12 +1280,14 @@ function openEntityModal(entityOrEvent) {
 }
 
 function editEntity(entity, id) {
-    if (!entity || !id) { console.error("editEntity requires entity and id"); return; }
-    if (isUserPermEntity(entity)) { alert("Use the User Permissions page to manage permissions."); return; }
-
-    id = String(id).replace(/^:/, "");
+    console.log('=== editEntity called ===', entity, id);
     const base = getEntityBase(entity);
-    const url = `${base}get/${id}/`;
+    const url = `${base}get/${id}/`; // Changed back to get/
+    console.log('=== URL to fetch ===', url);
+    
+    if (!entity || !id) { console.error("editEntity requires entity and id"); return; }
+    // Allow editing UserPermission via standard modal
+
     fetch(url, { headers:{ "X-Requested-With":"XMLHttpRequest", "Accept": "application/json,text/html" }, credentials:"include", cache:"no-store", redirect:"follow" })
     .then(async res => {
         if (res.status === 401 || res.status === 403 || res.redirected) { handleAuthFailure("Not authenticated."); return; }
@@ -1324,58 +1313,40 @@ function editEntity(entity, id) {
 
 function closeEntityModal() {
     const modal = document.getElementById("entity-modal");
-    if (modal) modal.style.display = "none";
+    if (modal) {
+        // Remove modal display
+        modal.style.display = "none";
+        modal.classList.remove("force-open");
+        
+        // Clear modal content to prevent issues
+        const modalBody = modal.querySelector("#entity-modal-body");
+        if (modalBody) {
+            modalBody.innerHTML = "";
+        }
+        
+        // Reset modal state flags
+        if (window.__CANCEL_MODAL !== undefined) window.__CANCEL_MODAL = true;
+        if (window.__HARD_NAV_ISSUED !== undefined) window.__HARD_NAV_ISSUED = false;
+        if (window.__MODAL_LOADING !== undefined) window.__MODAL_LOADING = false;
+        
+        // Clear any busy states
+        if (window.__OPEN_MODAL_BUSY) {
+            try {
+                Object.keys(window.__OPEN_MODAL_BUSY || {}).forEach(k => delete window.__OPEN_MODAL_BUSY[k]);
+            } catch (_) {}
+        }
+        
+        // Clear any fallback timers
+        if (window.__FALLBACK_TIMER) {
+            clearTimeout(window.__FALLBACK_TIMER);
+            window.__FALLBACK_TIMER = null;
+        }
+    }
 }
 
 // ===== Delete ===== //
-function deleteEntity(entity, id) {
-    if (!confirm("Are you sure you want to delete this item?")) return;
-
-    if (getCurrentRole() === "master") { alert("Delete is disabled for Master role."); return; }
-    if (isUserPermEntity(entity)) { alert("This is a settings page with no table. Use the User Permissions UI."); return; }
-
-    id = String(id).replace(/^:/, "");
-    const entSeg = String(entity).replace(/\s+/g, "").toLowerCase();
-    const url = `/${encodeURIComponent(entSeg)}/delete/${encodeURIComponent(id)}/`;
-
-    fetch(url, {
-        method: "POST",
-        headers: { "X-CSRFToken": getCsrfTokenSafe(), "X-Requested-With": "XMLHttpRequest", "Accept": "application/json" },
-        credentials: "include",
-        redirect: "follow"
-    })
-    .then(async res => {
-        const ct = (res.headers.get("content-type") || "").toLowerCase();
-        if (res.status === 401) { handleAuthFailure("Not authenticated."); return; }
-        if (res.status === 403 || res.redirected) { handleAuthFailure("Not authenticated."); return; }
-
-        if (ct.includes("application/json")) {
-            const data = await res.json();
-            if (data.success) { location.reload(); }
-            else {
-                const msg = String(data.error || "").toLowerCase();
-                const tableMissing =
-                  /no such table|table .* does not exist|relation .* does not exist|undefinedtable|table .* not present/i.test(msg);
-                const limited = (entSeg === "userprofile" || entSeg === "hrpm");
-                if (tableMissing && limited) {
-                    alert("Table missing. Run migrations, then retry delete.");
-                } else {
-                    alert(data.error || "Delete failed.");
-                }
-            }
-            return;
-        }
-
-        const t = await res.text().catch(() => "");
-        if (res.status === 403 && /csrf|forgery/i.test(t)) {
-            alert("CSRF validation failed or session expired. Refresh the page and try again.");
-        } else {
-            alert("Server returned unexpected response while deleting.");
-            console.error("Delete non-JSON response:", t.slice(0, 500));
-        }
-    })
-    .catch(err => { console.error("Delete error:", err); alert("Delete request failed. Check console for details."); });
-}
+// deleteEntity function moved to companies/static/js/modals.crud.js
+// This prevents conflicts with the main delete functionality
 
 /* ===== Fresh login modal state helper ===== */
 function resetLoginModalState() {
@@ -1560,7 +1531,7 @@ async function submitCreditPull() {
 // === expose globally for inline handlers ===
 window.openEntityModal  = openEntityModal;
 window.editEntity       = editEntity;
-window.deleteEntity     = deleteEntity;
+// deleteEntity function moved to companies/static/js/modals.crud.js
 window.closeEntityModal = closeEntityModal;
 window.openImageModal   = openImageModal;
 window.closeImageModal  = closeImageModal;
@@ -1683,7 +1654,12 @@ document.addEventListener("click", function (e) {
     editEntity(entity, id);
   } else if (t.matches("[data-delete-entity], .btn-delete")) {
     if (!id) { console.warn("Delete clicked without id", t); return; }
-    deleteEntity(entity, id);
+    // Use the deleteEntity function from companies/static/js/modals.crud.js
+    if (typeof window.deleteEntity === 'function') {
+      window.deleteEntity(entity, id);
+    } else {
+      console.error('deleteEntity function not available');
+    }
   }
 });
 
@@ -1789,7 +1765,13 @@ document.addEventListener("click", function (e) {
         e.preventDefault(); e.stopPropagation();
         const id = idFromHref(a.getAttribute('href'), 'delete') || idFromRow(a);
         if (!id) { console.warn('UserProfile delete id missing'); return; }
-        try { deleteEntity('UserProfile', id); } catch(_) { console.error('deleteEntity missing'); }
+        try { 
+          if (typeof window.deleteEntity === 'function') {
+            window.deleteEntity('UserProfile', id); 
+          } else {
+            console.error('deleteEntity function not available');
+          }
+        } catch(_) { console.error('deleteEntity missing'); }
       });
     });
   }

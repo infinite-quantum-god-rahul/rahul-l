@@ -345,71 +345,52 @@
     }
   });
 
-  // ---------- USERPROFILE page robust Add/Edit (hard navigate) ----------
+  // ---------- USERPROFILE: Enable modal functionality (removed hard navigation) ----------
   (function userProfilePatch(){
     const isUP = /(^|\/)userprofile(\/|$)/i.test(location.pathname) || (/^userprofile$/i.test(document.body?.dataset?.entity||""));
     if (!isUP) return;
 
     if (!document.body.dataset.entity) document.body.dataset.entity = "userprofile";
 
-    addStyleOnce('userprofile-button-unlock', `
-      a[href^="/userprofile/"], a[href^="/UserProfile/"] { pointer-events:auto!important; opacity:1!important; }
-      a[href^="/userprofile/"].disabled, a[href^="/UserProfile/"].disabled { pointer-events:auto!important; opacity:1!important; }
-      .up-force-pointer{pointer-events:auto!important;opacity:1!important}
-    `);
+    // Enable UserProfile buttons to work with modal system
+    const enable = el => { 
+      if (!el) return; 
+      el.removeAttribute("disabled"); 
+      el.setAttribute("aria-disabled","false"); 
+      el.classList.remove("disabled"); 
+      el.style.pointerEvents="auto"; 
+      if (!el.hasAttribute("tabindex")) el.tabIndex=0; 
+      if (!el.hasAttribute("role")) el.setAttribute("role", el.tagName==="A"?"link":"button"); 
+    };
 
-    const enable = el => { if (!el) return; el.removeAttribute("disabled"); el.setAttribute("aria-disabled","false"); el.classList.remove("disabled"); el.classList.add("up-force-pointer"); el.style.pointerEvents="auto"; if (!el.hasAttribute("tabindex")) el.tabIndex=0; if (!el.hasAttribute("role")) el.setAttribute("role", el.tagName==="A"?"link":"button"); };
-    const idFromHref = (href, op)=> { const m=String(href||"").match(new RegExp(`${op}/([^/]+)/?$`,"i")); return m? m[1].replace(/^:/,'') : ""; };
-    const idFromRow  = el => { const tr=el.closest('tr'); if (!tr) return ""; const pk=tr.dataset.id||tr.dataset.pk||tr.getAttribute('data-id')||tr.getAttribute('data-pk')||""; if (pk) return pk.replace(/^:/,''); const cell=tr.querySelector('td,th'); const v=(cell?.textContent||"").trim(); return /^\d+$/.test(v)?v:""; };
-
-    function hardNavTo(url){ window.location.href = url; }
-
-    function bindAdd(){
-      const nodes = new Set([
+    function bindUserProfileButtons(){
+      // Enable all UserProfile buttons to work with modal system
+      const addButtons = [
         ...qsa('a[href^="/userprofile/get"]'),
         ...qsa('a[href^="/UserProfile/get"]'),
         ...qsa('[data-open-entity="UserProfile"], [data-open-entity="userprofile"]'),
         ...qsa('#create-UserProfile-btn, #create-userprofile-btn, #create-userprofile')
-      ]);
-      if (nodes.size===0){ qsa('.grid-container .btn, .grid-header .btn, .page-actions .btn').forEach(b=>{ if (/^add|create$/i.test((b.textContent||"").trim())) nodes.add(b); }); }
-      nodes.forEach(a=>{
-        if (a.dataset.boundUserProfileAdd) return; a.dataset.boundUserProfileAdd="1"; enable(a);
-        a.addEventListener('click', e=>{
-          e.preventDefault(); e.stopPropagation();
-          const href=a.getAttribute('href')||'';
-          const target = /\/(userprofile|UserProfile)\/get\/?/.test(href) ? href : "/UserProfile/get/";
-          hardNavTo(target);
-        });
-      });
+      ];
+      
+      const editButtons = [
+        ...qsa('a[href*="/userprofile/update/"]'), 
+        ...qsa('a[href*="/UserProfile/update/"]'), 
+        ...qsa('[data-edit-entity="UserProfile"], [data-edit-entity="userprofile"]')
+      ];
+      
+      const deleteButtons = [
+        ...qsa('a[href*="/userprofile/delete/"]'), 
+        ...qsa('a[href*="/UserProfile/delete/"]'), 
+        ...qsa('[data-delete-entity="UserProfile"], [data-delete-entity="userprofile"]')
+      ];
+      
+      // Enable all buttons
+      [...addButtons, ...editButtons, ...deleteButtons].forEach(enable);
     }
-    function bindEdit(){
-      const anchors = [...qsa('a[href*="/userprofile/update/"]'), ...qsa('a[href*="/UserProfile/update/"]'), ...qsa('[data-edit-entity="UserProfile"], [data-edit-entity="userprofile"]')];
-      anchors.forEach(a=>{
-        if (a.dataset.boundUserProfileEdit) return; a.dataset.boundUserProfileEdit="1"; enable(a);
-        a.addEventListener('click', e=>{
-          e.preventDefault(); e.stopPropagation();
-          const raw=a.getAttribute('href')||''; const id=idFromHref(raw,'update') || idFromRow(a); if (!id) return;
-          const base=/\/UserProfile\//.test(raw)?"/UserProfile/":"/userprofile/";
-          hardNavTo(`${base}update/${encodeURIComponent(id)}/`);
-        });
-      });
-    }
-    function bindDelete(){
-      const anchors = [...qsa('a[href*="/userprofile/delete/"]'), ...qsa('a[href*="/UserProfile/delete/"]'), ...qsa('[data-delete-entity="UserProfile"], [data-delete-entity="userprofile"]')];
-      anchors.forEach(a=>{
-        if (a.dataset.boundUserProfileDelete) return; a.dataset.boundUserProfileDelete="1"; enable(a);
-        a.addEventListener("click", e=>{
-          e.preventDefault(); e.stopPropagation();
-          const raw=a.getAttribute('href')||'';
-          const id=idFromHref(raw,'delete') || idFromRow(a);
-          if (!id) return;
-          try{ deleteEntity('UserProfile', id); }catch(_){ console.error('deleteEntity missing'); }
-        });
-      });
-    }
-    function bindAll(){ bindAdd(); bindEdit(); bindDelete(); }
-    bindAll(); const mo=new MutationObserver(()=> bindAll()); mo.observe(document.body,{childList:true,subtree:true});
-    document.addEventListener("click", e=>{ const a=e.target?.closest?.('a[href*="/UserProfile/get"], a[href*="/userprofile/get"]'); if (!a) return; /* allow default now handled above */ }, true);
+    
+    bindUserProfileButtons(); 
+    const mo = new MutationObserver(() => bindUserProfileButtons()); 
+    mo.observe(document.body, {childList: true, subtree: true});
   })();
 
   // ---------- Credit modal ----------
@@ -566,6 +547,8 @@
     if (window.__FALLBACK_TIMER) { clearTimeout(window.__FALLBACK_TIMER); window.__FALLBACK_TIMER=null; }
     window.__FALLBACK_TIMER = setTimeout(()=>{
       if (window.__CANCEL_MODAL) return;
+      // Skip hard navigation for UserProfile to allow modal to work
+      if (entity && entity.toLowerCase() === 'userprofile') return;
       if (window.__MODAL_LOADING && !window.__MODAL_GOT_RESPONSE && !qs("#entity-modal .modal-body form") && !window.__HARD_NAV_ISSUED){
         window.__HARD_NAV_ISSUED = true;
         const dest = (mode==="Create"
@@ -662,27 +645,8 @@
     return "/media/"+src.replace(/^\/+/, "");
   }
 
-  // ---- 1) Hard navigation for UserProfile Add/Edit to avoid JSON modal dumps
-  (function(){
-    const _open = window.openEntityModal;
-    window.openEntityModal = function(arg){
-      let entity = typeof arg==="string" ? arg : (arg?.currentTarget?.dataset?.entity || arg?.dataset?.entity || "");
-      if (/^userprofile$/i.test(String(entity||""))){
-        window.location.href = "/UserProfile/get/";
-        return;
-      }
-      return typeof _open==="function" ? _open.apply(this, arguments) : undefined;
-    };
-
-    const _edit = window.editEntity;
-    window.editEntity = function(entity, id){
-      if (/^userprofile$/i.test(String(entity||"")) && id){
-        window.location.href = "/UserProfile/update/"+encodeURIComponent(String(id).replace(/^:/,""))+"/";
-        return;
-      }
-      return typeof _edit==="function" ? _edit.apply(this, arguments) : undefined;
-    };
-  })();
+  // UserProfile: Allow modal functionality (removed hard navigation)
+  // UserProfile will now work with the standard modal system
 
   // ---- 2) Image preview guard: block placeholders and only preview valid URLs
   on("click", "table img, .grid img, img.thumbnail, [data-preview='image'], [data-preview='image'] img", (e, el)=>{
@@ -736,45 +700,8 @@
     return "/media/"+src.replace(/^\/+/, "");
   }
 
-  function userProfileHardNav(mode, id){
-    if(mode==="add") { window.location.href="/UserProfile/get/"; return true; }
-    if(mode==="edit" && id){ window.location.href="/UserProfile/update/"+encodeURIComponent(String(id).replace(/^:/,""))+"/"; return true; }
-    return false;
-  }
-
-  // 1) Intercept any Add/Edit click for UserProfile at the earliest router layer
-  on("click", "[data-open-entity],[data-edit-entity], .btn-add, .btn-edit, a[href^='/UserProfile/']", (e, el)=>{
-    const ent = (el.dataset.openEntity||el.dataset.editEntity||el.dataset.entity||"").toLowerCase() ||
-                ((el.getAttribute("href")||"").toLowerCase().startsWith("/userprofile/") ? "userprofile" : "");
-    if(ent!=="userprofile") return;
-
-    e.preventDefault(); e.stopImmediatePropagation();
-    const href = el.getAttribute("href")||"";
-    const mAdd  = /^\/userprofile\/get\/?/i.test(href);
-    const mEdit = href.match(/^\/userprofile\/update\/([^\/]+)\/?/i);
-    if (mAdd || el.classList.contains("btn-add") || el.hasAttribute("data-open-entity")) { userProfileHardNav("add"); return; }
-    if (mEdit || el.classList.contains("btn-edit") || el.hasAttribute("data-edit-entity")) {
-      const id = (el.dataset.id || (mEdit?mEdit[1]:"") || "").replace(/^:/,"");
-      userProfileHardNav("edit", id); return;
-    }
-  }, true);
-
-  // 2) Make openEntityModal/editEntity also hard-nav for defense in depth
-  try{
-    const _open = window.openEntityModal;
-    window.openEntityModal = function(arg){
-      let entity = typeof arg==="string" ? arg : (arg?.currentTarget?.dataset?.entity || arg?.dataset?.entity || "");
-      if (/^userprofile$/i.test(String(entity||""))) { userProfileHardNav("add"); return; }
-      return typeof _open==="function" ? _open.apply(this, arguments) : undefined;
-    };
-  }catch(_){}
-  try{
-    const _edit = window.editEntity;
-    window.editEntity = function(entity, id){
-      if (/^userprofile$/i.test(String(entity||""))) { userProfileHardNav("edit", id); return; }
-      return typeof _edit==="function" ? _edit.apply(this, arguments) : undefined;
-    };
-  }catch(_){}
+  // UserProfile: Allow modal functionality (removed hard navigation intercepts)
+  // UserProfile buttons will now work with the standard modal system
 
   // 3) Image preview: strict guard and fallback
   on("click", "table img, .grid img, img.thumbnail, [data-preview='image'], [data-preview='image'] img", (e, el)=>{
@@ -803,26 +730,8 @@
   }, true);
 })();
 
-/* === STRICT OVERRIDE: make UserProfile Add/Edit hard-navigate; force image preview modal === */
+/* === Image preview modal === */
 (function(){
-  // 1) UserProfile: always navigate full page. Avoid any modal interception.
-  document.addEventListener("click", function(ev){
-    const a = ev.target.closest && ev.target.closest("a,button,[data-open-entity],[data-edit-entity]");
-    if (!a) return;
-    const href = (a.getAttribute && a.getAttribute("href")) || "";
-    const ent  = (a.dataset && (a.dataset.entity || a.dataset.openEntity || a.dataset.editEntity)) || "";
-    const isUP = /^userprofile$/i.test(ent) || /^\/userprofile\//i.test(href||"");
-    if (!isUP) return;
-    // compute destination
-    let dest = href || "";
-    if (!dest){
-      const id = (a.dataset && a.dataset.id) ? String(a.dataset.id).replace(/^:/,"") : "";
-      dest = a.hasAttribute("data-edit-entity") && id ? ("/UserProfile/update/"+encodeURIComponent(id)+"/")
-           : "/UserProfile/get/";
-    }
-    ev.preventDefault(); ev.stopImmediatePropagation();
-    window.location.href = dest;
-  }, true);
 
   // 2) Image preview: capture-phase handler that prefers normalized URL, else fetch via openImageModal
   document.addEventListener("click", function(ev){
@@ -901,16 +810,8 @@
     });
   })();
 
-  // 2) UserProfile: allow native navigation for Add/Edit so it never hangs
-  document.addEventListener("click", function(ev){
-    const a = ev.target.closest && ev.target.closest("a[href^='/UserProfile/']");
-    if (!a) return;
-    const href = a.getAttribute("href")||"";
-    if (!/^\/UserProfile\/(get|update)\//i.test(href)) return;
-    // Let the browser handle it cleanly
-    ev.stopImmediatePropagation();
-    // Do NOT preventDefault; we want native navigation
-  }, true);
+  // 2) UserProfile: Allow modal functionality (removed hard navigation override)
+  // UserProfile will now work with the standard modal system
 
   // 3) Image preview: guard placeholders, open modal only when valid URL
   function normMedia(src){
@@ -972,39 +873,7 @@
   const qsa = (s,r=document)=>Array.from(r.querySelectorAll(s));
   const on  = (t,s,h,o=false)=>document.addEventListener(t,e=>{const m=s? (e.target.closest?e.target.closest(s):null):e.target;if(!m)return;try{h(e,m);}catch(_){ }},o);
 
-  // -------- UserProfile: force hard navigation --------
-  // Works even if other handlers exist, because we capture and stop only for UserProfile.
-  on("click",
-     "[data-open-entity],[data-edit-entity],.btn-add,.btn-edit,a[href^='/UserProfile/']",
-     (e, el)=>{
-       // Resolve entity and id
-       let entity = (el.dataset?.entity || el.dataset?.openEntity || el.dataset?.editEntity || "").toLowerCase();
-       const href = (el.getAttribute && el.getAttribute("href")) || "";
-       if (!entity && /^\/userprofile\//i.test(href)) entity = "userprofile";
-       if (entity !== "userprofile") return; // do not interfere with other entities
-
-       const id = (el.dataset?.id || el.getAttribute?.("data-id") || "").replace(/^:/,"");
-
-       // Decide add vs edit
-       const isAdd  = el.matches?.("[data-open-entity], .btn-add, [id^='create-'][id$='-btn']") || /\/get\/?$/i.test(href);
-       const isEdit = el.matches?.("[data-edit-entity], .btn-edit") || /\/update\/[^/]+\/?$/i.test(href);
-
-       e.preventDefault(); e.stopImmediatePropagation();
-
-       if (isEdit) {
-         if (!id && href) {
-           // try parse from href /update/<id>/
-           const m = href.match(/\/update\/([^/]+)\//i);
-           if (m) { window.location.href = "/UserProfile/update/"+encodeURIComponent(m[1])+"/"; return; }
-         }
-         if (!id) return;
-         window.location.href = "/UserProfile/update/"+encodeURIComponent(id)+"/";
-         return;
-       }
-       // default to Add
-       window.location.href = "/UserProfile/get/";
-     },
-     true);
+  // -------- UserProfile: Allow modal functionality (removed hard navigation) --------
 
   // -------- Image preview: guard placeholders, fallback to server, else modal --------
   function normalizeMediaPath(src){
@@ -1140,73 +1009,15 @@
   }, true);
 })();
 
-/* === Override: Force hard navigation for UserProfile (capture-phase, highest priority) === */
-(function(){
-  function getAttr(el, name){ try{ return el.getAttribute(name) || ""; }catch(_){ return ""; } }
-  function getData(el, name){ try{ return el.dataset ? (el.dataset[name] || "") : ""; }catch(_){ return ""; } }
-  function getIdFrom(el){
-    let id = getData(el, "id") || getAttr(el, "data-id") || "";
-    if (!id){
-      const href = getAttr(el, "href");
-      const m = href && href.match(/\/update\/([^\/]+)\/?$/i);
-      if (m) id = m[1];
-    }
-    if (!id){
-      const row = el.closest && el.closest("[data-id]");
-      if (row) id = getAttr(row, "data-id") || "";
-    }
-    return String(id||"").replace(/^:/,"");
-  }
-  document.addEventListener("click", function(ev){
-    const el = ev.target.closest && ev.target.closest("[data-open-entity],[data-edit-entity],[data-entity],.btn-add,.btn-edit,a[href^='/UserProfile/']");
-    if (!el) return;
-    let entity = (getData(el,"openEntity") || getData(el,"editEntity") || getData(el,"entity")).toLowerCase();
-    const href = getAttr(el, "href");
-    if (!entity && /^\/userprofile\//i.test(href)) entity = "userprofile";
-    if (entity !== "userprofile") return;
+/* === UserProfile: Allow modal functionality (removed hard navigation) === */
+// UserProfile will now work with the standard modal system
 
-    ev.preventDefault(); ev.stopImmediatePropagation();
-
-    const id = getIdFrom(el);
-    const isEdit = el.matches && el.matches("[data-edit-entity], .btn-edit") || /\/update\//i.test(href);
-    const dest = isEdit
-      ? (id ? `/UserProfile/update/${encodeURIComponent(id)}/` : "/UserProfile/get/")
-      : "/UserProfile/get/";
-    window.location.href = dest;
-  }, true);
-})();
-
-/* === FINAL PATCH: UserProfile hard-nav + robust image preview URL normalizer === */
+/* === FINAL PATCH: UserProfile modal support + robust image preview URL normalizer === */
 (function(){
   const on = (t,s,h,o=false)=>document.addEventListener(t,e=>{const m=s?(e.target.closest?e.target.closest(s):null):e.target;if(!m)return;try{h(e,m);}catch(_){ }},o);
 
-  // 1) Force navigation for any UserProfile click, including sidebar
-  on("click","a[href*='/UserProfile'],a[href*='/userprofile'],[data-entity='UserProfile'],[data-open-entity='UserProfile'],[data-edit-entity='UserProfile'],.btn-add,.btn-edit",(e,el)=>{
-    // Decide if this click is about UserProfile
-    const href = el.getAttribute && el.getAttribute("href") || "";
-    const ent  = (el.dataset && (el.dataset.entity || el.dataset.openEntity || el.dataset.editEntity)) || "";
-    const isUP = /\/userprofile/i.test(href) || /^userprofile$/i.test(ent);
-    if (!isUP) return;
-
-    // Resolve id for edit
-    let id = (el.dataset && (el.dataset.id || "")) || el.getAttribute && el.getAttribute("data-id") || "";
-    if (!id){
-      const m = href && href.match(/\/update\/([^\/]+)\/?/i);
-      if (m) id = m[1];
-    }
-    if (!id){
-      const row = el.closest && el.closest("[data-id]");
-      if (row) id = row.getAttribute("data-id") || "";
-    }
-    id = String(id||"").replace(/^:/,"");
-
-    // Route: if href exists and already points to UserProfile, go there
-    e.preventDefault(); e.stopImmediatePropagation();
-    if (href && /\/userprofile/i.test(href)){ window.location.href = href; return; }
-
-    const isEdit = el.matches && el.matches("[data-edit-entity='UserProfile'], .btn-edit") || /\/update\//i.test(href);
-    window.location.href = isEdit && id ? `/UserProfile/update/${encodeURIComponent(id)}/` : "/UserProfile/get/";
-  }, true);
+  // UserProfile: Allow modal functionality (removed hard navigation)
+  // UserProfile buttons will now work with the standard modal system
 
   // 2) Robust normalizer: handle placeholders and relative media like "Company/company_logos/..."
   function normalizeMediaPathStrict(src){
@@ -1264,58 +1075,7 @@
 
 
 
-/* === Hard Intercept for UserProfile Add === */
-(function(){
-  if (window.__UP_INTERCEPT_INSTALLED__) return;
-  window.__UP_INTERCEPT_INSTALLED__ = true;
-  const on = window.on || ((t, s, h, o=false) => document.addEventListener(t, e => { const m = s ? e.target.closest(s) : e.target; if (!m) return; h(e, m); }, o));
-  const qs = window.qs || (s=>document.querySelector(s));
 
-  function matchesUserProfileGet(v){
-    if (!v) return false;
-    return /\/UserProfile\/get\/?(\?|$)/i.test(String(v));
-  }
-  function openUP(){
-    if (typeof window.openEntityModal === "function"){ window.openEntityModal("UserProfile"); return; }
-    // fallback full nav
-    window.location.href="/UserProfile/get/";
-  }
-
-  on("click", "a[href]", (e,a)=>{
-    const href = a.getAttribute("href")||"";
-    if (!matchesUserProfileGet(href)) return;
-    if (a.closest("#entity-modal")) return;
-    e.preventDefault(); e.stopImmediatePropagation();
-    openUP();
-  }, true);
-
-  on("submit", "form[action]", (e,f)=>{
-    const action = f.getAttribute("action")||"";
-    if (!matchesUserProfileGet(action)) return;
-    if (f.closest("#entity-modal")) return;
-    e.preventDefault(); e.stopImmediatePropagation();
-    openUP();
-  }, true);
-
-  document.addEventListener("click", function(e){
-    let n = e.target;
-    while (n && n !== document){
-      const h = n.getAttribute && (n.getAttribute("href") || n.getAttribute("data-href") || n.getAttribute("onclick") || "");
-      if (matchesUserProfileGet(h)){
-        e.preventDefault(); e.stopImmediatePropagation(); openUP(); return;
-      }
-      n = n.parentElement;
-    }
-  }, true);
-
-  try{
-    const _open = window.open;
-    window.open = function(url,name,spec){
-      if (typeof url === "string" && matchesUserProfileGet(url)){ openUP(); return null; }
-      return _open.apply(this, arguments);
-    };
-  }catch(_){}
-})();
 
 
 /* ====== SAFE SHIM: normalize entity casing + guard fallback ====== */

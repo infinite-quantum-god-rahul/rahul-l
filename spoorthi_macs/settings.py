@@ -32,9 +32,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'companies',
-    # ↓ added for mobile REST API + JWT
-    'rest_framework',
-    'rest_framework_simplejwt',
 ]
 
 MIDDLEWARE = [
@@ -196,15 +193,7 @@ LOGGING = {
     },
 }
 
-# --- DRF / JWT config (added; does not alter existing behavior outside /api/)
-REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
-    "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",
-    ),
-}
+
 
 # --- Production-only security (kept no-op under DEBUG=True) ---
 if not DEBUG:

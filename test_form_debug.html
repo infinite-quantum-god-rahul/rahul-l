@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Input Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .readonly-field {
+            background-color: #e9ecef !important;
+            color: #495057 !important;
+            cursor: not-allowed !important;
+        }
+        .editable-field {
+            background-color: white !important;
+            color: black !important;
+            cursor: text !important;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        .test-section {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Form Input Debug Test</h1>
+        <p>This page tests if the form input fix works correctly.</p>
+        
+        <div class="test-section">
+            <h3>Test 1: Readonly Fields (Should NOT be editable)</h3>
+            <div class="form-group">
+                <label>Code Field (readonly):</label>
+                <input type="text" id="code" name="code" value="AUTO001" readonly class="readonly-field" />
+            </div>
+            <div class="form-group">
+                <label>Joining Date (readonly):</label>
+                <input type="text" id="joining_date" name="joining_date" value="01/01/2024" readonly class="readonly-field" />
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test 2: Editable Fields (Should be editable)</h3>
+            <div class="form-group">
+                <label>Name Field:</label>
+                <input type="text" id="name" name="name" placeholder="Enter name" class="editable-field" />
+            </div>
+            <div class="form-group">
+                <label>Phone Field:</label>
+                <input type="tel" id="phone" name="phone" placeholder="Enter phone" class="editable-field" />
+            </div>
+            <div class="form-group">
+                <label>Email Field:</label>
+                <input type="email" id="email" name="email" placeholder="Enter email" class="editable-field" />
+            </div>
+            <div class="form-group">
+                <label>Textarea Field:</label>
+                <textarea id="description" name="description" placeholder="Enter description" rows="3" class="editable-field"></textarea>
+            </div>
+        </div>
+        
+        <button onclick="testInputs()">Test All Inputs</button>
+        <button onclick="clearInputs()">Clear All Inputs</button>
+        
+        <div class="status" id="status">
+            <strong>Status:</strong> Ready to test
+        </div>
+    </div>
+
+    <script>
+        function testInputs() {
+            const status = document.getElementById('status');
+            const inputs = [
+                { id: 'code', type: 'text', shouldBeReadonly: true },
+                { id: 'joining_date', type: 'text', shouldBeReadonly: true },
+                { id: 'name', type: 'text', shouldBeReadonly: false },
+                { id: 'phone', type: 'tel', shouldBeReadonly: false },
+                { id: 'email', type: 'email', shouldBeReadonly: false },
+                { id: 'description', type: 'textarea', shouldBeReadonly: false }
+            ];
+            
+            let results = [];
+            let allCorrect = true;
+            
+            inputs.forEach(input => {
+                const element = document.getElementById(input.id);
+                const isReadOnly = element.readOnly;
+                const hasReadOnlyAttr = element.hasAttribute('readonly');
+                const pointerEvents = window.getComputedStyle(element).pointerEvents;
+                const cursor = window.getComputedStyle(element).cursor;
+                const backgroundColor = window.getComputedStyle(element).backgroundColor;
+                
+                const isCorrect = (input.shouldBeReadonly && isReadOnly) || (!input.shouldBeReadonly && !isReadOnly);
+                if (!isCorrect) allCorrect = false;
+                
+                results.push(`
+                    <strong>${input.id} (${input.type}):</strong><br>
+                    - Should be readonly: ${input.shouldBeReadonly}<br>
+                    - Is readonly: ${isReadOnly}<br>
+                    - Has readonly attr: ${hasReadOnlyAttr}<br>
+                    - pointer-events: ${pointerEvents}<br>
+                    - cursor: ${cursor}<br>
+                    - background-color: ${backgroundColor}<br>
+                    - Status: <span style="color: ${isCorrect ? 'green' : 'red'}">${isCorrect ? '✓ CORRECT' : '✗ WRONG'}</span><br>
+                `);
+            });
+            
+            const overallStatus = allCorrect ? 
+                '<span style="color: green; font-weight: bold;">✓ ALL TESTS PASSED - Form inputs working correctly!</span>' : 
+                '<span style="color: red; font-weight: bold;">✗ SOME TESTS FAILED - Form inputs need fixing</span>';
+            
+            status.innerHTML = '<strong>Test Results:</strong><br>' + overallStatus + '<br><br>' + results.join('<br>');
+        }
+        
+        function clearInputs() {
+            const inputs = ['name', 'phone', 'email', 'description'];
+            inputs.forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            document.getElementById('status').innerHTML = '<strong>Status:</strong> All editable inputs cleared';
+        }
+        
+        // Test on page load
+        window.addEventListener('load', function() {
+            setTimeout(testInputs, 1000);
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+

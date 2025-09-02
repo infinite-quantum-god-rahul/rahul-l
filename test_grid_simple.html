@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Grid Test - SML Project</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; border: none; border-radius: 3px; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-warning { background-color: #ffc107; color: black; }
+        .result { margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Simple Grid Test - SML Project</h1>
+    
+    <div class="test-section info">
+        <h3>Purpose</h3>
+        <p>This page tests if the grid is working properly. The grid was empty because it wasn't included in the dashboard template.</p>
+    </div>
+
+    <div class="test-section">
+        <h3>Test Grid Display</h3>
+        <p>Click these buttons to test different entities:</p>
+        <button class="btn-primary" onclick="testEntity('Staff')">Test Staff Grid</button>
+        <button class="btn-success" onclick="testEntity('Client')">Test Client Grid</button>
+        <button class="btn-warning" onclick="testEntity('Company')">Test Company Grid</button>
+        <div id="grid-result" class="result">Click a button above to test...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test Debug Endpoint</h3>
+        <p>Test the debug endpoint to see what data is available:</p>
+        <button class="btn-primary" onclick="testDebug('Staff')">Debug Staff</button>
+        <button class="btn-success" onclick="testDebug('Client')">Debug Client</button>
+        <div id="debug-result" class="result">Click a button above to test...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test Direct Grid Template</h3>
+        <p>Test if the grid template can be loaded directly:</p>
+        <button class="btn-primary" onclick="testTemplate()">Test Grid Template</button>
+        <div id="template-result" class="result">Click button above to test...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>Current Status</h3>
+        <div id="status">
+            <p>✅ Dashboard template fixed to include grid content</p>
+            <p>✅ Missing 'cut' template tag added</p>
+            <p>✅ Debug information added to views</p>
+            <p>✅ Debug endpoint created</p>
+            <p>🔄 Testing grid functionality...</p>
+        </div>
+    </div>
+
+    <script>
+        function testEntity(entity) {
+            const resultDiv = document.getElementById('grid-result');
+            resultDiv.innerHTML = `<strong>Testing ${entity} grid...</strong>`;
+            
+            // Test the entity list endpoint
+            fetch(`/${entity}/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html'
+                }
+            })
+            .then(response => {
+                console.log(`${entity} response:`, response);
+                return response.text();
+            })
+            .then(html => {
+                console.log(`${entity} HTML length:`, html.length);
+                
+                if (html.includes('grid-container')) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ SUCCESS!</strong> Grid HTML loaded for ${entity}<br>
+                            HTML Length: ${html.length}<br>
+                            Contains grid-container: Yes<br>
+                            <details>
+                                <summary>HTML Preview (first 500 chars)</summary>
+                                <pre style="font-size: 12px; max-height: 200px; overflow-y: auto;">${html.substring(0, 500)}...</pre>
+                            </details>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <strong>❌ ISSUE!</strong> Grid HTML loaded but missing expected content<br>
+                            HTML Length: ${html.length}<br>
+                            Contains grid-container: No<br>
+                            <details>
+                                <summary>HTML Preview (first 500 chars)</summary>
+                                <pre style="font-size: 12px; max-height: 200px; overflow-y: auto;">${html.substring(0, 500)}...</pre>
+                            </details>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error(`Error testing ${entity}:`, error);
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <strong>❌ ERROR!</strong> Failed to load ${entity} grid: ${error.message}
+                    </div>
+                `;
+            });
+        }
+
+        function testDebug(entity) {
+            const resultDiv = document.getElementById('debug-result');
+            resultDiv.innerHTML = `<strong>Testing ${entity} debug endpoint...</strong>`;
+            
+            fetch(`/${entity}/debug/`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(`${entity} debug data:`, data);
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <strong>✅ Debug Data for ${entity}</strong><br>
+                        <pre style="font-size: 12px; max-height: 300px; overflow-y: auto;">${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            })
+            .catch(error => {
+                console.error(`Error testing ${entity} debug:`, error);
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <strong>❌ ERROR!</strong> Failed to get debug data for ${entity}: ${error.message}
+                    </div>
+                `;
+            });
+        }
+
+        function testTemplate() {
+            const resultDiv = document.getElementById('template-result');
+            resultDiv.innerHTML = `<strong>Testing grid template...</strong>`;
+            
+            // Test if we can access the grid template directly
+            fetch('/companies/grid_list.html', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'text/html'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.text();
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            })
+            .then(html => {
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <strong>✅ Grid Template Accessible</strong><br>
+                        Template Length: ${html.length}<br>
+                        <details>
+                            <summary>Template Preview (first 500 chars)</summary>
+                            <pre style="font-size: 12px; max-height: 200px; overflow-y: auto;">${html.substring(0, 500)}...</pre>
+                        </details>
+                    </div>
+                `;
+            })
+            .catch(error => {
+                console.error('Error testing template:', error);
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <strong>❌ ERROR!</strong> Failed to access grid template: ${error.message}
+                    </div>
+                `;
+            });
+        }
+
+        // Auto-test on page load
+        window.addEventListener('load', function() {
+            console.log('=== Simple Grid Test Page Loaded ===');
+            console.log('Testing basic functionality...');
+            
+            // Test if we can make fetch requests
+            testDebug('Staff');
+        });
+    </script>
+</body>
+</html>

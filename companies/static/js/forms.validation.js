@@ -1,5 +1,6 @@
 /* Extracted from script.js — app.forms.js */
 /* ====== DATES, VALIDATION, SAVE HANDLER ====== */
+/* Version: 2025-09-01-16-50 - Enhanced validation for contact and Aadhaar fields */
 (function(){
   const qs  = window.qs  || ((s, r=document) => r.querySelector(s));
 
@@ -47,6 +48,62 @@
       el.addEventListener('input', ()=>{
         const v = el.value.replace(/\D/g,'').slice(0,12);
         el.value = v.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
+      });
+    });
+    
+    // Enhanced validation for contact fields
+    document.querySelectorAll('input[name="contact1"], input[name="extra__emergency_contact"], input[name="mobile"], input[name="contactno"]').forEach(el=>{
+      el.addEventListener("input", ()=>{
+        // Remove non-digits and limit to 10 characters
+        el.value = el.value.replace(/\D/g,'').slice(0,10);
+        
+        // Set custom validation message
+        if (el.value.length > 0 && el.value.length !== 10) {
+          el.setCustomValidity("Contact number must be exactly 10 digits");
+        } else {
+          el.setCustomValidity("");
+        }
+      });
+      
+      // Add blur validation
+      el.addEventListener("blur", ()=>{
+        if (el.value.length > 0 && el.value.length !== 10) {
+          el.setCustomValidity("Contact number must be exactly 10 digits");
+        } else {
+          el.setCustomValidity("");
+        }
+      });
+    });
+    
+    // Enhanced validation for Aadhaar fields
+    document.querySelectorAll('input[name="extra__aadhaar_number"], input[name="aadhar"]').forEach(el=>{
+      el.addEventListener("input", ()=>{
+        // Remove non-digits and limit to 12 characters
+        const v = el.value.replace(/\D/g,'').slice(0,12);
+        
+        // Format as 0000 0000 0000
+        if (v.length >= 4) {
+          el.value = v.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
+        } else {
+          el.value = v;
+        }
+        
+        // Set custom validation message
+        if (v.length > 0 && v.length !== 12) {
+          el.setCustomValidity("Aadhaar number must be exactly 12 digits");
+        } else {
+          el.setCustomValidity("");
+        }
+      });
+      
+      // Add blur validation
+      el.addEventListener("blur", ()=>{
+        const cleanValue = el.value.replace(/\D/g,'');
+        if (cleanValue.length > 0 && cleanValue.length !== 12) {
+          el.setCustomValidity("Aadhaar number must be exactly 12 digits");
+        } else {
+          el.setCustomValidity("");
+        }
       });
     });
   }
@@ -246,9 +303,190 @@
   window.recomputeSaveEnabled = recomputeSaveEnabled;
   window.setupSaveButtonHandler = setupSaveButtonHandler;
 
+  // Enhanced validation for contact and Aadhaar fields
+  function setupEnhancedValidation(){
+    // Enhanced validation for contact fields
+    document.querySelectorAll('input[name="contact1"], input[name="extra__emergency_contact"], input[name="mobile"], input[name="contactno"]').forEach(el=>{
+      el.addEventListener("input", ()=>{
+        // Remove non-digits and limit to 10 characters
+        el.value = el.value.replace(/\D/g,'').slice(0,10);
+        
+        // Set custom validation message
+        if (el.value.length > 0 && el.value.length !== 10) {
+          el.setCustomValidity("Contact number must be exactly 10 digits");
+        } else {
+          el.setCustomValidity("");
+        }
+      });
+      
+      // Add blur validation
+      el.addEventListener("blur", ()=>{
+        if (el.value.length > 0 && el.value.length !== 10) {
+          el.setCustomValidity("Contact number must be exactly 10 digits");
+        } else {
+          el.setCustomValidity("");
+        }
+      });
+    });
+    
+    // Enhanced validation for Aadhaar fields
+    document.querySelectorAll('input[name="extra__aadhaar_number"], input[name="aadhar"]').forEach(el=>{
+      el.addEventListener("input", ()=>{
+        // Remove non-digits and limit to 12 characters
+        const v = el.value.replace(/\D/g,'').slice(0,12);
+        
+        // Format as 0000 0000 0000
+        if (v.length >= 4) {
+          el.value = v.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
+        } else {
+          el.value = v;
+        }
+        
+        // Set custom validation message
+        if (v.length > 0 && v.length !== 12) {
+          el.setCustomValidity("Aadhaar number must be exactly 12 digits");
+        } else {
+          el.setCustomValidity("");
+        }
+      });
+      
+      // Add blur validation
+      el.addEventListener("blur", ()=>{
+        const cleanValue = el.value.replace(/\D/g,'');
+        if (cleanValue.length > 0 && cleanValue.length !== 12) {
+          el.setCustomValidity("Aadhaar number must be exactly 12 digits");
+        } else {
+          el.setCustomValidity("");
+        }
+      });
+    });
+    
+    // Make joining_date field unchangeable
+    document.querySelectorAll('input[name="joining_date"]').forEach(el=>{
+      // Store original value if this is an edit
+      const isEditMode = el.dataset.editMode === "true";
+      const originalValue = el.dataset.originalValue || el.value;
+      
+      // Store the original value for restoration
+      if (isEditMode && originalValue) {
+        el.dataset.originalValueStored = originalValue;
+        console.log(`DEBUG: Stored original joining_date value: ${originalValue}`);
+      }
+      
+      // Function to restore original value
+      const restoreOriginalValue = () => {
+        if (isEditMode && el.dataset.originalValueStored) {
+          el.value = el.dataset.originalValueStored;
+          console.log(`DEBUG: Restored joining_date to original value: ${el.dataset.originalValueStored}`);
+        }
+      };
+      
+      // Prevent any changes to the field
+      el.addEventListener("input", (e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        restoreOriginalValue();
+        return false;
+      });
+      
+      el.addEventListener("keydown", (e)=>{
+        // Allow only navigation keys (arrows, tab, etc.)
+        if ([8, 9, 13, 16, 17, 18, 20, 27, 33, 34, 35, 36, 37, 38, 39, 40, 45, 46].includes(e.keyCode)) {
+          return true;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        restoreOriginalValue();
+        return false;
+      });
+      
+      el.addEventListener("paste", (e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        restoreOriginalValue();
+        return false;
+      });
+      
+      el.addEventListener("drop", (e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        restoreOriginalValue();
+        return false;
+      });
+      
+      // Prevent context menu (right-click)
+      el.addEventListener("contextmenu", (e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      });
+      
+      // Prevent cut operation
+      el.addEventListener("cut", (e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      });
+      
+      // Additional protection: monitor for any value changes
+      let lastValue = el.value;
+      const checkValueChange = () => {
+        if (el.value !== lastValue) {
+          console.log(`DEBUG: Detected unauthorized change to joining_date: ${lastValue} -> ${el.value}`);
+          restoreOriginalValue();
+          lastValue = el.value;
+        }
+      };
+      
+      // Check for value changes periodically and on various events
+      setInterval(checkValueChange, 100);
+      el.addEventListener("change", checkValueChange);
+      el.addEventListener("blur", checkValueChange);
+      
+      // Additional protection: prevent any form submission if the field was changed
+      const form = el.closest('form');
+      if (form) {
+        form.addEventListener('submit', (e) => {
+          if (el.value !== lastValue) {
+            console.log(`DEBUG: Form submission blocked - joining_date was changed`);
+            e.preventDefault();
+            restoreOriginalValue();
+            alert('Joining date cannot be changed. The original value has been restored.');
+            return false;
+          }
+        });
+      }
+      
+      // Add visual indication that field is read-only
+      el.style.backgroundColor = "#f8f9fa";
+      el.style.cursor = "not-allowed";
+      el.title = "Joining date cannot be changed";
+      
+      // Make sure the field is always disabled
+      el.disabled = true;
+      el.readOnly = true;
+      
+      // Add a visual indicator that this field is protected
+      const protectionIndicator = document.createElement("div");
+      protectionIndicator.style.cssText = "position: absolute; top: 0; right: 0; background: #dc3545; color: white; padding: 2px 6px; font-size: 10px; border-radius: 3px; pointer-events: none; z-index: 1000;";
+      protectionIndicator.textContent = "LOCKED";
+      protectionIndicator.title = "This field cannot be changed";
+      
+      // Position the indicator relative to the field
+      const fieldContainer = el.closest('.form-group, .field, .input-group') || el.parentElement;
+      if (fieldContainer) {
+        fieldContainer.style.position = "relative";
+        fieldContainer.appendChild(protectionIndicator);
+      }
+      
+      console.log(`DEBUG: Made joining_date field completely unchangeable${isEditMode ? ' for edit' : ' for new record'}`);
+    });
+  }
+
   // DOM READY phase 2
   document.addEventListener("DOMContentLoaded", function (){
     initializeDatePickers(); setupPermissionSelectAll(); formatDateFields(); addMasks(); initPhoneInputs();
+    setupEnhancedValidation(); // Add enhanced validation
     setupSaveButtonHandler();
     const f=qs("#entity-form"), b=qs("#modal-save-btn"); if (f && b) prepareFormValidation(f,b);
   });

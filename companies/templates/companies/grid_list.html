@@ -1,7 +1,9 @@
 {% load static %}
 {% load custom_tags %}
 
-<div class="grid-container" data-entity="{{ entity }}">
+<div class="grid-container" data-entity="{{ entity }}" data-role-flags="{{ role_flags|safe }}">
+
+
   <!-- Lightbox (thumbnail preview) -->
   <style>
     .img-thumb{width:48px;height:48px;object-fit:cover;border-radius:6px;cursor:pointer}
@@ -25,13 +27,19 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>{{ pretty_entity }}</h2>
 
-    {# SPECIAL-CASE: UserProfile must hard-navigate, not open modal #}
-    {% if entity|lower == "userprofile" %}
-      <a class="btn btn-success"
-         data-hard-nav="1"
-         href="{% url 'userprofile_get' %}">
-        <i class="fas fa-plus"></i> Add
-      </a>
+    {% if entity|lower == "users" %}
+      <!-- Users Add Button - Clean Modal -->
+      <div>
+        <button
+          class="btn btn-primary btn-add"
+          id="create-{{ entity }}-btn"
+          data-entity="{{ entity }}"
+          onclick="openEntityModal('{{ entity }}')"
+          role="button">
+          <i class="fas fa-plus"></i> Add Users
+        </button>
+      </div>
+      
 
     {% elif user.is_superuser %}
       <button
@@ -42,7 +50,7 @@
         role="button">
         <i class="fas fa-plus"></i> Add
       </button>
-    {% elif profile and profile.is_admin %}
+    {% elif role_flags.admin %}
       <button
         class="btn btn-success btn-add"
         id="create-{{ entity }}-btn"
@@ -51,7 +59,27 @@
         role="button">
         <i class="fas fa-plus"></i> Add
       </button>
-    {% elif profile and profile.is_master %}
+    {% elif role_flags.master %}
+      <button
+        class="btn btn-success btn-add"
+        id="create-{{ entity }}-btn"
+        data-open-entity="{{ entity }}"
+        onclick="openEntityModal('{{ entity }}')"
+        role="button">
+        <i class="fas fa-plus"></i> Add
+      </button>
+    
+    {# UserPermission access for admin/master #}
+    {% elif entity|lower == "userpermission" and role_flags.admin %}
+      <button
+        class="btn btn-success btn-add"
+        id="create-{{ entity }}-btn"
+        data-open-entity="{{ entity }}"
+        onclick="openEntityModal('{{ entity }}')"
+        role="button">
+        <i class="fas fa-plus"></i> Add
+      </button>
+    {% elif entity|lower == "userpermission" and role_flags.master %}
       <button
         class="btn btn-success btn-add"
         id="create-{{ entity }}-btn"
@@ -62,7 +90,7 @@
       </button>
 
     {# Data Entry scope #}
-    {% elif profile and profile.is_data_entry and entity|lower|in_list:"client,loanapplication,recoveryposting" %}
+    {% elif role_flags.data_entry and entity|lower|in_list:"client,loanapplication,recoveryposting" %}
       <button
         class="btn btn-success btn-add"
         id="create-{{ entity }}-btn"
@@ -73,7 +101,7 @@
       </button>
 
     {# Accounting scope #}
-    {% elif profile and profile.is_accounting and entity|lower|in_list:"voucher,posting,accounthead" %}
+    {% elif role_flags.accounting and entity|lower|in_list:"voucher,posting,accounthead" %}
       <button
         class="btn btn-success btn-add"
         id="create-{{ entity }}-btn"
@@ -84,7 +112,7 @@
       </button>
 
     {# Manager: union of DE + ACC menus #}
-    {% elif profile and profile.is_manager and entity|lower|in_list:"client,loanapplication,recoveryposting" %}
+    {% elif role_flags.manager and entity|lower|in_list:"client,loanapplication,recoveryposting" %}
       <button
         class="btn btn-success btn-add"
         id="create-{{ entity }}-btn"
@@ -93,7 +121,7 @@
         role="button">
         <i class="fas fa-plus"></i> Add
       </button>
-    {% elif profile and profile.is_manager and entity|lower|in_list:"voucher,posting,accounthead" %}
+    {% elif role_flags.manager and entity|lower|in_list:"voucher,posting,accounthead" %}
       <button
         class="btn btn-success btn-add"
         id="create-{{ entity }}-btn"
@@ -104,7 +132,7 @@
       </button>
 
     {# Recovery Agent: RecoveryPosting only #}
-    {% elif profile and profile.is_recovery_agent and entity|lower == "recoveryposting" %}
+    {% elif role_flags.recovery_agent and entity|lower == "recoveryposting" %}
       <button
         class="btn btn-success btn-add"
         id="create-{{ entity }}-btn"
@@ -114,17 +142,8 @@
         <i class="fas fa-plus"></i> Add
       </button>
 
-    {# Reports & Auditor: enable Add for report entities #}
-    {% elif profile and profile.is_reports and entity|lower|in_list:"fieldreport,weeklyreport,monthlyreport" %}
-      <button
-        class="btn btn-success btn-add"
-        id="create-{{ entity }}-btn"
-        data-open-entity="{{ entity }}"
-        onclick="openEntityModal('{{ entity }}')"
-        role="button">
-        <i class="fas fa-plus"></i> Add
-      </button>
-    {% elif profile and profile.is_auditor and entity|lower|in_list:"fieldreport,weeklyreport,monthlyreport" %}
+    {# Auditor: enable Add for report entities #}
+    {% elif role_flags.auditor and entity|lower|in_list:"fieldreport,weeklyreport,monthlyreport" %}
       <button
         class="btn btn-success btn-add"
         id="create-{{ entity }}-btn"
@@ -137,168 +156,116 @@
   </div>
 
   <!-- TABLE / GROUP LOOP -->
-  {% for group_name, objects in grouped_objects.items %}
-    <div class="mb-4">
-      {% if group_name %}
-        <h5 class="text-primary">{{ group_name }}</h5>
-      {% endif %}
+  {% if grouped_objects %}
+    {% for group_name, objects in grouped_objects.items %}
+      <div class="mb-4">
+        {% if group_name %}
+          <h5 class="text-primary">{{ group_name }}</h5>
+        {% endif %}
 
-      {% if objects and objects.0 %}
-        <div class="table-responsive">
-          <table class="table table-striped">
-            <thead>
-              <tr>
-                {% if spec_grid and spec_grid|length %}
-                  {% for f in spec_grid %}
-                    {% with lbl=f|cut:"extra__"|replace_underscore %}
-                      <th>{{ lbl }}</th>
-                    {% endwith %}
-                  {% endfor %}
-                  <th>Actions</th>
-                {% else %}
-                  {% for field in objects.0|get_fields %}
-                    {% if field.name|in_list:"extra_data,raw_csv_data,password" %}
-                    {% elif entity|lower == "staff" and field.name|in_list:"status,ifsc,bank,designation" %}
-                    {% elif entity|lower == "userprofile" and field.name|in_list:"is_admin,is_master,is_data_entry,is_accounting,is_recovery_agent,is_auditor,is_manager" %}
-                    {% else %}
-                      {% if entity|lower == "userprofile" and field.name == "user" %}
-                        <th>Username</th>
-                      {% else %}
-                        <th>{{ field.verbose_name|replace_underscore }}</th>
-                      {% endif %}
-                    {% endif %}
-                  {% endfor %}
-                  {% for col in column_fields %}
-                    <th>{{ col.label }}</th>
-                  {% endfor %}
-                  <th>Actions</th>
-                {% endif %}
-              </tr>
-            </thead>
-
-            <tbody>
-              {% for obj in objects %}
-                {% with st=obj|attr:"status" ia=obj|attr:"is_active" ac=obj|attr:"active" stn=st|default_if_none:"__none__" ian=ia|default_if_none:"__none__" acn=ac|default_if_none:"__none__" %}
-                  {% if st|stringformat:"s"|lower == "active" or st|stringformat:"s" == "1" or ia or ac or stn == "__none__" and ian == "__none__" and acn == "__none__" %}
-                    <tr data-id="{{ obj.pk }}">
-
-                      {% if spec_grid and spec_grid|length %}
-                        {% for f in spec_grid %}
-                          {% with fl=f|lower %}
-                            <td>
-                              {% if not fl|slice:":7" == "extra__" and obj|attr:f %}
-                                {% if fl|in_list:"photo,live_photo,house_photo,logo,image,picture,avatar" %}
-                                  {% with file=obj|attr:f %}
-                                    {% if file %}
-                                      {% if file.url %}
-                                        {% with imgurl=file.url %}
-                                          <img class="img-thumb" src="{{ imgurl }}" onclick="LB.open('{{ imgurl }}')" alt="img">
-                                        {% endwith %}
-                                      {% else %}
-                                        {% with imgurl=file %}
-                                          <img class="img-thumb" src="{{ imgurl }}" onclick="LB.open('{{ imgurl }}')" alt="img">
-                                        {% endwith %}
-                                      {% endif %}
-                                    {% endif %}
-                                  {% endwith %}
-                                {% else %}
-                                  {{ obj|attr:f|format_ddmmyyyy }}
-                                {% endif %}
-                              {% else %}
-                                {% with exk=f|cut:"extra__" %}
-                                  {% with val=obj.extra_data|get_item:exk|default:obj.extra_data|get_item:f %}
-                                    {% if val %}
-                                      {% if "file" in fl or "image" in fl or "document" in fl %}
-                                        <a href="{{ val }}" target="_blank" title="View">View</a>
-                                      {% else %}
-                                        {{ val|format_ddmmyyyy }}
-                                      {% endif %}
-                                    {% endif %}
-                                  {% endwith %}
-                                {% endwith %}
-                              {% endif %}
-                            </td>
-                          {% endwith %}
-                        {% endfor %}
-
-                      {% else %}
-                        {% for field in obj|get_fields %}
-                          {% if field.name|in_list:"extra_data,raw_csv_data,password" %}
-                          {% elif entity|lower == "staff" and field.name|in_list:"status,ifsc,bank,designation" %}
-                          {% elif entity|lower == "userprofile" and field.name|in_list:"is_admin,is_master,is_data_entry,is_accounting,is_recovery_agent,is_auditor,is_manager" %}
-                          {% else %}
-                            <td>
-                              {% if entity|lower == "userprofile" and field.name == "user" %}
-                                {{ obj.extra_data|get_item:"auth_username"|default_if_none:"" }}
-                              {% else %}
-                                {% if field.name|in_list:"photo,live_photo,house_photo,logo,image,picture,avatar" and obj|attr:field.name %}
-                                  {% with file=obj|attr:field.name %}
-                                    {% if file %}
-                                      {% if file.url %}
-                                        {% with imgurl=file.url %}
-                                          <img class="img-thumb" src="{{ imgurl }}" onclick="LB.open('{{ imgurl }}')" alt="img">
-                                        {% endwith %}
-                                      {% else %}
-                                        {% with imgurl=file %}
-                                          <img class="img-thumb" src="{{ imgurl }}" onclick="LB.open('{{ imgurl }}')" alt="img">
-                                        {% endwith %}
-                                      {% endif %}
-                                    {% endif %}
-                                  {% endwith %}
-                                {% else %}
-                                  {{ obj|attr:field.name|format_ddmmyyyy }}
-                                {% endif %}
-                              {% endif %}
-                            </td>
-                          {% endif %}
-                        {% endfor %}
-
-                        {% for col in column_fields %}
-                          <td>
-                            {% if col.field_type == 'file' and obj.extra_data|get_item:col.field_name %}
-                              <a href="{{ obj.extra_data|get_item:col.field_name }}" target="_blank" title="Download File">View</a>
-                            {% else %}
-                              {{ obj.extra_data|get_item:col.field_name|format_ddmmyyyy }}
-                            {% endif %}
-                          </td>
-                        {% endfor %}
-                      {% endif %}
-
-                      <td class="d-flex gap-1">
-                        <button
-                          class="btn btn-sm btn-warning btn-edit"
-                          data-edit-entity="{{ entity }}"
-                          data-id="{{ obj.pk }}"
-                          onclick="editEntity('{{ entity }}', {{ obj.pk }})"
-                          aria-label="Edit {{ obj }}" title="Edit {{ obj }}">
-                          <i class="fas fa-edit"></i> Edit
-                        </button>
-
-                        <button
-                          class="btn btn-sm btn-danger btn-delete"
-                          data-delete-entity="{{ entity }}"
-                          data-id="{{ obj.pk }}"
-                          onclick="deleteEntity('{{ entity }}', {{ obj.pk }})"
-                          aria-label="Delete {{ obj }}" title="Delete {{ obj }}">
-                          <i class="fas fa-trash"></i> Delete
-                        </button>
-                      </td>
-                    </tr>
+        {% if objects and objects.0 %}
+          <div class="table-responsive">
+            <table class="table table-striped table-hover">
+              <thead class="table-dark">
+                <tr>
+                  <!-- Standard Fields from spec_grid -->
+                  {% if spec_grid %}
+                    {% for f in spec_grid %}
+                      <th>{{ f|cut:"extra__" }}</th>
+                    {% endfor %}
                   {% endif %}
-                {% endwith %}
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <div class="alert alert-warning">
-          No records found under {{ group_name|default:"this group" }}.
-        </div>
-      {% endif %}
+                  
+                  <!-- Custom Fields from Column table -->
+                  {% if column_fields %}
+                    {% for col in column_fields %}
+                      <th>{{ col.label }}</th>
+                    {% endfor %}
+                  {% endif %}
+                  
+                  <th>Actions</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {% for obj in objects %}
+                  {% with st=obj|attr:"status" ia=obj|attr:"is_active" ac=obj|attr:"active" stn=st|default_if_none:"__none__" ian=ia|default_if_none:"__none__" acn=ac|default_if_none:"__none__" %}
+                    {% if entity|lower == "column" or st|stringformat:"s"|lower == "active" or st|stringformat:"s" == "1" or ia or ac or stn == "__none__" and ian == "__none__" and acn == "__none__" %}
+                      <tr data-id="{{ obj.pk }}" class="table-row-hover">
+                        <!-- Standard Field Values -->
+                        {% if spec_grid %}
+                          {% for f in spec_grid %}
+                            <td>
+                              {% if f|slice:":7" == "extra__" %}
+                                {{ obj.extra_data|get_item:f|default:"-" }}
+                              {% elif f == "user_profile" and entity|lower == "userpermission" %}
+                                {{ obj|display_user_name }}
+                              {% else %}
+                                {{ obj|attr:f|default:"-" }}
+                              {% endif %}
+                            </td>
+                          {% endfor %}
+                        {% endif %}
+
+                        <!-- Custom Field Values -->
+                        {% if column_fields %}
+                          {% for col in column_fields %}
+                            <td>
+                              {% if debug %}
+                                <!-- Debug: {{ col.field_name }} = {{ obj.extra_data|get_item:col.field_name|default:"NOT_FOUND" }} -->
+                              {% endif %}
+                              {{ obj.extra_data|get_item:col.field_name|default:"-" }}
+                            </td>
+                          {% endfor %}
+                        {% endif %}
+
+                        <td class="d-flex gap-1">
+                          <!-- Edit button using modal like Add form -->
+                          <button
+                            class="btn btn-sm btn-warning"
+                            onclick="editEntity('{{ entity }}', {{ obj.pk }})">
+                            <i class="fas fa-edit"></i> Edit
+                          </button>
+
+                          <!-- SMART DELETE BUTTON - Only show if user can delete -->
+                          {% if can_delete %}
+                            <button
+                              class="btn btn-sm btn-danger"
+                              onclick="deleteCustomField('{{ entity }}', {{ obj.pk }}, this)"
+                              aria-label="Delete {{ obj }}" 
+                              title="Delete {{ obj }}">
+                              <i class="fas fa-trash"></i> Delete
+                            </button>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endif %}
+                  {% endwith %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="alert alert-warning">
+            No records found under {{ group_name|default:"this group" }}.
+          </div>
+        {% endif %}
+      </div>
+    {% empty %}
+      <div class="alert alert-info">No data available.</div>
+    {% endfor %}
+  {% else %}
+    <div class="alert alert-warning">
+      <strong>No data loaded!</strong><br>
+      The grid is not displaying because no data was found. This could be due to:
+      <ul>
+        <li>No records in the database for this entity</li>
+        <li>Database connection issues</li>
+        <li>Permission restrictions</li>
+        <li>JavaScript errors preventing data loading</li>
+      </ul>
+      <button class="btn btn-primary mt-2" onclick="location.reload()">Reload Page</button>
     </div>
-  {% empty %}
-    <div class="alert alert-info">No data available.</div>
-  {% endfor %}
+  {% endif %}
 </div>
 
 {% if page_obj %}
@@ -319,10 +286,106 @@
 </nav>
 {% endif %}
 
-{% include "companies/modal_form.html" %}
+<!-- Modal form will be loaded dynamically when needed -->
+
+<script>
+function deleteCustomField(entity, pk, buttonElement) {
+    if (!confirm('Are you sure you want to delete this item?')) {
+        return;
+    }
+    
+    // Disable button to prevent double-click
+    buttonElement.disabled = true;
+    buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                     document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+    
+    fetch(`/${entity.toLowerCase()}/delete/${pk}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove the row from the table
+            const row = buttonElement.closest('tr');
+            if (row) {
+                row.remove();
+                
+                // Show success message
+                const successMsg = document.createElement('div');
+                successMsg.className = 'alert alert-success alert-dismissible fade show';
+                successMsg.innerHTML = `
+                    <strong>Success!</strong> Item deleted successfully.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                // Insert success message above the table - safer approach
+                const tableContainer = document.querySelector('.table-responsive');
+                if (tableContainer && tableContainer.parentNode) {
+                    tableContainer.parentNode.insertBefore(successMsg, tableContainer);
+                    
+                    // Auto-hide success message after 3 seconds
+                    setTimeout(() => {
+                        if (successMsg.parentNode) {
+                            successMsg.remove();
+                        }
+                    }, 3000);
+                }
+            }
+        } else {
+            alert('Delete failed: ' + (data.error || 'Unknown error'));
+            // Re-enable button
+            buttonElement.disabled = false;
+            buttonElement.innerHTML = '<i class="fas fa-trash"></i> Delete';
+        }
+    })
+    .catch(error => {
+        console.error('Delete error:', error);
+        alert('Delete failed: ' + error.message);
+        // Re-enable button
+        buttonElement.disabled = false;
+        buttonElement.innerHTML = '<i class="fas fa-trash"></i> Delete';
+    });
+}
+</script>
 
 <style>
   .btn-danger{display:inline-flex!important;visibility:visible!important;opacity:1!important}
+  .table-row-hover:hover { background-color: #f8f9fa !important; }
+  .table-responsive { border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  .table-dark th { background-color: #343a40 !important; color: white !important; }
+  .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+  .gap-1 { gap: 0.25rem !important; }
+  
+  /* Dropdown functionality is now handled globally in base.html */
+  /* This prevents CSS conflicts between multiple dropdown setups */
+  
+  /* Form field improvements */
+  #entity-modal select {
+    width: 100% !important;
+    padding: 8px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    background-color: white !important;
+  }
+  
+  #entity-modal input[type="text"],
+  #entity-modal input[type="email"],
+  #entity-modal input[type="password"],
+  #entity-modal input[type="number"],
+  #entity-modal textarea {
+    width: 100% !important;
+    padding: 8px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    box-sizing: border-box !important;
+  }
 </style>
 
 {# Shim: make any link with data-hard-nav="1" bypass modal router #}
@@ -331,4 +394,20 @@ document.addEventListener("click",function(e){
   const a=e.target.closest('a[data-hard-nav="1"]'); if(!a) return;
   e.preventDefault(); e.stopImmediatePropagation(); window.location.href=a.href;
 },true);
+
+// Check modal functions after a short delay to ensure they're loaded
+setTimeout(function() {
+  if (typeof window.openEntityModal !== 'function') {
+    // Modal system may not be loaded yet
+  }
+  if (typeof window.editEntity !== 'function') {
+    // Edit function not found
+  }
+  if (typeof window.deleteEntity !== 'function') {
+    // Delete function not found
+  }
+}, 100);
+
+// Dropdown functionality is now handled globally in base.html
+// This prevents conflicts between multiple dropdown setups
 </script>

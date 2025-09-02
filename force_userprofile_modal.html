@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Force UserProfile Modal Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .btn { 
+            background: #007bff; color: white; padding: 10px 20px; 
+            border: none; border-radius: 5px; cursor: pointer; margin: 5px;
+        }
+        .btn:hover { background: #0056b3; }
+        .status { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .modal { 
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0; 
+            width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); 
+        }
+        .modal-content { 
+            background-color: #fefefe; margin: 5% auto; padding: 20px; 
+            border: 1px solid #888; width: 80%; max-width: 600px; border-radius: 8px;
+        }
+        .close { 
+            color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;
+        }
+        .close:hover { color: black; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select { 
+            width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Force UserProfile Modal Test</h1>
+        <p>This page bypasses all complex routing and directly tests the UserProfile modal.</p>
+        
+        <div id="status"></div>
+        
+        <button class="btn" onclick="forceOpenUserProfileModal()">Force Open UserProfile Modal</button>
+        <button class="btn" onclick="clearStatus()">Clear Status</button>
+        
+        <div id="modal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <h2 id="modal-title">Loading...</h2>
+                <div id="modal-body">Loading UserProfile form...</div>
+                <div style="margin-top: 20px; text-align: right;">
+                    <button class="btn" onclick="closeModal()">Close</button>
+                    <button class="btn" onclick="saveForm()" id="save-btn" style="background: #28a745;">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+        
+        function forceOpenUserProfileModal() {
+            updateStatus('Forcing UserProfile modal open...', 'info');
+            
+            // Show modal immediately
+            const modal = document.getElementById('modal');
+            modal.style.display = 'block';
+            
+            // Fetch the form data
+            fetch('/UserProfile/get/', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Cache-Control': 'no-cache'
+                }
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.text();
+            })
+            .then(text => {
+                console.log('Response text length:', text.length);
+                
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    updateStatus('❌ Failed to parse JSON: ' + e.message, 'error');
+                    document.getElementById('modal-body').innerHTML = '<div class="error">Raw response: ' + text.substring(0, 500) + '...</div>';
+                    return;
+                }
+                
+                if (data.success && data.html) {
+                    updateStatus('✅ Successfully loaded UserProfile form!', 'success');
+                    
+                    // Update modal title
+                    document.getElementById('modal-title').textContent = 'Create UserProfile';
+                    
+                    // Extract just the form content
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = data.html;
+                    
+                    const form = tempDiv.querySelector('#entity-form');
+                    if (form) {
+                        // Create a clean form display
+                        const formContainer = document.getElementById('modal-body');
+                        formContainer.innerHTML = form.outerHTML;
+                        
+                        // Count and display field info
+                        const fields = form.querySelectorAll('input, select, textarea, label');
+                        updateStatus(`✅ Form loaded with ${fields.length} fields`, 'success');
+                        
+                        // Make form functional
+                        const saveBtn = document.getElementById('save-btn');
+                        if (saveBtn) {
+                            saveBtn.onclick = function() {
+                                saveForm();
+                            };
+                        }
+                        
+                    } else {
+                        updateStatus('❌ No form found in HTML', 'error');
+                        document.getElementById('modal-body').innerHTML = '<div class="error">No form found in response</div>';
+                    }
+                } else {
+                    updateStatus('❌ Form loading failed: ' + (data.error || 'Unknown error'), 'error');
+                    document.getElementById('modal-body').innerHTML = '<div class="error">Error: ' + JSON.stringify(data, null, 2) + '</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                updateStatus('❌ Request failed: ' + error.message, 'error');
+                document.getElementById('modal-body').innerHTML = '<div class="error">Request failed: ' + error.message + '</div>';
+            });
+        }
+        
+        function saveForm() {
+            updateStatus('Saving form...', 'info');
+            
+            const form = document.getElementById('modal-body').querySelector('#entity-form');
+            if (!form) {
+                updateStatus('❌ No form found to save', 'error');
+                return;
+            }
+            
+            const formData = new FormData(form);
+            
+            fetch('/UserProfile/create/', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateStatus('✅ Form saved successfully!', 'success');
+                    closeModal();
+                } else {
+                    updateStatus('❌ Save failed: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                updateStatus('❌ Save failed: ' + error.message, 'error');
+            });
+        }
+        
+        function clearStatus() {
+            document.getElementById('status').innerHTML = '';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+        
+        // Auto-test on load
+        window.addEventListener('load', function() {
+            setTimeout(forceOpenUserProfileModal, 1000);
+        });
+    </script>
+</body>
+</html>
+

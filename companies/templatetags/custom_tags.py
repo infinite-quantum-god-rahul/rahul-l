@@ -92,6 +92,14 @@ def add_class(field, css_class):
         field.field.widget.attrs['class'] = f"{existing} {css_class}".strip()
     return field
 
+# ======= Display User Name for UserPermission ======= #
+@register.filter
+def display_user_name(obj):
+    """Display user name for UserPermission records"""
+    if hasattr(obj, 'user_profile') and obj.user_profile:
+        return obj.user_profile.full_name or f"User #{obj.user_profile.id}"
+    return "No User"
+
 # ======= Add/Set arbitrary attribute on a Form Field widget ======= #
 # Usage:
 #   {{ field|add_attr:"accept=image/*"|add_attr:"capture=environment" }}
@@ -134,8 +142,7 @@ def group_permissions(choices):
             grouped['Master'].append((perm_id, name))
         elif 'entry' in lname:
             grouped['Data Entry'].append((perm_id, name))
-        elif 'report' in lname:
-            grouped['Reports'].append((perm_id, name))
+
         else:
             grouped['Other'].append((perm_id, name))
     return grouped.items()
@@ -151,6 +158,45 @@ def split(value, delimiter):
 @register.filter
 def replace_underscore(value):
     return str(value).replace('_', ' ').capitalize()
+
+# ======= Display Foreign Key Fields ======= #
+@register.filter
+def display_fk(value):
+    """
+    Display foreign key fields properly:
+    - For Users objects: show full_name or user.username
+    - For other objects: show name or str representation
+    """
+    if value is None:
+        return "-"
+    
+    # Handle Users objects
+    if hasattr(value, '_meta') and value._meta.model_name == 'users':
+        if hasattr(value, 'full_name') and value.full_name:
+            return value.full_name
+        elif hasattr(value, 'user') and value.user and hasattr(value.user, 'username'):
+            return value.user.username
+        else:
+            return str(value)
+    
+    # Handle other objects with name field
+    if hasattr(value, 'name') and value.name:
+        return value.name
+    
+    # Handle objects with staffcode field
+    if hasattr(value, 'staffcode') and value.staffcode:
+        return f"{value.staffcode} - {value.name}" if hasattr(value, 'name') and value.name else value.staffcode
+    
+    # Fallback to string representation
+    return str(value)
+
+# ======= Cut String (remove prefix) ======= #
+@register.filter
+def cut(value, arg):
+    """Remove all occurrences of arg from the given string."""
+    if value is None:
+        return ''
+    return str(value).replace(arg, '')
 
 # ======= Check for File Extension ======= #
 @register.filter

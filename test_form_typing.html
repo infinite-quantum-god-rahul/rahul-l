@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Typing Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Form Typing Test</h1>
+        <p>This page tests if typing in form fields causes navigation issues.</p>
+        
+        <form id="test-form" method="post" novalidate>
+            <div class="form-group">
+                <label>Text Input:</label>
+                <input type="text" id="text-input" name="text_input" placeholder="Type here..." />
+            </div>
+            
+            <div class="form-group">
+                <label>Email Input:</label>
+                <input type="email" id="email-input" name="email_input" placeholder="Enter email..." />
+            </div>
+            
+            <div class="form-group">
+                <label>Textarea:</label>
+                <textarea id="textarea-input" name="textarea_input" placeholder="Type here..." rows="3"></textarea>
+            </div>
+            
+            <button type="button" onclick="testTyping()">Test Typing</button>
+            <button type="button" onclick="clearForm()">Clear Form</button>
+        </form>
+        
+        <div class="status" id="status">
+            <strong>Status:</strong> Ready to test
+        </div>
+    </div>
+
+    <script>
+        let navigationDetected = false;
+        let formSubmitted = false;
+        let typingCount = 0;
+        
+        const status = document.getElementById('status');
+        const form = document.getElementById('test-form');
+        const inputs = form.querySelectorAll('input, textarea');
+        
+        function updateStatus(message, isError = false) {
+            status.textContent = message;
+            status.className = 'status ' + (isError ? 'error' : 'success');
+        }
+        
+        function testTyping() {
+            // Simulate typing in each field
+            inputs.forEach((input, index) => {
+                setTimeout(() => {
+                    input.focus();
+                    input.value = 'Test typing ' + (index + 1);
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    typingCount++;
+                    
+                    if (typingCount === inputs.length) {
+                        if (!navigationDetected && !formSubmitted) {
+                            updateStatus('✅ SUCCESS: Typing completed without navigation issues!');
+                        }
+                    }
+                }, index * 500);
+            });
+        }
+        
+        function clearForm() {
+            inputs.forEach(input => {
+                input.value = '';
+            });
+            typingCount = 0;
+            navigationDetected = false;
+            formSubmitted = false;
+            updateStatus('Form cleared - ready to test again');
+        }
+        
+        // Monitor form submission
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            formSubmitted = true;
+            updateStatus('❌ ERROR: Form was submitted during typing!', true);
+        });
+        
+        // Monitor page navigation
+        window.addEventListener('beforeunload', function(e) {
+            navigationDetected = true;
+            updateStatus('❌ ERROR: Page navigation detected during typing!', true);
+        });
+        
+        // Monitor URL changes
+        let currentUrl = window.location.href;
+        setInterval(function() {
+            if (window.location.href !== currentUrl) {
+                navigationDetected = true;
+                updateStatus('❌ ERROR: URL changed during typing!', true);
+                currentUrl = window.location.href;
+            }
+        }, 100);
+        
+        // Monitor input events
+        inputs.forEach(input => {
+            input.addEventListener('input', function(e) {
+                if (typingCount > 0) {
+                    updateStatus(`✅ Typing detected: "${e.target.value}"`);
+                }
+            });
+            
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    updateStatus('⚠️ Enter key pressed - should not submit form');
+                }
+            });
+        });
+        
+        // Initial status
+        updateStatus('Ready to test - click "Test Typing" to start');
+    </script>
+</body>
+</html>
+
+
+
+
+

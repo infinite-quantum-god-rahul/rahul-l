@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_tags %}
+
+{% block title %}Custom Fields - {{ pretty_entity }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>{{ pretty_entity }}</h2>
+        <button class="btn btn-success" onclick="location.href='/Column/create/'">
+            <i class="fas fa-plus"></i> Add Custom Field
+        </button>
+    </div>
+
+    <!-- Debug Info -->
+    <div class="alert alert-info">
+        <strong>Debug Info:</strong><br>
+        Total Custom Fields: {{ custom_fields|length }}<br>
+        Modules: {{ grouped_fields|length }}<br>
+        Module Names: {% for module in grouped_fields.keys %}{{ module }}{% if not forloop.last %}, {% endif %}{% endfor %}
+    </div>
+
+    {% if grouped_fields %}
+        {% for module, fields in grouped_fields.items %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ module|title }} Module ({{ fields|length }} fields)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Field Name</th>
+                                    <th>Label</th>
+                                    <th>Type</th>
+                                    <th>Required</th>
+                                    <th>Order</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for field in fields %}
+                                    <tr>
+                                        <td><strong>{{ field.field_name }}</strong></td>
+                                        <td>{{ field.label }}</td>
+                                        <td>{{ field.field_type }}</td>
+                                        <td>
+                                            {% if field.required %}
+                                                <span class="badge bg-success">Yes</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">No</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ field.order|default:"0" }}</td>
+                                        <td>
+                                            {% if field.extra_data.description %}
+                                                {{ field.extra_data.description }}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-warning" onclick="location.href='/Column/edit/{{ field.id }}/'">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </button>
+                                                <button class="btn btn-danger" onclick="deleteCustomField({{ field.id }})">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-warning">
+            <strong>No Custom Fields Found!</strong><br>
+            There are no custom fields defined in the system.
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function deleteCustomField(fieldId) {
+    if (confirm('Are you sure you want to delete this custom field?')) {
+        // Simple form submission for delete
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/Column/delete/${fieldId}/`;
+        
+        const csrfToken = document.createElement('input');
+        csrfToken.type = 'hidden';
+        csrfToken.name = 'csrfmiddlewaretoken';
+        csrfToken.value = '{{ csrf_token }}';
+        
+        form.appendChild(csrfToken);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}
+

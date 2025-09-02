@@ -1,231 +1,295 @@
 {% extends "base.html" %}
+{% csrf_token %}
 {% load custom_tags %}
 
 {% block title %}Dashboard - Spoorthi MACS Ltd.,{% endblock %}
 
 {% block content %}
+<!-- Sidebar Toggle Button -->
+<button class="sidebar-toggle-btn" id="sidebar-toggle" onclick="toggleSidebar()">
+  <i class="fas fa-bars"></i>
+</button>
+
 <div class="dashboard-flex">
   <!-- Sidebar -->
   <div class="sidebar" id="sidebar">
-    {% with p=profile %}
+    <!-- Debug Info -->
+    {% if debug %}
+    <div class="alert alert-info">
+      <strong>Debug Info:</strong><br>
+      Role Flags: {{ role_flags|safe }}<br>
+      User: {{ user.username }}<br>
+      Is Superuser: {{ user.is_superuser }}<br>
+      Is Staff: {{ user.is_staff }}
+    </div>
+    {% endif %}
+    
     <ul class="sidebar-menu">
 
-      {% if p %}
-        {% if not user.is_superuser and not p.is_admin and not p.is_master %}
-          <li><a href="{% url 'entity_list' 'FieldReport' %}">{{ "FieldReport"|pretty_name }}</a></li>
-          <li class="dropdown">
-            <a href="#">Report ▸</a>
-            <ul class="dropdown-menu">
-              <li><a href="{% url 'entity_list' 'WeeklyReport' %}">Weekly</a></li>
-              <li><a href="{% url 'entity_list' 'MonthlyReport' %}">Monthly</a></li>
-            </ul>
-          </li>
-          {% if user.is_superuser or p.is_admin or SML_FEATURES.NPA_DASHBOARD %}
-            <li><a href="{% url 'npa_dashboard' %}">NPA Dashboard</a></li>
-          {% endif %}
-        {% else %}
+      {% if user.is_superuser %}
+        <!-- Superuser has access to everything -->
+        <li class="dropdown">
+          <a href="#">Create ▸</a>
+          <ul class="dropdown-menu">
+            <li><a href="{% url 'entity_list' 'Company' %}">{{ "Company"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Branch' %}">{{ "Branch"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Users' %}">{{ "Users"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'UserPermission' %}">{{ "UserPermission"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Village' %}">{{ "Village"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Center' %}">{{ "Center"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Group' %}">{{ "Group"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Cadre' %}">{{ "Cadre"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Column' %}">{{ "Column"|pretty_name }}</a></li>
+          </ul>
+        </li>
 
-          {% if user.is_superuser or p.is_admin or p.is_master %}
-            <li class="dropdown">
-              <a href="#">Create ▸</a>
-              <ul class="dropdown-menu">
-                <li><a href="{% url 'entity_list' 'Company' %}">{{ "Company"|pretty_name }}</a></li>
-                <li><a href="{% url 'entity_list' 'Branch' %}">{{ "Branch"|pretty_name }}</a></li>
-                <!-- Hard navigate to dedicated UserProfile page -->
-                <li><a data-hard-nav="1" href="{% url 'userprofile_get' %}">{{ "UserProfile"|pretty_name }}</a></li>
-                <li><a href="{% url 'entity_list' 'UserPermission' %}">{{ "UserPermission"|pretty_name }}</a></li>
-                <li><a href="{% url 'entity_list' 'Village' %}">{{ "Village"|pretty_name }}</a></li>
-                <li><a href="{% url 'entity_list' 'Center' %}">{{ "Center"|pretty_name }}</a></li>
-                <li><a href="{% url 'entity_list' 'Group' %}">{{ "Group"|pretty_name }}</a></li>
-                <li><a href="{% url 'entity_list' 'Cadre' %}">{{ "Cadre"|pretty_name }}</a></li>
-                <li><a href="{% url 'entity_list' 'Column' %}">{{ "Column"|pretty_name }}</a></li>
-              </ul>
-            </li>
-          {% endif %}
+        <li class="dropdown">
+          <a href="#">HRPM ▸</a>
+          <ul class="dropdown-menu">
+            <li><a href="{% url 'hrpm_staff' %}">{{ "Staff"|pretty_name }}</a></li>
+            <li><a href="{% url 'hrpm_appointment' %}">{{ "Appointment"|pretty_name }}</a></li>
+            <li><a href="{% url 'hrpm_salary_statement' %}">{{ "Salary Statement"|pretty_name }}</a></li>
+          </ul>
+        </li>
 
-          {% if user.is_superuser or p.is_admin or p.is_master or p.is_manager %}
-            <li class="dropdown">
-              <a href="#">HRPM ▸</a>
-              <ul class="dropdown-menu">
-                <li><a href="{% url 'hrpm_staff' %}">{{ "Staff"|pretty_name }}</a></li>
-                <li><a href="{% url 'hrpm_appointment' %}">{{ "Appointment"|pretty_name }}</a></li>
-                <li><a href="{% url 'hrpm_salary_statement' %}">{{ "Salary Statement"|pretty_name }}</a></li>
-              </ul>
-            </li>
-          {% endif %}
+        <!-- All modules for superuser -->
+        {% for model in "Role,Product,Client,LoanApplication,LoanApproval,Disbursement,BusinessSetting,FieldSchedule,Prepaid,Mortgage,ExSaving,AccountHead,Voucher,Posting,RecoveryPosting,UserPermission,Payment,Repayment,LoanRestructure,Notification,GatewayEvent,EWIFlag"|split:"," %}
+          <li><a href="{% url 'entity_list' model %}" data-hard-nav="1">{{ model|pretty_name }}</a></li>
+        {% endfor %}
+        <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
+        <li><a href="{% url 'entity_list' 'AlertRule' %}">{{ "AlertRule"|pretty_name }}</a></li>
 
-          {% if user.is_superuser or p.is_admin %}
-            {% for model in "Role,Product,Client,LoanApplication,LoanApproval,Disbursement,BusinessSetting,FieldSchedule,FieldReport,Prepaid,Mortgage,ExSaving,AccountHead,Voucher,Posting,RecoveryPosting,UserPermission,Payment,Repayment,LoanRestructure,Notification,GatewayEvent,EWIFlag"|split:"," %}
-              <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
-            {% endfor %}
-            <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
-            <li><a href="{% url 'entity_list' 'AlertRule' %}">{{ "AlertRule"|pretty_name }}</a></li>
-          {% else %}
-            {% if p.is_data_entry %}
-              {% for model in "Client,LoanApplication,RecoveryPosting"|split:"," %}
-                <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
-              {% endfor %}
-              {% if user.is_superuser or p.is_admin or SML_FEATURES.OFFLINE_KYC %}
-                <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
-              {% endif %}
-            {% endif %}
+        <li><a href="{% url 'npa_dashboard' %}">NPA Dashboard</a></li>
+        <li><a href="#" onclick="openCreditPullModal()">Credit Bureau Check</a></li>
 
-            {% if p.is_accounting %}
-              {% for model in "Voucher,Posting,AccountHead"|split:"," %}
-                <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
-              {% endfor %}
-            {% endif %}
+      {% elif role_flags.admin %}
+        <!-- Admin users have same powers as superuser -->
+        <li class="dropdown">
+          <a href="#">Create ▸</a>
+          <ul class="dropdown-menu">
+            <li><a href="{% url 'entity_list' 'Company' %}">{{ "Company"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Branch' %}">{{ "Branch"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Users' %}">{{ "Users"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'UserPermission' %}">{{ "UserPermission"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Village' %}">{{ "Village"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Center' %}">{{ "Center"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Group' %}">{{ "Group"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Cadre' %}">{{ "Cadre"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Column' %}">{{ "Column"|pretty_name }}</a></li>
+          </ul>
+        </li>
 
-            {% if p.is_manager %}
-              {% for model in "Client,LoanApplication,RecoveryPosting,Voucher,Posting,AccountHead"|split:"," %}
-                <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
-              {% endfor %}
-              {% if user.is_superuser or p.is_admin or SML_FEATURES.OFFLINE_KYC %}
-                <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
-              {% endif %}
-            {% endif %}
+        <li class="dropdown">
+          <a href="#">HRPM ▸</a>
+          <ul class="dropdown-menu">
+            <li><a href="{% url 'hrpm_staff' %}">{{ "Staff"|pretty_name }}</a></li>
+            <li><a href="{% url 'hrpm_appointment' %}">{{ "Appointment"|pretty_name }}</a></li>
+            <li><a href="{% url 'hrpm_salary_statement' %}">{{ "Salary Statement"|pretty_name }}</a></li>
+          </ul>
+        </li>
 
-            {% if p.is_recovery_agent %}
-              <li><a href="{% url 'entity_list' 'RecoveryPosting' %}">{{ "RecoveryPosting"|pretty_name }}</a></li>
-            {% endif %}
+        <!-- All modules for admin (same as superuser) -->
+        {% for model in "Role,Product,Client,LoanApplication,LoanApproval,Disbursement,BusinessSetting,FieldSchedule,Prepaid,Mortgage,ExSaving,AccountHead,Voucher,Posting,RecoveryPosting,UserPermission,Payment,Repayment,LoanRestructure,Notification,GatewayEvent,EWIFlag"|split:"," %}
+          <li><a href="{% url 'entity_list' model %}" data-hard-nav="1">{{ model|pretty_name }}</a></li>
+        {% endfor %}
+        <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
+        <li><a href="{% url 'entity_list' 'AlertRule' %}">{{ "AlertRule"|pretty_name }}</a></li>
 
-            {% if p.is_reports or p.is_auditor %}
-              <li><a href="{% url 'entity_list' 'FieldReport' %}">{{ "FieldReport"|pretty_name }}</a></li>
-            {% endif %}
-          {% endif %}
+        <li><a href="{% url 'npa_dashboard' %}">NPA Dashboard</a></li>
+        <li><a href="#" onclick="openCreditPullModal()">Credit Bureau Check</a></li>
+      {% endif %}
 
-          {% if user.is_superuser or p.is_admin or p.is_reports or p.is_auditor %}
-            <li class="dropdown">
-              <a href="#">Report ▸</a>
-              <ul class="dropdown-menu">
-                <li><a href="{% url 'entity_list' 'WeeklyReport' %}">Weekly</a></li>
-                <li><a href="{% url 'entity_list' 'MonthlyReport' %}">Monthly</a></li>
-              </ul>
-            </li>
-          {% endif %}
-
-          {% if user.is_superuser or p.is_admin or SML_FEATURES.NPA_DASHBOARD %}
-            <li><a href="{% url 'npa_dashboard' %}">NPA Dashboard</a></li>
-          {% endif %}
-          {% if user.is_superuser or p.is_admin or SML_FEATURES.CREDIT_BUREAU %}
-            <li><a href="#" onclick="openCreditPullModal()">Credit Bureau Check</a></li>
-          {% endif %}
-          {% if user.is_superuser or p.is_admin or SML_FEATURES.OFFLINE_KYC %}
-            <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
-          {% endif %}
-          {% if user.is_superuser or p.is_admin or SML_FEATURES.ESCALATION_ALERTS %}
-            <li><a href="{% url 'entity_list' 'AlertRule' %}">{{ "AlertRule"|pretty_name }}</a></li>
-          {% endif %}
-        {% endif %}
-      {% else %}
-        {% if user.is_superuser %}
-          <li class="dropdown">
-            <a href="#">Create ▸</a>
-            <ul class="dropdown-menu">
+      {% if role_flags.master or role_flags.manager %}
+        <!-- Combined Create dropdown for Master and Manager roles -->
+        <li class="dropdown">
+          <a href="#">Create ▸</a>
+          <ul class="dropdown-menu">
+            {% if role_flags.master %}
+              <!-- Master role options -->
               <li><a href="{% url 'entity_list' 'Company' %}">{{ "Company"|pretty_name }}</a></li>
               <li><a href="{% url 'entity_list' 'Branch' %}">{{ "Branch"|pretty_name }}</a></li>
-              <!-- Hard navigate to dedicated UserProfile page -->
-              <li><a data-hard-nav="1" href="{% url 'userprofile_get' %}">{{ "UserProfile"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'Users' %}">{{ "Users"|pretty_name }}</a></li>
               <li><a href="{% url 'entity_list' 'UserPermission' %}">{{ "UserPermission"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'Cadre' %}">{{ "Cadre"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'Column' %}">{{ "Column"|pretty_name }}</a></li>
+            {% endif %}
+            
+            {% if role_flags.manager %}
+              <!-- Manager role options -->
               <li><a href="{% url 'entity_list' 'Village' %}">{{ "Village"|pretty_name }}</a></li>
               <li><a href="{% url 'entity_list' 'Center' %}">{{ "Center"|pretty_name }}</a></li>
               <li><a href="{% url 'entity_list' 'Group' %}">{{ "Group"|pretty_name }}</a></li>
-              <li><a href="{% url 'entity_list' 'Cadre' %}">{{ "Cadre"|pretty_name }}</a></li>
-              <li><a href="{% url 'entity_list' 'Column' %}">{{ "Column"|pretty_name }}</a></li>
-            </ul>
-          </li>
-
-          <li class="dropdown">
-            <a href="#">HRPM ▸</a>
-            <ul class="dropdown-menu">
-              <li><a href="{% url 'hrpm_staff' %}">{{ "Staff"|pretty_name }}</a></li>
-              <li><a href="{% url 'hrpm_appointment' %}">{{ "Appointment"|pretty_name }}</a></li>
-              <li><a href="{% url 'hrpm_salary_statement' %}">{{ "Salary Statement"|pretty_name }}</a></li>
-            </ul>
-          </li>
-
-          {% for model in "Role,Product,Client,LoanApplication,LoanApproval,Disbursement,BusinessSetting,FieldSchedule,FieldReport,Prepaid,Mortgage,ExSaving,AccountHead,Voucher,Posting,RecoveryPosting,UserPermission,Payment,Repayment,LoanRestructure,Notification,GatewayEvent,EWIFlag"|split:"," %}
-            <li><a href="{% url 'entity_list' model %}">{{ model|pretty_name }}</a></li>
-          {% endfor %}
-          <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
-          <li><a href="{% url 'entity_list' 'AlertRule' %}">{{ "AlertRule"|pretty_name }}</a></li>
-
-          <li class="dropdown">
-            <a href="#">Report ▸</a>
-            <ul class="dropdown-menu">
-              <li><a href="{% url 'entity_list' 'WeeklyReport' %}">Weekly</a></li>
-              <li><a href="{% url 'entity_list' 'MonthlyReport' %}">Monthly</a></li>
-            </ul>
-          </li>
-
-          <li><a href="{% url 'npa_dashboard' %}">NPA Dashboard</a></li>
-          <li><a href="#" onclick="openCreditPullModal()">Credit Bureau Check</a></li>
-        {% endif %}
+              <li><a href="{% url 'entity_list' 'Staff' %}">{{ "Staff"|pretty_name }}</a></li>
+            {% endif %}
+          </ul>
+        </li>
       {% endif %}
+
+      <!-- Core Business Modules (no duplicates) -->
+      {% if role_flags.manager or role_flags.data_entry or role_flags.recovery_agent or user.is_staff %}
+        <li><a href="{% url 'entity_list' 'Client' %}">{{ "Client"|pretty_name }}</a></li>
+        <li><a href="{% url 'entity_list' 'LoanApplication' %}">{{ "LoanApplication"|pretty_name }}</a></li>
+      {% endif %}
+
+      {% if role_flags.manager or role_flags.data_entry %}
+        <li><a href="{% url 'entity_list' 'FieldSchedule' %}">{{ "FieldSchedule"|pretty_name }}</a></li>
+      {% endif %}
+
+      {% if role_flags.manager %}
+        <li><a href="{% url 'entity_list' 'BusinessSetting' %}">{{ "BusinessSetting"|pretty_name }}</a></li>
+      {% endif %}
+
+      <!-- Financial Modules (no duplicates) -->
+      {% if role_flags.manager or role_flags.accounting %}
+        <li><a href="{% url 'entity_list' 'AccountHead' %}">{{ "AccountHead"|pretty_name }}</a></li>
+        <li><a href="{% url 'entity_list' 'Voucher' %}">{{ "Voucher"|pretty_name }}</a></li>
+        <li><a href="{% url 'entity_list' 'Posting' %}">{{ "Posting"|pretty_name }}</a></li>
+        <li><a href="{% url 'entity_list' 'Payment' %}">{{ "Payment"|pretty_name }}</a></li>
+        <li><a href="{% url 'entity_list' 'RecoveryPosting' %}">{{ "RecoveryPosting"|pretty_name }}</a></li>
+        <li><a href="{% url 'entity_list' 'Repayment' %}">{{ "Repayment"|pretty_name }}</a></li>
+      {% endif %}
+
+      <!-- Recovery and Field Modules (no duplicates) -->
+      {% if role_flags.recovery_agent %}
+        <li><a href="{% url 'entity_list' 'FieldReport' %}">{{ "FieldReport"|pretty_name }}</a></li>
+      {% endif %}
+
+      {% if role_flags.auditor %}
+        <!-- Auditor users have audit access -->
+        <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
+      {% endif %}
+
+      <!-- FieldReport available to ALL users by default -->
+      <li><a href="{% url 'entity_list' 'FieldReport' %}">{{ "FieldReport"|pretty_name }}</a></li>
+
+      <!-- Reports available to ALL users by default -->
+      <li class="dropdown">
+        <a href="#">Report ▸</a>
+        <ul class="dropdown-menu">
+          <li><a href="{% url 'entity_list' 'WeeklyReport' %}">Weekly</a></li>
+          <li><a href="{% url 'entity_list' 'MonthlyReport' %}">Monthly</a></li>
+        </ul>
+      </li>
 
     </ul>
-    {% endwith %}
   </div>
 
-  <!-- Main Content + Toggle Button Container -->
+  <!-- Main Content -->
   <div class="admin-main-content">
-    <div class="user-meta-header d-flex justify-content-end align-items-center p-2" style="font-size: 14px; color: #666;">
-      {% if header_user_display_name or header_branch_name or header_role_label %}
-        <strong>{{ header_user_display_name }}</strong>
-        {% if header_branch_name %} | <span>{{ header_branch_name }}</span>{% endif %}
-        {% if header_role_label %} | <span>{{ header_role_label }}</span>{% endif %}
-      {% endif %}
-    </div>
-
-    <button id="sidebar-toggle" class="sidebar-toggle-btn" title="Toggle Sidebar">&#9776;</button>
-
     {% if include_template %}
+      <!-- Entity-specific content (grid, forms, etc.) -->
       {% include include_template %}
     {% else %}
-      <div class="p-4">
-        <h1>Welcome</h1>
-        <p>Select an option from the sidebar to manage the system.</p>
+      <!-- Default dashboard content -->
+      <div class="dashboard-header">
+        <h1>Welcome to Spoorthi MACS Ltd.</h1>
+        <p>Select an option from the sidebar to get started.</p>
+      </div>
+
+      <div class="dashboard-stats">
+        <div class="stat-card">
+          <h3>Quick Stats</h3>
+          <p>Dashboard is ready for use.</p>
+        </div>
       </div>
     {% endif %}
   </div>
 </div>
 
-<!-- Universal Image Preview Modal -->
-<div id="image-preview-modal" class="modal" style="display: none;">
-  <div class="modal-content image-modal">
-    <div class="modal-header d-flex justify-content-between align-items-center mb-2">
-      <h5 class="modal-title">Image Preview</h5>
-      <button type="button" class="close-btn" onclick="closeImageModal()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <img id="image-preview" src="" alt="Preview" style="max-width: 100%; max-height: 400px; display: block; margin: 0 auto 20px;" />
-      <div id="image-meta-fields"></div>
-      <div class="d-flex justify-content-end mt-3">
-        <button class="btn btn-secondary" onclick="closeImageModal()">Close</button>
+<!-- Credit Bureau Modal -->
+<div id="creditPullModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h2>Credit Bureau Check</h2>
+    <form id="creditPullForm">
+      <div class="form-group">
+        <label for="aadharNumber">Aadhar Number:</label>
+        <input type="text" id="aadharNumber" name="aadhar_number" placeholder="1234 5678 9012" required>
       </div>
-    </div>
+      <button type="submit">Check Credit Score</button>
+    </form>
+    <div id="creditResult"></div>
   </div>
 </div>
 
-<!-- Hard-nav shim: lets UserProfile menu bypass the modal router -->
 <script>
-// Disable the global entity modal router on this page to avoid re-opening issues
-window.DISABLE_ENTITY_MODAL_ROUTER = true;
-document.addEventListener("click", function(ev){
-  const a = ev.target.closest('a[data-hard-nav="1"]');
-  if(!a) return;
-  ev.preventDefault(); ev.stopImmediatePropagation();
-  window.location.href = a.href;
-}, true);
-// Force hard navigation for all sidebar links (bypass modal router entirely)
-document.addEventListener("click", function(ev){
-  const a = ev.target.closest('.sidebar a[href]');
-  if(!a) return;
-  const href = a.getAttribute('href');
-  if(!href || href==="#") return;
-  ev.preventDefault(); ev.stopImmediatePropagation();
-  window.location.href = href;
-}, true);
+// Sidebar toggle functionality
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const mainContent = document.querySelector('.admin-main-content');
+  const toggleBtn = document.querySelector('.sidebar-toggle-btn');
+  
+  // Add visual feedback
+  if (toggleBtn) {
+    toggleBtn.classList.add('clicked');
+    setTimeout(() => toggleBtn.classList.remove('clicked'), 150);
+  }
+  
+  if (sidebar.classList.contains('collapsed')) {
+    // Expand sidebar
+    sidebar.classList.remove('collapsed');
+    mainContent.classList.remove('sidebar-collapsed');
+  } else {
+    // Collapse sidebar
+    sidebar.classList.add('collapsed');
+    mainContent.classList.add('sidebar-collapsed');
+  }
+}
+
+// Auto-collapse sidebar on mobile
+function checkMobile() {
+  if (window.innerWidth <= 768) {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.querySelector('.admin-main-content');
+    sidebar.classList.add('collapsed');
+    mainContent.style.marginLeft = '0';
+  }
+}
+
+// Check on load and resize
+window.addEventListener('load', checkMobile);
+window.addEventListener('resize', checkMobile);
+
+// Add click event listener to toggle button
+document.addEventListener('DOMContentLoaded', function() {
+  const toggleBtn = document.querySelector('.sidebar-toggle-btn');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', function(e) {
+      toggleSidebar();
+    });
+    
+    // Also add onclick as backup
+    toggleBtn.onclick = function(e) {
+      toggleSidebar();
+    };
+  }
+});
+
+function openCreditPullModal() {
+  document.getElementById('creditPullModal').style.display = 'block';
+}
+
+// Close modal when clicking on X
+document.querySelector('.close').onclick = function() {
+  document.getElementById('creditPullModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+  var modal = document.getElementById('creditPullModal');
+  if (event.target == modal) {
+    modal.style.display = 'none';
+  }
+}
+
+// Handle credit pull form submission
+document.getElementById('creditPullForm').onsubmit = function(e) {
+  e.preventDefault();
+  var aadhar = document.getElementById('aadharNumber').value;
+  var resultDiv = document.getElementById('creditResult');
+  
+  resultDiv.innerHTML = '<p>Checking credit score for Aadhar: ' + aadhar + '</p>';
+  // Add actual API call here
+};
 </script>
-<!-- Removed inline AJAX UserProfile modal; using hard navigation instead -->
 {% endblock %}

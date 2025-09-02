@@ -1,0 +1,17 @@
+/* modal_fix.css — normalize modal layout */
+#entity-modal .modal-footer{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
+#entity-modal .modal-header .close-btn,
+#entity-modal .modal-header .modal-close{
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+}
+/* Remove any stray duplicate close buttons not in header */
+#entity-modal .modal-body .close-btn,
+#entity-modal .modal-footer .close-btn { display:none !important; }
