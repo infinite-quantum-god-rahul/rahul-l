@@ -32,14 +32,22 @@ body {
 
 /* ================== TOGGLE BUTTON ================== */
 .sidebar-toggle-btn {
+<<<<<<< HEAD
   position: fixed;
   top: 80px;
   left: 10px;
   font-size: 18px;
+=======
+  position: absolute;
+  top: 20px;
+  left: 0;
+  font-size: 24px;
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
   color: #fff;
   background: #173651;
   border: none;
   border-radius: 4px;
+<<<<<<< HEAD
   padding: 10px 12px;
   cursor: pointer;
   z-index: 1100;
@@ -79,6 +87,14 @@ body {
   pointer-events: auto !important;
   cursor: pointer !important;
 }
+=======
+  padding: 8px 12px;
+  cursor: pointer;
+  z-index: 1100;
+  transition: background-color .3s;
+}
+.sidebar-toggle-btn:hover { background: #0f2b41; }
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
 
 /* ================== SIDEBAR ================== */
 .sidebar {
@@ -120,11 +136,15 @@ body {
   overflow-x: hidden;
   transition: margin-left .3s;
 }
+<<<<<<< HEAD
 
 .sidebar.collapsed ~ .admin-main-content,
 .admin-main-content.sidebar-collapsed { 
   margin-left: 0; 
 }
+=======
+.sidebar.collapsed ~ .admin-main-content { margin-left: 0; }
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
 
 /* ================== GRID TABLE ================== */
 .table { width: 100%; border-collapse: collapse; background: #fff; }
@@ -153,9 +173,12 @@ body {
   background: rgba(0, 0, 0, 0.5);
   z-index: 3000;
 
+<<<<<<< HEAD
   /* enable outer overlay scrolling, no inner form scroll */
   overflow-y: auto;
 
+=======
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
   /* center modal content when visible */
   justify-content: center;
   align-items: flex-start;  /* align slightly from top */
@@ -172,6 +195,7 @@ body {
   background: #fff;
   padding: 24px 32px;
   border-radius: 8px;
+<<<<<<< HEAD
 
   /* Wider, auto-adjusting to data */
   width: min(1320px, 92vw);
@@ -181,6 +205,12 @@ body {
   max-height: none;
   overflow-y: visible;
 
+=======
+  width: 60%;
+  max-width: 800px;          /* reasonable max width */
+  max-height: 80vh;          /* keep it inside viewport */
+  overflow-y: auto;
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
   position: relative;
 }
 
@@ -235,6 +265,7 @@ body {
 .modal-body .text-danger { font-size: 12px; margin-top: 4px; }
 .modal-body .row         { margin: 10px 0; }
 
+<<<<<<< HEAD
 /* inline options: radios/checkboxes side-by-side */
 .modal-body .form-check,
 .modal-body .checkbox,
@@ -246,6 +277,8 @@ body {
   margin-bottom: 8px;
 }
 
+=======
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
 /* modal footer */
 .modal-footer {
   padding-top: 16px;
@@ -262,7 +295,11 @@ body {
   .admin-main-content { margin-left: 200px; width: calc(100% - 200px); }
   .sidebar.collapsed ~ .admin-main-content { margin-left: 0; width: 100%; }
   .col-md-6 { flex: 0 0 100%; max-width: 100%; }
+<<<<<<< HEAD
   .modal-content { padding: 20px; width: 94%; max-width: 94vw; }
+=======
+  .modal-content { padding: 20px; width: 90%; max-width: 640px; }
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
 }
 
 /* ================== HOMEPAGE HERO ================== */
@@ -380,7 +417,10 @@ body {
     flex-direction: column;
   }
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
 /* ==== FINAL LOGIN TOGGLE FIX (non-destructive overrides) ==== */
 .pro-passwrap {
   display: flex !important;
@@ -412,6 +452,7 @@ body {
 #login-modal .modal-content {
   pointer-events: auto;
 }
+<<<<<<< HEAD
 
 /* ===== EYE ICON DEDUPE GUARD (CSS-only visibility control) ===== */
 /* Hide any eye toggles globally unless they live inside the intended wrapper */
@@ -480,3 +521,5 @@ input[type="password"] {
     max-width: 94vw; 
   }
 }
+=======
+>>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
