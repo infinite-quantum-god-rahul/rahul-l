@@ -10,37 +10,43 @@ import logging
 import traceback
 import json
 import time
-import threading
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List, Any, Optional
 from django.conf import settings
-from django.core.exceptions import ValidationError, ImproperlyConfigured
-from django.db import models, transaction, connection
+from django.core.exceptions import ValidationError
+from django.db import connection
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.utils.deprecation import MiddlewareMixin
 from django.core.cache import cache
-from django.core.mail import send_mail
-from django.contrib.auth.models import User
-from django.db.models import Q
-import psutil
-import redis
-from celery import Celery
-import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
-from sentry_sdk.integrations.celery import CeleryIntegration
-from sentry_sdk.integrations.redis import RedisIntegration
 
-# Initialize Sentry for Django
-sentry_sdk.init(
-    dsn=getattr(settings, 'SENTRY_DSN', None),
-    integrations=[
-        DjangoIntegration(),
-        CeleryIntegration(),
-        RedisIntegration(),
-    ],
-    traces_sample_rate=1.0,
-    send_default_pii=True
-)
+# Optional imports with fallbacks
+try:
+    import psutil
+except ImportError:
+    psutil = None
+
+try:
+    import redis
+except ImportError:
+    redis = None
+
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+except ImportError:
+    sentry_sdk = None
+
+# Initialize Sentry for Django (optional)
+if sentry_sdk:
+    try:
+        sentry_sdk.init(
+            dsn=getattr(settings, 'SENTRY_DSN', None),
+            integrations=[DjangoIntegration()],
+            traces_sample_rate=1.0,
+            send_default_pii=True
+        )
+    except Exception:
+        pass
 
 logger = logging.getLogger(__name__)
 
@@ -55,12 +61,8 @@ class InfiniteErrorPreventionMiddleware(MiddlewareMixin):
     def __init__(self, get_response):
         super().__init__(get_response)
         self.get_response = get_response
-        self.error_prevention = DjangoErrorPrevention()
         self.request_count = 0
         self.error_count = 0
-        
-        # Start background monitoring
-        self._start_background_monitoring()
     
     def process_request(self, request: HttpRequest) -> Optional[HttpResponse]:
         """Process incoming request with infinite error prevention"""

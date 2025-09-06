@@ -36,16 +36,13 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     # INFINITE ERROR PREVENTION - MUST BE FIRST
-    'spoorthi_macs.infinite_error_prevention.InfiniteErrorPreventionMiddleware',
-    # audit first so errors/responses get logged
-    'companies.middleware.AuditLogMiddleware',
+    'spoorthi_macs.infinite_error_prevention_simple.InfiniteErrorPreventionMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    # (optional but recommended)
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
