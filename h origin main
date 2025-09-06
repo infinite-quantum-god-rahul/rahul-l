@@ -1,0 +1,5 @@
+[33m6776cbfb[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Fix: Update home view to render HTML template instead of JSON response
+[33m6c3f10be[m  Fix: 502 Error - Minimal Working Django App
+[33mb0890fdd[m  Fix: Simplified middleware and added home view for deployment
+[33mde8ad747[m  Fix: Deployment configuration for Render.com
+[33m1e4921b8[m  Add: Complete Render.com deployment setup

@@ -10,6 +10,8 @@ from django.contrib import admin
 from django.urls import path, include
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.conf import settings
+from django.conf.urls.static import static
 
 def home_view(request):
     """Home view for SML777 - renders the main website"""
@@ -31,7 +33,7 @@ def home_view(request):
             'test': '/test/'
         }
     }
-    return render(request, 'home.html', context)
+    return render(request, 'home_simple.html', context)
 
 def test_view(request):
     """Simple test view"""
@@ -48,3 +50,11 @@ urlpatterns = [
     # Include companies app URLs for the full application
     path('', include('companies.urls')),
 ]
+
+# Serve static files in development and production
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+else:
+    # In production, serve static files
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
