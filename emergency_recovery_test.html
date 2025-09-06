@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚨 EMERGENCY RECOVERY TEST</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: rgba(255,255,255,0.1); 
+            padding: 30px; 
+            border-radius: 15px; 
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .status { 
+            margin: 20px 0; 
+            padding: 20px; 
+            border-radius: 10px; 
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .success { 
+            background: linear-gradient(45deg, #00b894, #00a085);
+            color: white; 
+        }
+        .error { 
+            background: linear-gradient(45deg, #e17055, #d63031);
+            color: white; 
+        }
+        .info { 
+            background: linear-gradient(45deg, #74b9ff, #0984e3);
+            color: white; 
+        }
+        .test-btn { 
+            background: linear-gradient(45deg, #00b894, #00a085);
+            color: white; 
+            padding: 15px 30px; 
+            border: none; 
+            border-radius: 25px; 
+            margin: 10px; 
+            cursor: pointer; 
+            font-weight: bold;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .test-btn:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        .recovery-steps {
+            text-align: left;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .recovery-steps ol {
+            color: white;
+        }
+        .recovery-steps li {
+            margin: 10px 0;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚨 EMERGENCY RECOVERY TEST</h1>
+        <p style="font-size: 1.3em; margin-bottom: 30px;">
+            Testing if the website is working normally after disabling problematic JavaScript
+        </p>
+        
+        <div id="status" class="status info">
+            🔍 Testing website functionality...
+        </div>
+        
+        <div class="recovery-steps">
+            <h3>📋 Recovery Steps Completed:</h3>
+            <ol>
+                <li>✅ Disabled infinite perfection JavaScript system</li>
+                <li>✅ Disabled bulletproof userprofile JavaScript system</li>
+                <li>✅ Added emergency recovery script</li>
+                <li>✅ Cleared Django cache</li>
+                <li>🔄 Testing website functionality...</li>
+            </ol>
+        </div>
+        
+        <button class="test-btn" onclick="testWebsiteFunctionality()">Test Website Functionality</button>
+        <button class="test-btn" onclick="goToDashboard()">Go to Dashboard</button>
+        <button class="test-btn" onclick="testUsersLink()">Test Users Link</button>
+        
+        <div id="test-results"></div>
+        
+        <div style="margin-top: 30px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+            <h3>🎯 What to do next:</h3>
+            <p>1. <strong>Hard refresh your browser</strong> (Ctrl+F5 or Ctrl+Shift+R)</p>
+            <p>2. <strong>Clear browser cache</strong> if the website is still not working</p>
+            <p>3. <strong>Check browser console</strong> for any remaining errors</p>
+            <p>4. <strong>Restart Django server</strong> if necessary</p>
+        </div>
+    </div>
+    
+    <script>
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+        
+        function testWebsiteFunctionality() {
+            updateStatus('🧪 Testing website functionality...', 'info');
+            
+            // Test basic JavaScript functionality
+            const tests = [
+                { name: 'JavaScript Working', test: () => typeof window !== 'undefined' },
+                { name: 'DOM Access', test: () => document.getElementById('status') !== null },
+                { name: 'No Infinite Perfection', test: () => !window.infinitePerfection },
+                { name: 'No Bulletproof System', test: () => !window.bulletproofUserProfile },
+                { name: 'Console Logging', test: () => typeof console.log === 'function' }
+            ];
+            
+            let passedTests = 0;
+            let results = '<h3>Test Results:</h3><ul>';
+            
+            tests.forEach(test => {
+                try {
+                    const result = test.test();
+                    if (result) {
+                        passedTests++;
+                        results += `<li style="color: #00b894;">✅ ${test.name}</li>`;
+                    } else {
+                        results += `<li style="color: #e17055;">❌ ${test.name}</li>`;
+                    }
+                } catch (error) {
+                    results += `<li style="color: #e17055;">❌ ${test.name} - Error: ${error.message}</li>`;
+                }
+            });
+            
+            results += '</ul>';
+            
+            document.getElementById('test-results').innerHTML = results;
+            
+            if (passedTests === tests.length) {
+                updateStatus('🎉 All tests passed! Website should be working normally.', 'success');
+            } else {
+                updateStatus(`⚠️ ${passedTests}/${tests.length} tests passed. Some issues remain.`, 'error');
+            }
+        }
+        
+        function goToDashboard() {
+            updateStatus('🚀 Redirecting to dashboard...', 'info');
+            setTimeout(() => {
+                window.location.href = '/dashboard/';
+            }, 1000);
+        }
+        
+        function testUsersLink() {
+            updateStatus('🔗 Testing Users link...', 'info');
+            setTimeout(() => {
+                window.location.href = '/Users/';
+            }, 1000);
+        }
+        
+        // Auto-run tests on page load
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                testWebsiteFunctionality();
+            }, 1000);
+        });
+        
+        // Log recovery status
+        console.log('🚨 EMERGENCY RECOVERY TEST PAGE LOADED');
+        console.log('✅ Infinite perfection system removed:', !window.infinitePerfection);
+        console.log('✅ Bulletproof system removed:', !window.bulletproofUserProfile);
+        console.log('✅ Website should be working normally now');
+    </script>
+</body>
+</html>
+

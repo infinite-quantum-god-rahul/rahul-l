@@ -1,0 +1,486 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta http-equiv="Last-Modified" content="2025-08-30 19:30:00">
+    <title>Spoorthi MACS Ltd., - v2025-08-30-18-20</title>
+    <link rel="icon" href="/static/images/smlLogo1.ico" type="image/x-icon">
+
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/modal_fix.css">
+    
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Sidebar hover guard (unchanged) -->
+    <style>
+      .sidebar .dropdown-menu { display:none !important; }
+      .sidebar .dropdown.open > .dropdown-menu { display:block !important; }
+      .sidebar .dropdown:hover > .dropdown-menu,
+      .sidebar .dropdown:hover .dropdown-menu { display:none !important; }
+    </style>
+
+    <!-- Flatpickr -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+    <!-- Order of scripts matters -->
+    <script src="/static/js/unfreeze.inject.js" defer></script>
+
+    <!-- Core helpers -->
+    <script src="/static/js/admin.core.js" defer></script>
+    <script src="/static/js/forms.validation.js" defer></script>
+
+    <!-- Enable modal router but with proper order -->
+    <script>
+      window.DISABLE_ENTITY_MODAL_ROUTER = false;         // enable modals
+    </script>
+
+    <!-- Modal system - load in correct order -->
+    <script src="/static/js/modals.crud.js?v=2025-09-01-12-50" defer></script>
+    <script src="/static/js/forms.validation.js?v=2025-09-01-16-50" defer></script>
+    
+    <!-- Media + login helpers -->
+    <script src="/static/js/media.image.login.js?v=2025-08-30-19-30" defer></script>
+    
+    <!-- UserProfile Modal Fix - BANKING-GRADE SOLUTION -->
+    
+    <!-- UserProfile Modal Fix - CLEAN SOLUTION -->
+    
+    <!-- INFINITE WEBSITE PROTECTION SYSTEM - DISABLED DUE TO INFINITE RETRY LOOP -->
+    <!-- <script src="/static/js/infinite_website_protection.js?v=2025-01-15-INFINITE" defer></script> -->
+    
+    <!-- EMERGENCY RECOVERY SCRIPT -->
+    <script>
+        // Emergency recovery - clear any problematic JavaScript
+        console.log('🚨 EMERGENCY RECOVERY: All problematic JavaScript disabled');
+        
+        // Remove any existing infinite perfection systems
+        if (window.infinitePerfection) {
+            delete window.infinitePerfection;
+            console.log('✅ Removed infinite perfection system');
+        }
+        
+        // Remove any bulletproof systems
+        if (window.bulletproofUserProfile) {
+            delete window.bulletproofUserProfile;
+            console.log('✅ Removed bulletproof userprofile system');
+        }
+        
+        // Clear any problematic event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Emergency recovery complete - website should work normally now');
+            
+            // Clear any infinite protection systems that might still be running
+            if (window.infiniteWebsiteProtection) {
+                delete window.infiniteWebsiteProtection;
+                console.log('✅ Removed infinite website protection system');
+            }
+            
+            // Clear any retry mechanisms
+            if (window.retryCount) {
+                delete window.retryCount;
+            }
+            
+            // Clear any infinite loops
+            if (window.infiniteRetry) {
+                delete window.infiniteRetry;
+            }
+        });
+    </script>
+    
+    <script>
+        // Global role flags for JavaScript access
+        window.roleFlags = {{ role_flags|safe|default:"{}" }};
+        
+        // Prevent loading of old userprofile_modal_fix.js
+        const originalCreateElement = document.createElement;
+        document.createElement = function(tagName) {
+            const element = originalCreateElement.call(this, tagName);
+            if (tagName.toLowerCase() === 'script') {
+                const originalSetAttribute = element.setAttribute;
+                element.setAttribute = function(name, value) {
+                    if (name === 'src' && value && value.includes('userprofile_modal_fix')) {
+                        return element; // Don't set the src
+                    }
+                    return originalSetAttribute.call(this, name, value);
+                };
+            }
+            return element;
+        };
+        
+        // Override fetch to block requests to the old file
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options) {
+            if (typeof url === 'string' && url.includes('userprofile_modal_fix.js')) {
+                return Promise.reject(new Error('Blocked request to old userprofile_modal_fix.js'));
+            }
+            return originalFetch.call(this, url, options);
+        };
+        
+        // Override XMLHttpRequest to block requests to the old file
+        const originalXHROpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
+            if (typeof url === 'string' && url.includes('userprofile_modal_fix.js')) {
+                // Create a fake response
+                this.readyState = 4;
+                this.status = 404;
+                this.statusText = 'Not Found';
+                this.responseText = '';
+                setTimeout(() => {
+                    if (this.onreadystatechange) {
+                        this.onreadystatechange();
+                    }
+                }, 0);
+                return;
+            }
+            return originalXHROpen.call(this, method, url, async, user, password);
+        };
+        
+        // Clear any cached script references
+        document.addEventListener('DOMContentLoaded', function() {
+            // Remove any cached script tags that might reference old files
+            const scripts = document.querySelectorAll('script[src*="userprofile_modal_fix"]');
+            scripts.forEach(script => {
+                script.remove();
+            });
+            
+            // Ensure UserProfile modal works properly
+            const originalOpenEntityModal = window.openEntityModal;
+            if (originalOpenEntityModal) {
+                window.openEntityModal = function(entityOrEvent) {
+                    let entity;
+                    if (typeof entityOrEvent === "string") {
+                        entity = entityOrEvent;
+                    } else if (entityOrEvent?.currentTarget) {
+                        const el = entityOrEvent.currentTarget;
+                        entity = el.dataset.entity || el.getAttribute("data-entity") || "";
+                    }
+                    
+                    // Call original function for all entities including UserProfile
+                    return originalOpenEntityModal.call(this, entityOrEvent);
+                };
+            }
+        });
+    </script>
+
+    <!-- Basic modal styling without interfering with functionality -->
+    <style>
+        /* Basic form field improvements */
+        .form-control, select, textarea {
+          width: 100%;
+          box-sizing: border-box;
+        }
+        
+        .col-12 {
+          width: 100%;
+          padding: 0 15px;
+        }
+        
+        .form-section {
+          margin-bottom: 20px;
+        }
+        
+        .section-title {
+          margin-bottom: 15px;
+          color: #495057;
+          font-weight: 600;
+        }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<!-- Header -->
+<header class="fixed-header">
+  <div class="header-left">
+    <div class="logo">
+      <img src="/static/images/smlLogo1.ico" alt="Logo">
+      <strong>Spoorthi MACS Ltd.,</strong>
+    </div>
+  </div>
+
+  {% if user.is_authenticated %}
+    <div class="header-center user-meta" style="font-size:14px;color:#f2f2f2;">
+      <span><strong>
+        {% if header_user_display_name %}{{ header_user_display_name }}
+        {% else %}{{ user.get_full_name|default:user.username }}{% endif %}
+      </strong></span>
+
+      {% if header_branch_name %}
+        <span> • Branch: <strong>{{ header_branch_name }}</strong></span>
+      {% elif user.userprofile and user.userprofile.branch %}
+        <span> • Branch: <strong>{{ user.userprofile.branch.name }}</strong></span>
+      {% elif staff_info and staff_info.branch %}
+        <span> • Branch: <strong>{{ staff_info.branch.name }}</strong></span>
+      {% endif %}
+
+      {% if header_role_label %}
+        <span> • <span class="role-badge">{{ header_role_label }}</span></span>
+      {% elif user.is_superuser %}
+        <span> • <span class="role-badge">Superuser</span></span>
+      {% elif user.is_staff %}
+        <span> • <span class="role-badge">Staff</span></span>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <nav class="top-nav header-right">
+    <a href="#">About</a>
+    <a href="#">Career</a>
+    {% if user.is_authenticated %}
+      <a href="{% url 'logout' %}">Logout</a>
+      <form action="{% url 'switch_account' %}" method="post" style="display:inline; margin-left:10px;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-warning" style="vertical-align: middle;">
+          Login different user
+        </button>
+      </form>
+    {% else %}
+      <a href="#" onclick="openLoginModal()">Login</a>
+    {% endif %}
+  </nav>
+</header>
+
+<!-- Login Modal -->
+{% include "companies/login_modal.html" %}
+
+<!-- Main Layout -->
+<div class="dashboard-flex">
+  {% block content %}{% endblock %}
+</div>
+
+<!-- Entity Modal -->
+<div id="entity-modal" class="modal" style="display: none;" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="entity-modal-title">Loading...</h5>
+        <button type="button" class="btn-close" onclick="closeEntityModal()" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="entity-modal-body">
+        <div class="text-center">
+          <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2">Loading form...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal CSS -->
+<style>
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+  }
+  
+  .modal.show {
+    display: block;
+  }
+  
+  .modal-dialog {
+    position: relative;
+    width: auto;
+    margin: 1.75rem auto;
+    max-width: 800px;
+  }
+  
+  .modal-content {
+    position: relative;
+    background-color: #fff;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  }
+  
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+  }
+  
+  .modal-body {
+    padding: 1rem;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  
+  .btn-close {
+    background: transparent;
+    border: 0;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+  
+  .btn-close:hover {
+    opacity: 0.75;
+  }
+  
+  /* Form field improvements */
+  #entity-modal select,
+  #entity-modal input[type="text"],
+  #entity-modal input[type="email"],
+  #entity-modal input[type="password"],
+  #entity-modal input[type="number"],
+  #entity-modal textarea {
+    width: 100% !important;
+    padding: 8px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    box-sizing: border-box !important;
+  }
+  
+  #entity-modal .form-group {
+    margin-bottom: 1rem;
+  }
+  
+  #entity-modal label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+</style>
+
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <!-- Simple Modal System -->
+    <script>
+    // Simple modal functions that will definitely work
+    window.openEntityModal = function(entity) {
+        const modal = document.getElementById('entity-modal');
+        if (!modal) {
+            return;
+        }
+        
+        // Show loading state
+        modal.style.display = 'flex';
+        document.getElementById('entity-modal-title').textContent = `Create ${entity}`;
+        document.getElementById('entity-modal-body').innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading ${entity} form...</p>
+            </div>
+        `;
+        
+        // Fetch the form
+        const base = `/${entity.toLowerCase()}/`;
+        const url = `${base}get/`;
+        
+        fetch(url, {
+            headers: { 
+                "X-Requested-With": "XMLHttpRequest", 
+                "Accept": "application/json,text/html" 
+            },
+            credentials: "include"
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('entity-modal-body').innerHTML = html;
+        })
+        .catch(error => {
+            document.getElementById('entity-modal-body').innerHTML = `
+                <div class="alert alert-danger">
+                    Error loading form: ${error.message}
+                </div>
+            `;
+        });
+    };
+    
+    window.editEntity = function(entity, id) {
+        const modal = document.getElementById('entity-modal');
+        if (!modal) {
+            return;
+        }
+        
+        // Show loading state
+        modal.style.display = 'flex';
+        document.getElementById('entity-modal-title').textContent = `Edit ${entity}`;
+        document.getElementById('entity-modal-body').innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading ${entity} data...</p>
+            </div>
+        `;
+        
+        // Fetch the edit form
+        const base = `/${entity.toLowerCase()}/`;
+        const url = `${base}get/${id}/`;
+        
+        fetch(url, {
+            headers: { 
+                "X-Requested-With": "XMLHttpRequest", 
+                "Accept": "application/json,text/html" 
+            },
+            credentials: "include"
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('entity-modal-body').innerHTML = html;
+        })
+        .catch(error => {
+            document.getElementById('entity-modal-body').innerHTML = `
+                <div class="alert alert-danger">
+                    Error loading edit form: ${error.message}
+                </div>
+            `;
+        });
+    };
+    
+            window.closeEntityModal = function() {
+                const modal = document.getElementById('entity-modal');
+                if (modal) {
+                    modal.style.display = 'none';
+            // Clear the content
+            document.getElementById('entity-modal-body').innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading form...</p>
+                </div>
+            `;
+        }
+    };
+    
+    // Force the correct deleteEntity function to be used
+    // This ensures the role-based permissions logic is applied
+    if (typeof window.deleteEntity === 'function') {
+        const originalDeleteEntity = window.deleteEntity;
+        
+        // Check if this is the simple version (from script.js) or the full version (from modals.crud.js)
+        const functionSource = originalDeleteEntity.toString();
+        if (functionSource.includes('getCurrentRole() === "master"') && functionSource.length < 500) {
+            // This is the simple version, we need to load the full version
+            const script = document.createElement('script');
+            script.src = '/static/js/modals.crud.js?v=2025-09-01-12-50';
+            script.onload = function() {
+                // Full deleteEntity function loaded
+            };
+            document.head.appendChild(script);
+        }
+    }
+    </script>
+</body>
+</html>

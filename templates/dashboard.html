@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% csrf_token %}
+{% load custom_tags %}
+
+{% block title %}Dashboard - Spoorthi MACS Ltd.,{% endblock %}
+
+{% block content %}
+<!-- Sidebar Toggle Button -->
+<button class="sidebar-toggle-btn" id="sidebar-toggle" onclick="toggleSidebar()">
+  <i class="fas fa-bars"></i>
+</button>
+
+<div class="dashboard-flex">
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <!-- Debug Info -->
+    {% if debug %}
+    <div class="alert alert-info">
+      <strong>Debug Info:</strong><br>
+      Role Flags: {{ role_flags|safe }}<br>
+      User: {{ user.username }}<br>
+      Is Superuser: {{ user.is_superuser }}<br>
+      Is Staff: {{ user.is_staff }}
+    </div>
+    {% endif %}
+    
+    <ul class="sidebar-menu">
+
+      {% if user.is_superuser %}
+        <!-- Superuser has access to everything -->
+        <li class="dropdown">
+          <a href="#">Create ▸</a>
+          <ul class="dropdown-menu">
+            <li><a href="{% url 'entity_list' 'Company' %}">{{ "Company"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Branch' %}">{{ "Branch"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Users' %}">{{ "Users"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'UserPermission' %}">{{ "UserPermission"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Village' %}">{{ "Village"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Center' %}">{{ "Center"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Group' %}">{{ "Group"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Cadre' %}">{{ "Cadre"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Column' %}">{{ "Column"|pretty_name }}</a></li>
+          </ul>
+        </li>
+
+        <li class="dropdown">
+          <a href="#">HRPM ▸</a>
+          <ul class="dropdown-menu">
+            <li><a href="{% url 'hrpm_staff' %}">{{ "Staff"|pretty_name }}</a></li>
+            <li><a href="{% url 'hrpm_appointment' %}">{{ "Appointment"|pretty_name }}</a></li>
+            <li><a href="{% url 'hrpm_salary_statement' %}">{{ "Salary Statement"|pretty_name }}</a></li>
+          </ul>
+        </li>
+
+        <!-- All modules for superuser -->
+        {% for model in "Role,Product,Client,LoanApplication,LoanApproval,Disbursement,BusinessSetting,FieldSchedule,Prepaid,Mortgage,ExSaving,AccountHead,Voucher,Posting,RecoveryPosting,UserPermission,Payment,Repayment,LoanRestructure,Notification,GatewayEvent,EWIFlag"|split:"," %}
+          <li><a href="{% url 'entity_list' model %}" data-hard-nav="1">{{ model|pretty_name }}</a></li>
+        {% endfor %}
+        <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
+        <li><a href="{% url 'entity_list' 'AlertRule' %}">{{ "AlertRule"|pretty_name }}</a></li>
+
+        <li><a href="{% url 'npa_dashboard' %}">NPA Dashboard</a></li>
+        <li><a href="#" onclick="openCreditPullModal()">Credit Bureau Check</a></li>
+
+      {% elif role_flags.admin %}
+        <!-- Admin users have same powers as superuser -->
+        <li class="dropdown">
+          <a href="#">Create ▸</a>
+          <ul class="dropdown-menu">
+            <li><a href="{% url 'entity_list' 'Company' %}">{{ "Company"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Branch' %}">{{ "Branch"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Users' %}">{{ "Users"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'UserPermission' %}">{{ "UserPermission"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Village' %}">{{ "Village"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Center' %}">{{ "Center"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Group' %}">{{ "Group"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Cadre' %}">{{ "Cadre"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'Column' %}">{{ "Column"|pretty_name }}</a></li>
+          </ul>
+        </li>
+
+        <li class="dropdown">
+          <a href="#">HRPM ▸</a>
+          <ul class="dropdown-menu">
+            <li><a href="{% url 'hrpm_staff' %}">{{ "Staff"|pretty_name }}</a></li>
+            <li><a href="{% url 'hrpm_appointment' %}">{{ "Appointment"|pretty_name }}</a></li>
+            <li><a href="{% url 'hrpm_salary_statement' %}">{{ "Salary Statement"|pretty_name }}</a></li>
+          </ul>
+        </li>
+
+        <!-- All modules for admin (same as superuser) -->
+        {% for model in "Role,Product,Client,LoanApplication,LoanApproval,Disbursement,BusinessSetting,FieldSchedule,Prepaid,Mortgage,ExSaving,AccountHead,Voucher,Posting,RecoveryPosting,UserPermission,Payment,Repayment,LoanRestructure,Notification,GatewayEvent,EWIFlag"|split:"," %}
+          <li><a href="{% url 'entity_list' model %}" data-hard-nav="1">{{ model|pretty_name }}</a></li>
+        {% endfor %}
+        <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
+        <li><a href="{% url 'entity_list' 'AlertRule' %}">{{ "AlertRule"|pretty_name }}</a></li>
+
+        <li><a href="{% url 'npa_dashboard' %}">NPA Dashboard</a></li>
+        <li><a href="#" onclick="openCreditPullModal()">Credit Bureau Check</a></li>
+      {% endif %}
+
+      {% if role_flags.master or role_flags.manager %}
+        <!-- Combined Create dropdown for Master and Manager roles -->
+        <li class="dropdown">
+          <a href="#">Create ▸</a>
+          <ul class="dropdown-menu">
+            {% if role_flags.master %}
+              <!-- Master role options -->
+              <li><a href="{% url 'entity_list' 'Company' %}">{{ "Company"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'Branch' %}">{{ "Branch"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'Users' %}">{{ "Users"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'UserPermission' %}">{{ "UserPermission"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'Cadre' %}">{{ "Cadre"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'Column' %}">{{ "Column"|pretty_name }}</a></li>
+            {% endif %}
+            
+            {% if role_flags.manager %}
+              <!-- Manager role options -->
+              <li><a href="{% url 'entity_list' 'Village' %}">{{ "Village"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'Center' %}">{{ "Center"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'Group' %}">{{ "Group"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'Staff' %}">{{ "Staff"|pretty_name }}</a></li>
+            {% endif %}
+          </ul>
+        </li>
+      {% endif %}
+
+      <!-- Core Business Modules (no duplicates) -->
+      {% if role_flags.manager or role_flags.data_entry or role_flags.recovery_agent or user.is_staff %}
+        <li><a href="{% url 'entity_list' 'Client' %}">{{ "Client"|pretty_name }}</a></li>
+        <li><a href="{% url 'entity_list' 'LoanApplication' %}">{{ "LoanApplication"|pretty_name }}</a></li>
+      {% endif %}
+
+      {% if role_flags.manager or role_flags.data_entry %}
+        <li><a href="{% url 'entity_list' 'FieldSchedule' %}">{{ "FieldSchedule"|pretty_name }}</a></li>
+      {% endif %}
+
+      {% if role_flags.manager %}
+        <li><a href="{% url 'entity_list' 'BusinessSetting' %}">{{ "BusinessSetting"|pretty_name }}</a></li>
+      {% endif %}
+
+      <!-- Financial Modules (no duplicates) -->
+      {% if role_flags.manager or role_flags.accounting %}
+        <li><a href="{% url 'entity_list' 'AccountHead' %}">{{ "AccountHead"|pretty_name }}</a></li>
+        <li><a href="{% url 'entity_list' 'Voucher' %}">{{ "Voucher"|pretty_name }}</a></li>
+        <li><a href="{% url 'entity_list' 'Posting' %}">{{ "Posting"|pretty_name }}</a></li>
+        <li><a href="{% url 'entity_list' 'Payment' %}">{{ "Payment"|pretty_name }}</a></li>
+        <li><a href="{% url 'entity_list' 'RecoveryPosting' %}">{{ "RecoveryPosting"|pretty_name }}</a></li>
+        <li><a href="{% url 'entity_list' 'Repayment' %}">{{ "Repayment"|pretty_name }}</a></li>
+      {% endif %}
+
+      <!-- Recovery and Field Modules (no duplicates) -->
+      {% if role_flags.recovery_agent %}
+        <li><a href="{% url 'entity_list' 'FieldReport' %}">{{ "FieldReport"|pretty_name }}</a></li>
+      {% endif %}
+
+      {% if role_flags.auditor %}
+        <!-- Auditor users have audit access -->
+        <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
+      {% endif %}
+
+      <!-- FieldReport available to ALL users by default -->
+      <li><a href="{% url 'entity_list' 'FieldReport' %}">{{ "FieldReport"|pretty_name }}</a></li>
+
+      <!-- Reports available to ALL users by default -->
+      <li class="dropdown">
+        <a href="#">Report ▸</a>
+        <ul class="dropdown-menu">
+          <li><a href="{% url 'entity_list' 'WeeklyReport' %}">Weekly</a></li>
+          <li><a href="{% url 'entity_list' 'MonthlyReport' %}">Monthly</a></li>
+        </ul>
+      </li>
+
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+  <div class="admin-main-content">
+    {% if include_template %}
+      <!-- Entity-specific content (grid, forms, etc.) -->
+      {% include include_template %}
+    {% else %}
+      <!-- Default dashboard content -->
+      <div class="dashboard-header">
+        <h1>Welcome to Spoorthi MACS Ltd.</h1>
+        <p>Select an option from the sidebar to get started.</p>
+      </div>
+
+      <div class="dashboard-stats">
+        <div class="stat-card">
+          <h3>Quick Stats</h3>
+          <p>Dashboard is ready for use.</p>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Credit Bureau Modal -->
+<div id="creditPullModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h2>Credit Bureau Check</h2>
+    <form id="creditPullForm">
+      <div class="form-group">
+        <label for="aadharNumber">Aadhar Number:</label>
+        <input type="text" id="aadharNumber" name="aadhar_number" placeholder="1234 5678 9012" required>
+      </div>
+      <button type="submit">Check Credit Score</button>
+    </form>
+    <div id="creditResult"></div>
+  </div>
+</div>
+
+<script>
+// Sidebar toggle functionality
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const mainContent = document.querySelector('.admin-main-content');
+  const toggleBtn = document.querySelector('.sidebar-toggle-btn');
+  
+  // Add visual feedback
+  if (toggleBtn) {
+    toggleBtn.classList.add('clicked');
+    setTimeout(() => toggleBtn.classList.remove('clicked'), 150);
+  }
+  
+  if (sidebar.classList.contains('collapsed')) {
+    // Expand sidebar
+    sidebar.classList.remove('collapsed');
+    mainContent.classList.remove('sidebar-collapsed');
+  } else {
+    // Collapse sidebar
+    sidebar.classList.add('collapsed');
+    mainContent.classList.add('sidebar-collapsed');
+  }
+}
+
+// Auto-collapse sidebar on mobile
+function checkMobile() {
+  if (window.innerWidth <= 768) {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.querySelector('.admin-main-content');
+    sidebar.classList.add('collapsed');
+    mainContent.style.marginLeft = '0';
+  }
+}
+
+// Check on load and resize
+window.addEventListener('load', checkMobile);
+window.addEventListener('resize', checkMobile);
+
+// Add click event listener to toggle button
+document.addEventListener('DOMContentLoaded', function() {
+  const toggleBtn = document.querySelector('.sidebar-toggle-btn');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', function(e) {
+      toggleSidebar();
+    });
+    
+    // Also add onclick as backup
+    toggleBtn.onclick = function(e) {
+      toggleSidebar();
+    };
+  }
+});
+
+function openCreditPullModal() {
+  document.getElementById('creditPullModal').style.display = 'block';
+}
+
+// Close modal when clicking on X
+document.querySelector('.close').onclick = function() {
+  document.getElementById('creditPullModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+  var modal = document.getElementById('creditPullModal');
+  if (event.target == modal) {
+    modal.style.display = 'none';
+  }
+}
+
+// Handle credit pull form submission
+document.getElementById('creditPullForm').onsubmit = function(e) {
+  e.preventDefault();
+  var aadhar = document.getElementById('aadharNumber').value;
+  var resultDiv = document.getElementById('creditResult');
+  
+  resultDiv.innerHTML = '<p>Checking credit score for Aadhar: ' + aadhar + '</p>';
+  // Add actual API call here
+};
+</script>
+{% endblock %}

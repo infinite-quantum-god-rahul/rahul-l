@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Form Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Simple Form Test</h1>
+        <p>This page tests if the nuclear fix is working.</p>
+        
+        <button onclick="testDirectOpen()">Test Direct Window Open</button>
+        <button onclick="testStaffForm()">Test Staff Form</button>
+        <button onclick="testClientForm()">Test Client Form</button>
+        <button onclick="checkNuclearFix()">Check Nuclear Fix Status</button>
+        <button onclick="forceNuclearFix()">Force Apply Nuclear Fix</button>
+        
+        <div class="status" id="status">
+            <strong>Status:</strong> Ready to test
+        </div>
+    </div>
+
+    <script>
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.innerHTML = '<strong>Status:</strong> ' + message;
+            status.className = 'status ' + type;
+        }
+        
+        function testDirectOpen() {
+            updateStatus('Testing direct window.open()...', 'info');
+            
+            try {
+                const newWindow = window.open('/staff/form/', '_blank', 'width=900,height=700');
+                if (newWindow) {
+                    updateStatus('✅ Direct window.open() worked!', 'success');
+                } else {
+                    updateStatus('❌ Direct window.open() failed - popup blocked?', 'error');
+                }
+            } catch (error) {
+                updateStatus('❌ Error: ' + error.message, 'error');
+            }
+        }
+        
+        function testStaffForm() {
+            updateStatus('Testing staff form...', 'info');
+            
+            if (typeof window.openEntityModal === 'function') {
+                try {
+                    window.openEntityModal('staff');
+                    updateStatus('✅ openEntityModal function exists and called!', 'success');
+                } catch (error) {
+                    updateStatus('❌ Error calling openEntityModal: ' + error.message, 'error');
+                }
+            } else {
+                updateStatus('❌ openEntityModal function not found!', 'error');
+            }
+        }
+        
+        function testClientForm() {
+            updateStatus('Testing client form...', 'info');
+            
+            if (typeof window.editEntity === 'function') {
+                try {
+                    window.editEntity('client', 1);
+                    updateStatus('✅ editEntity function exists and called!', 'success');
+                } catch (error) {
+                    updateStatus('❌ Error calling editEntity: ' + error.message, 'error');
+                }
+            } else {
+                updateStatus('❌ editEntity function not found!', 'error');
+            }
+        }
+        
+        function checkNuclearFix() {
+            updateStatus('Checking nuclear fix status...', 'info');
+            
+            const checks = [];
+            
+            // Check if functions exist
+            if (typeof window.openEntityModal === 'function') {
+                checks.push('✅ openEntityModal function exists');
+            } else {
+                checks.push('❌ openEntityModal function missing');
+            }
+            
+            if (typeof window.editEntity === 'function') {
+                checks.push('✅ editEntity function exists');
+            } else {
+                checks.push('❌ editEntity function missing');
+            }
+            
+            // Check if indicator exists
+            const indicator = document.querySelector('[style*="NUCLEAR FIX ACTIVE"]');
+            if (indicator) {
+                checks.push('✅ Nuclear fix indicator visible');
+            } else {
+                checks.push('❌ Nuclear fix indicator not found');
+            }
+            
+            // Check console for nuclear fix messages
+            checks.push('📋 Check browser console for nuclear fix messages');
+            
+            updateStatus(checks.join('<br>'), 'info');
+        }
+        
+        function forceNuclearFix() {
+            updateStatus('Forcing nuclear fix...', 'info');
+            
+            // Force apply the nuclear fix
+            window.openEntityModal = function(entity) {
+                console.log('🔥 FORCED NUCLEAR: Opening form for:', entity);
+                const url = `/${entity}/form/`;
+                const newWindow = window.open(url, '_blank', 'width=900,height=700');
+                if (newWindow) {
+                    newWindow.focus();
+                } else {
+                    alert('Please allow popups for this site');
+                }
+            };
+            
+            window.editEntity = function(entity, id) {
+                console.log('🔥 FORCED NUCLEAR: Opening edit form for:', entity, id);
+                const url = `/${entity}/edit/${id}/`;
+                const newWindow = window.open(url, '_blank', 'width=900,height=700');
+                if (newWindow) {
+                    newWindow.focus();
+                } else {
+                    alert('Please allow popups for this site');
+                }
+            };
+            
+            // Add indicator
+            const indicator = document.createElement('div');
+            indicator.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                background: #dc3545;
+                color: white;
+                padding: 5px 10px;
+                border-radius: 4px;
+                font-size: 12px;
+                z-index: 10000;
+                font-weight: bold;
+            `;
+            indicator.textContent = '🔥 FORCED NUCLEAR FIX';
+            document.body.appendChild(indicator);
+            
+            updateStatus('✅ Nuclear fix forced applied! Try the test buttons now.', 'success');
+        }
+        
+        // Initial status
+        updateStatus('Ready to test - click buttons to test different scenarios', 'info');
+    </script>
+</body>
+</html>
+
+
+
+
+
