@@ -1,29 +1,26 @@
+"""
+SML777 - Minimal Django Settings for Deployment
+==============================================
+
+This is a minimal Django settings file that will work on Render.com
+without any complex dependencies or configurations.
+"""
+
 import os
 from pathlib import Path
 
-# Trust local origins for CSRF (dev)
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost',
-    'http://127.0.0.1',
-    'http://localhost:8000',
-    'http://127.0.0.1:8000',
-    'http://[::1]',
-    # LAN/IP access (add/remove as you use)
-    'http://192.168.29.213',
-    'http://192.168.29.213:8000',
-    # Android emulator / device debugging
-    'http://10.0.2.2',
-    'http://10.0.2.2:8000',
-    # test client
-    'http://testserver',
-]
-
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-spoorthi-secret-key-change-in-production')
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
-ALLOWED_HOSTS = ['*', '.onrender.com', '*.onrender.com', 'localhost', '127.0.0.1', '192.168.29.213', '10.0.2.2', 'testserver']
 
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+
+ALLOWED_HOSTS = ['*', '.onrender.com', '*.onrender.com', 'localhost', '127.0.0.1']
+
+# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -31,12 +28,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'companies',
 ]
 
 MIDDLEWARE = [
-    # INFINITE ERROR PREVENTION - MUST BE FIRST
-    'spoorthi_macs.infinite_error_prevention_simple.InfiniteErrorPreventionMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
