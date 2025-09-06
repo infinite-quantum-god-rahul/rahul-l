@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: sml777-app
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn spoorthi_macs.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: spoorthi_macs.settings
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        value: "*.onrender.com"
+      - key: SECRET_KEY
+        value: "your-secret-key-here"
