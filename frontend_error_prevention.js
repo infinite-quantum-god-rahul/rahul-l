@@ -1412,3 +1412,4 @@ if (typeof module !== 'undefined' && module.exports) {
 // Make available globally
 window.InfiniteFrontendErrorPrevention = InfiniteFrontendErrorPrevention;
 window.frontendErrorPrevention = frontendErrorPrevention;
+

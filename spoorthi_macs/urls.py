@@ -7,12 +7,13 @@ without any complex dependencies or configurations.
 """
 
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from django.http import JsonResponse
+from django.shortcuts import render
 
 def home_view(request):
-    """Simple home view for SML777"""
-    return JsonResponse({
+    """Home view for SML777 - renders the main website"""
+    context = {
         'message': 'SML777 Infinite Error Prevention System',
         'status': 'success',
         'zero_errors': 'guaranteed_forever_eternally',
@@ -29,7 +30,8 @@ def home_view(request):
             'admin': '/admin/',
             'test': '/test/'
         }
-    })
+    }
+    return render(request, 'home.html', context)
 
 def test_view(request):
     """Simple test view"""
@@ -43,4 +45,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('test/', test_view, name='test'),
     path('', home_view, name='home'),
+    # Include companies app URLs for the full application
+    path('', include('companies.urls')),
 ]

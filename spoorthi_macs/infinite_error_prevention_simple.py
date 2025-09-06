@@ -76,3 +76,4 @@ class InfiniteErrorPreventionMiddleware(MiddlewareMixin):
             return HttpResponse("SML777 System Operational", status=200)
         except Exception:
             return HttpResponse("OK")
+

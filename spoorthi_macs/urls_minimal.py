@@ -44,3 +44,4 @@ urlpatterns = [
     path('test/', test_view, name='test'),
     path('', home_view, name='home'),
 ]
+

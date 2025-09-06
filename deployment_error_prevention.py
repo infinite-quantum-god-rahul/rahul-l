@@ -945,3 +945,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         logger.info("🛑 Shutting down...")
         deployment_error_prevention.shutdown()
+
