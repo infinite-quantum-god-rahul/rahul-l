@@ -20,9 +20,9 @@ CSRF_TRUSTED_ORIGINS = [
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-spoorthi-secret-key'
-DEBUG = True
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.29.213', '10.0.2.2', 'testserver']  # dev-safe; extend in prod
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-spoorthi-secret-key-change-in-production')
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+ALLOWED_HOSTS = ['*', '.onrender.com', '*.onrender.com', 'localhost', '127.0.0.1', '192.168.29.213', '10.0.2.2', 'testserver']
 
 INSTALLED_APPS = [
     'django.contrib.admin',

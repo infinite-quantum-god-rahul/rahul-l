@@ -30,7 +30,3 @@ openpyxl==3.1.2
 
 # Basic Monitoring
 sentry-sdk==1.38.0
-
-# 🛡️ SML777 Infinite Error Prevention System
-# ==========================================
-# ZERO ERRORS GUARANTEED FOREVER ETERNALLY!
