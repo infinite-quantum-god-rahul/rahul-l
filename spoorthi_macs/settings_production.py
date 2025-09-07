@@ -101,6 +101,10 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / "companies/static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 # WhiteNoise configuration for Render
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
