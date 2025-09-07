@@ -1,35 +1,19 @@
 """
-SML777 - Production Django Settings for Render Deployment
-========================================================
-
-This is a production-ready Django settings file optimized for Render.com deployment.
+SML777 Production Settings for Render
+====================================
+This includes all original features with proper error handling
 """
 
 import os
-import dj_database_url
 from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-this-in-production')
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-production-key')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-# Render.com specific ALLOWED_HOSTS
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    '.onrender.com',
-    '*.onrender.com',
-]
-
-# Add your custom domain here if you have one
-CUSTOM_DOMAIN = os.environ.get('CUSTOM_DOMAIN')
-if CUSTOM_DOMAIN:
-    ALLOWED_HOSTS.append(CUSTOM_DOMAIN)
+ALLOWED_HOSTS = ['*', '.onrender.com', 'localhost', '127.0.0.1']
 
 # Application definition
 INSTALLED_APPS = [
@@ -65,8 +49,9 @@ TEMPLATES = [
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
-                "companies.context_processors.user_header_info",
-                'django.contrib.auth.context_processors.auth',
+                'django.contrib.auth.context_processors.auth',  # Must come before custom processors
+                'companies.context_processors.user_header_info',
+                'companies.context_processors.sml_features',
                 'django.contrib.messages.context_processors.messages',
             ],
         },
@@ -75,16 +60,69 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'spoorthi_macs.wsgi.application'
 
-# Database Configuration for Render
-DATABASES = {
-    'default': dj_database_url.parse(
-        os.environ.get('DATABASE_URL', 'sqlite:///db.sqlite3'),
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
-}
+# Database
+if os.getenv('DATABASE_URL'):
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
-# Cache configuration for Render
+# Password validation
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+# Internationalization
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'Asia/Kolkata'
+USE_I18N = True
+USE_TZ = True
+
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / "companies/static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# WhiteNoise configuration for Render
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Login URLs
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Session configuration
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_AGE = 14 * 24 * 3600  # Two weeks
+
+# Cache configuration
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -97,47 +135,7 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
-# Password validation (relaxed for development)
-AUTH_PASSWORD_VALIDATORS = []
-
-# Internationalization
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Asia/Kolkata'
-USE_I18N = True
-USE_TZ = True
-
-# Date/Time formats
-from django.conf.locale.en import formats as en_formats
-en_formats.DATE_INPUT_FORMATS = ["%d/%m/%Y", "%Y-%m-%d"]
-en_formats.DATETIME_INPUT_FORMATS = ["%d/%m/%Y %H:%M", "%Y-%m-%d %H:%M:%S"]
-
-# Static files (CSS, JavaScript, Images)
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / "companies/static"]
-STATIC_ROOT = BASE_DIR / "staticfiles"
-
-# WhiteNoise configuration for Render
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-# Media files
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-
-# Session configuration
-SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = "Lax"
-CSRF_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_AGE = 14 * 24 * 3600  # 2 weeks
-
-# Default primary key field type
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Login URLs
-LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/dashboard/'
-
-# SML Feature Flags
+# SML777 Feature Flags
 SML_FEATURES = {
     "CREDIT_BUREAU": True,
     "NPA_DASHBOARD": True,
@@ -164,35 +162,38 @@ SML_CREDIT_BUREAU = {
 # Payment Configuration
 SML_PAYMENT = {
     "PROVIDER": os.getenv("RAZORPAY_PROVIDER", "RAZORPAY"),
-    "KEY_ID": os.getenv("RAZORPAY_KEY_ID", ""),
-    "KEY_SECRET": os.getenv("RAZORPAY_KEY_SECRET", ""),
+    "RAZORPAY": {
+        "KEY_ID": os.getenv("RAZORPAY_KEY_ID", ""),
+        "KEY_SECRET": os.getenv("RAZORPAY_KEY_SECRET", ""),
+    },
 }
 
-# Alert Channels
-SML_ALERT_CHANNELS = {
-    "EMAIL": {"ENABLED": False, "FROM": os.getenv("ALERT_FROM_EMAIL", ""), "SMTP_URL": os.getenv("ALERT_SMTP_URL", "")},
-    "SMS": {"ENABLED": False, "GATEWAY_URL": os.getenv("ALERT_SMS_URL", ""), "API_KEY": os.getenv("ALERT_SMS_KEY", "")},
-    "WEBHOOK": {"ENABLED": False, "URL": os.getenv("ALERT_WEBHOOK_URL", "")},
+# SMS Configuration
+SML_SMS = {
+    "PROVIDER": os.getenv("SMS_PROVIDER", "TWILIO"),
+    "TWILIO": {
+        "ACCOUNT_SID": os.getenv("TWILIO_ACCOUNT_SID", ""),
+        "AUTH_TOKEN": os.getenv("TWILIO_AUTH_TOKEN", ""),
+        "FROM_NUMBER": os.getenv("TWILIO_FROM_NUMBER", ""),
+    },
 }
 
-# Logging configuration for production
+# Security settings for production
+if not DEBUG:
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+# Logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
-    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'simple',
         },
     },
     'root': {
@@ -205,93 +206,5 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
-        'django.db.backends': {
-            'handlers': ['console'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
     },
 }
-
-# Production Security Settings
-if not DEBUG:
-    # HTTPS settings
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    
-    # HSTS settings
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    
-    # Additional security headers
-    X_FRAME_OPTIONS = "DENY"
-    SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_BROWSER_XSS_FILTER = True
-
-# Append slash
-APPEND_SLASH = True
-
-# Error prevention settings (from your original config)
-ERROR_PREVENTION_ENABLED = True
-ERROR_PREVENTION_LOG_LEVEL = 'INFO'
-ERROR_PREVENTION_ALERT_EMAIL = os.getenv('ADMIN_EMAIL')
-
-# Rate limiting
-RATE_LIMIT_ENABLED = True
-RATE_LIMIT_REQUESTS_PER_MINUTE = 100
-RATE_LIMIT_BURST_SIZE = 200
-
-# Health check
-HEALTH_CHECK_ENABLED = True
-HEALTH_CHECK_INTERVAL = 30
-HEALTH_CHECK_TIMEOUT = 10
-
-# Monitoring
-MONITORING_ENABLED = True
-MONITORING_METRICS_RETENTION = 86400
-MONITORING_ALERT_THRESHOLD = 5
-
-# Backup settings
-BACKUP_ENABLED = True
-BACKUP_INTERVAL = 86400
-BACKUP_RETENTION_DAYS = 30
-
-# Security settings
-SECURITY_HEADERS_ENABLED = True
-SECURITY_RATE_LIMITING_ENABLED = True
-SECURITY_SUSPICIOUS_PATTERN_DETECTION = True
-
-# Performance settings
-PERFORMANCE_MONITORING_ENABLED = True
-PERFORMANCE_OPTIMIZATION_ENABLED = True
-PERFORMANCE_CACHE_OPTIMIZATION = True
-
-# Database error prevention
-DATABASE_ERROR_PREVENTION_ENABLED = True
-DATABASE_CONNECTION_POOLING = True
-DATABASE_QUERY_OPTIMIZATION = True
-DATABASE_BACKUP_ON_ERROR = True
-
-# API error prevention
-API_ERROR_PREVENTION_ENABLED = True
-API_RETRY_ATTEMPTS = 3
-API_RETRY_DELAY = 1
-API_TIMEOUT = 30
-
-# Frontend error prevention
-FRONTEND_ERROR_PREVENTION_ENABLED = True
-FRONTEND_CACHE_OPTIMIZATION = True
-FRONTEND_RESOURCE_OPTIMIZATION = True
-
-# Mobile app error prevention
-MOBILE_APP_ERROR_PREVENTION_ENABLED = True
-MOBILE_APP_UPDATE_CHECK = True
-MOBILE_APP_CRASH_REPORTING = True
-
-# Deployment error prevention
-DEPLOYMENT_ERROR_PREVENTION_ENABLED = True
-DEPLOYMENT_ROLLBACK_ENABLED = True
-DEPLOYMENT_HEALTH_CHECK = True

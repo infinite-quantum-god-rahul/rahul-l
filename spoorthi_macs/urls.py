@@ -33,7 +33,7 @@ def home_view(request):
             'test': '/test/'
         }
     }
-    return render(request, 'minimal_home.html', context)
+    return render(request, 'home_simple.html', context)
 
 def test_view(request):
     """Simple test view"""

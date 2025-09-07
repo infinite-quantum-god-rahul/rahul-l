@@ -23,7 +23,7 @@ services:
     healthCheckPath: /
     envVars:
       - key: DJANGO_SETTINGS_MODULE
-        value: spoorthi_macs.settings_minimal
+        value: spoorthi_macs.settings_production
       - key: DEBUG
         value: False
       - key: ALLOWED_HOSTS
