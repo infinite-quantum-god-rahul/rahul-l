@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: sml777-minimal
+    env: python
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+      python manage.py migrate --noinput
+    startCommand: gunicorn spoorthi_macs.wsgi:application --bind 0.0.0.0:$PORT
+    healthCheckPath: /
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: spoorthi_macs.settings
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        value: "*.onrender.com"
+      - key: SECRET_KEY
+        value: "8*pd(%30fpg5dwu49^+(pc#60hx6dj$dj&m@bp3$(ka+g8s!0y"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sml777-db
+          property: connectionString
+    autoDeploy: true
+
+databases:
+  - name: sml777-db
+    plan: free
+    region: oregon
