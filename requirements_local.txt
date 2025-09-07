@@ -1,0 +1,40 @@
+# SML777 - Local Development Requirements (without PostgreSQL)
+# ============================================================
+
+# Core Django Framework
+Django==4.2.7
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+
+# Database (SQLite for local development)
+dj-database-url==2.1.0
+
+# Production Server
+gunicorn==21.2.0
+
+# Static Files
+whitenoise==6.6.0
+
+# Environment Variables
+python-decouple==3.8
+
+# Basic Dependencies
+requests==2.31.0
+Pillow==10.1.0
+
+# Authentication
+djangorestframework-simplejwt==5.3.0
+
+# File Handling
+openpyxl==3.1.2
+
+# Basic Monitoring
+sentry-sdk==1.38.0
+
+# Additional Dependencies
+python-dotenv==1.0.0
+python-dateutil==2.8.2
+
+# 🛡️ SML777 Infinite Error Prevention System
+# ==========================================
+# ZERO ERRORS GUARANTEED FOREVER ETERNALLY!

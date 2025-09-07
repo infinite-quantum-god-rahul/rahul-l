@@ -2,7 +2,8 @@
 from companies.views import role_flags, get_profile_for_user
 
 def user_header_info(request):
-    if not request.user.is_authenticated:
+    # Check if user attribute exists and is authenticated
+    if not hasattr(request, 'user') or not request.user.is_authenticated:
         return {}
 
     # Display name: prefer full name, fallback to username

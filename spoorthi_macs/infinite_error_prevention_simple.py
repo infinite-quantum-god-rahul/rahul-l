@@ -77,3 +77,4 @@ class InfiniteErrorPreventionMiddleware(MiddlewareMixin):
         except Exception:
             return HttpResponse("OK")
 
+

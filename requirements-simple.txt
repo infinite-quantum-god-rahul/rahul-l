@@ -31,3 +31,4 @@ openpyxl==3.1.2
 # Basic Monitoring
 sentry-sdk==1.38.0
 
+

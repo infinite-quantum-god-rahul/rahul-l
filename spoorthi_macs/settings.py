@@ -28,10 +28,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'whitenoise.runserver_nostatic',  # For static files on Render
+    'companies',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # For static files on Render
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -51,8 +54,8 @@ TEMPLATES = [
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',  # needed for role-based UI in templates
+                'django.contrib.auth.context_processors.auth',  # must come before user_header_info
                 "companies.context_processors.user_header_info",
-                'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
         },
@@ -61,19 +64,22 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'spoorthi_macs.wsgi.application'
 
-# --- Database (MySQL) ---
-# Env overrides keep dev defaults intact
-DB_NAME = os.getenv('SML_DB_NAME', 'sml_db')
-DB_USER = os.getenv('SML_DB_USER', 'sml_user')
-DB_PASSWORD = os.getenv('SML_DB_PASSWORD', 'Quantum@1234')
-DB_HOST = os.getenv('SML_DB_HOST', '192.168.29.214')
-DB_PORT = os.getenv('SML_DB_PORT', '3306')
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# --- Database Configuration ---
+# Use PostgreSQL on Render, SQLite for local development
+if os.getenv('DATABASE_URL'):
+    # Render PostgreSQL configuration
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
     }
-}
+else:
+    # Local SQLite configuration
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 #DATABASES = {
     #'default': {
         #'ENGINE': 'django.db.backends.mysql',
@@ -119,6 +125,9 @@ en_formats.DATETIME_INPUT_FORMATS = ["%d/%m/%Y %H:%M", "%Y-%m-%d %H:%M:%S"]
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / "companies/static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"  # harmless in dev; useful for collectstatic later
+
+# WhiteNoise configuration for Render
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # --- Session/Cookie hardening (works in dev; stricter in prod below) ---
 SESSION_COOKIE_HTTPONLY = True

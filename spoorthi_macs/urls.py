@@ -48,7 +48,7 @@ urlpatterns = [
     path('test/', test_view, name='test'),
     path('', home_view, name='home'),
     # Include companies app URLs for the full application
-    path('', include('companies.urls')),
+    path('companies/', include('companies.urls')),
 ]
 
 # Serve static files in development and production
