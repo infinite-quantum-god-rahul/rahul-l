@@ -1,0 +1,58 @@
+services:
+  # Web Service
+  - type: web
+    name: sml777-web
+    env: python
+    plan: free
+    buildCommand: chmod +x build.sh && ./build.sh
+    startCommand: gunicorn spoorthi_macs.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.7
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        value: sml777.onrender.com
+      - key: STATIC_URL
+        value: /static/
+      - key: STATIC_ROOT
+        value: staticfiles
+      - key: MEDIA_URL
+        value: /media/
+      - key: MEDIA_ROOT
+        value: media
+      # SML Feature Flags
+      - key: SML_FEATURES_CREDIT_BUREAU
+        value: True
+      - key: SML_FEATURES_NPA_DASHBOARD
+        value: True
+      - key: SML_FEATURES_OFFLINE_KYC
+        value: True
+      - key: SML_FEATURES_ESCALATION_ALERTS
+        value: True
+      - key: SML_FEATURES_SMS
+        value: True
+      - key: SML_FEATURES_PAYMENTS
+        value: True
+      - key: SML_FEATURES_BORROWER_PORTAL
+        value: True
+      # Credit Bureau
+      - key: SML_BUREAU_PROVIDER
+        value: CIBIL
+      # Payment Provider
+      - key: RAZORPAY_PROVIDER
+        value: RAZORPAY
+
+  # PostgreSQL Database
+  - type: pserv
+    name: sml777-db
+    env: postgresql
+    plan: free
+    ipAllowList: []
+
+databases:
+  - name: sml777-db
+    databaseName: sml777
+    user: sml777_user
