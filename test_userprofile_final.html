@@ -123,8 +123,8 @@
             updateStatus('Testing UserProfile navigation...', 'info', 'navigation-status');
             
             try {
-                // Test navigation to UserProfile list
-                window.location.href = '/UserProfile/';
+                // Test navigation to UserProfile list on port 8001
+                window.location.href = 'http://127.0.0.1:8001/UserProfile/';
                 updateStatus('✅ Navigating to UserProfile list...', 'success', 'navigation-status');
             } catch (error) {
                 updateStatus('❌ Error navigating to UserProfile: ' + error.message, 'error', 'navigation-status');

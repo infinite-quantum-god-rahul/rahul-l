@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Database Error
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h5>Something went wrong</h5>
+                        <p>{{ error_message|default:"An unexpected database error occurred." }}</p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h6>What you can do:</h6>
+                        <ul>
+                            <li>Try refreshing the page</li>
+                            <li>Go back to the <a href="/dashboard/">Dashboard</a></li>
+                            <li>Contact system administrator if the problem persists</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="/dashboard/" class="btn btn-primary">
+                            <i class="fas fa-home"></i> Go to Dashboard
+                        </a>
+                        <button onclick="history.back()" class="btn btn-secondary ml-2">
+                            <i class="fas fa-arrow-left"></i> Go Back
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

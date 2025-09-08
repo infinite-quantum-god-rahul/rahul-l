@@ -1,0 +1,139 @@
+/* Form Input Override CSS - Smart enable form inputs */
+
+/* SMART: Override any CSS that might be preventing input (but respect readonly) */
+#entity-modal,
+#entity-modal *:not(input[readonly]):not(select[readonly]):not(textarea[readonly]),
+.modal,
+.modal *:not(input[readonly]):not(select[readonly]):not(textarea[readonly]),
+form,
+form *:not(input[readonly]):not(select[readonly]):not(textarea[readonly]) {
+  pointer-events: auto !important;
+  user-select: auto !important;
+  -webkit-user-select: auto !important;
+  -moz-user-select: auto !important;
+  -ms-user-select: auto !important;
+}
+
+/* Smart enable form inputs while respecting readonly */
+#entity-modal input:not([readonly]),
+#entity-modal select:not([readonly]),
+#entity-modal textarea:not([readonly]),
+.modal input:not([readonly]),
+.modal select:not([readonly]),
+.modal textarea:not([readonly]),
+form input:not([readonly]),
+form select:not([readonly]),
+form textarea:not([readonly]) {
+  pointer-events: auto !important;
+  user-select: auto !important;
+  -webkit-user-select: auto !important;
+  -moz-user-select: auto !important;
+  -ms-user-select: auto !important;
+  background-color: white !important;
+  cursor: text !important;
+  opacity: 1 !important;
+  color: black !important;
+  border: 1px solid #ccc !important;
+  position: relative !important;
+  z-index: 9999 !important;
+}
+
+/* Remove any overlays that might block input */
+#entity-modal::before,
+#entity-modal::after,
+.modal::before,
+.modal::after {
+  display: none !important;
+}
+
+/* Force enable specific input types */
+#entity-modal input[type="text"],
+#entity-modal input[type="email"],
+#entity-modal input[type="password"],
+#entity-modal input[type="number"],
+#entity-modal input[type="date"],
+#entity-modal input[type="tel"],
+#entity-modal input[type="url"],
+#entity-modal textarea,
+#entity-modal select,
+.modal input[type="text"],
+.modal input[type="email"],
+.modal input[type="password"],
+.modal input[type="number"],
+.modal input[type="date"],
+.modal input[type="tel"],
+.modal input[type="url"],
+.modal textarea,
+.modal select {
+  pointer-events: auto !important;
+  user-select: auto !important;
+  -webkit-user-select: auto !important;
+  -moz-user-select: auto !important;
+  -ms-user-select: auto !important;
+  background-color: white !important;
+  cursor: text !important;
+  opacity: 1 !important;
+  color: black !important;
+  border: 1px solid #ccc !important;
+  position: relative !important;
+  z-index: 9999 !important;
+}
+
+/* Override any disabled/readonly styles */
+#entity-modal input:not([type="hidden"]),
+#entity-modal select:not([type="hidden"]),
+#entity-modal textarea:not([type="hidden"]),
+.modal input:not([type="hidden"]),
+.modal select:not([type="hidden"]),
+.modal textarea:not([type="hidden"]) {
+  background-color: white !important;
+  cursor: text !important;
+  opacity: 1 !important;
+  color: black !important;
+  border: 1px solid #ccc !important;
+  position: relative !important;
+  z-index: 9999 !important;
+}
+
+/* Remove any backdrop overlays */
+.modal-backdrop,
+.lightbox-backdrop,
+.overlay,
+.overlay-backdrop {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Force modal to be on top */
+#entity-modal,
+.modal {
+  z-index: 99999 !important;
+  position: relative !important;
+}
+
+/* Ensure form is interactive */
+#entity-form,
+form {
+  pointer-events: auto !important;
+  user-select: auto !important;
+  position: relative !important;
+  z-index: 9999 !important;
+}
+
+/* Override any CSS that sets pointer-events to none */
+*[style*="pointer-events: none"] {
+  pointer-events: auto !important;
+}
+
+/* Force focus styles */
+#entity-modal input:focus,
+#entity-modal select:focus,
+#entity-modal textarea:focus,
+.modal input:focus,
+.modal select:focus,
+.modal textarea:focus {
+  outline: 2px solid #007bff !important;
+  outline-offset: 2px !important;
+  border-color: #007bff !important;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}

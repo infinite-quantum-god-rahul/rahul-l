@@ -35,6 +35,24 @@ def get_item(container, key):
     except AttributeError:
         return ''
 
+@register.filter
+def get_extra_item(container, key):
+    """
+    Get item from extra_data, handling the extra__ prefix automatically.
+    If key starts with 'extra__', it removes the prefix before looking up.
+    """
+    if key.startswith('extra__'):
+        actual_key = key[7:]  # Remove 'extra__' prefix
+    else:
+        actual_key = key
+    
+    if hasattr(container, 'get'):
+        return container.get(actual_key, '')
+    try:
+        return getattr(container, actual_key, '')
+    except AttributeError:
+        return ''
+
 # ======= Dynamic Form Field Lookup ======= #
 @register.filter
 def get_field(form, name):
@@ -96,8 +114,106 @@ def add_class(field, css_class):
 @register.filter
 def display_user_name(obj):
     """Display user name for UserPermission records"""
-    if hasattr(obj, 'user_profile') and obj.user_profile:
-        return obj.user_profile.full_name or f"User #{obj.user_profile.id}"
+    try:
+        if hasattr(obj, 'user_profile') and obj.user_profile:
+            # Check if user_profile is actually a valid object
+            if hasattr(obj.user_profile, 'full_name'):
+                return obj.user_profile.full_name or f"User #{obj.user_profile.id}"
+            else:
+                return f"User #{obj.user_profile.id}"
+        else:
+            return "No User Profile"
+    except Exception as e:
+        print(f"⚠️  Warning: Error in display_user_name filter: {e}")
+        return "Error Loading User"
+
+# ======= Form Required Attribute Fixes ======= #
+@register.filter(name='fix_required_attributes')
+def fix_required_attributes(field):
+    """
+    Template filter to fix required attributes and prevent "True is not defined" errors.
+    This filter ensures that Python boolean True values are converted to string "required".
+    """
+    if not hasattr(field, 'field') or not hasattr(field.field, 'widget'):
+        return field
+    
+    # Check if the field is required
+    if getattr(field.field, 'required', False):
+        # Ensure required attribute is a string, not boolean
+        if hasattr(field.field.widget, 'attrs'):
+            field.field.widget.attrs['required'] = 'required'
+            field.field.widget.attrs['data-required'] = 'true'
+        else:
+            field.field.widget.attrs = {'required': 'required', 'data-required': 'true'}
+    
+    return field
+
+@register.filter(name='safe_required')
+def safe_required(field):
+    """
+    Template filter to safely render required attributes.
+    Returns 'required' if the field is required, empty string otherwise.
+    """
+    if not hasattr(field, 'field'):
+        return ''
+    
+    if getattr(field.field, 'required', False):
+        return 'required="required"'
+    return ''
+
+@register.filter(name='safe_data_required')
+def safe_data_required(field):
+    """
+    Template filter to safely render data-required attributes.
+    Returns 'data-required="true"' if the field is required, empty string otherwise.
+    """
+    if not hasattr(field, 'field'):
+        return ''
+    
+    if getattr(field.field, 'required', False):
+        return 'data-required="true"'
+    return ''
+
+@register.filter(name='safe_render')
+def safe_render(field):
+    """
+    Template filter to safely render form fields with corrected required attributes.
+    This ensures that required attributes are always strings, not booleans.
+    Also adds appropriate CSS classes for date fields to enable calendar functionality.
+    """
+    if not hasattr(field, 'field') or not hasattr(field.field, 'widget'):
+        return field
+    
+    # Check if the field is required
+    if getattr(field.field, 'required', False):
+        # Ensure required attribute is a string, not boolean
+        if hasattr(field.field.widget, 'attrs'):
+            field.field.widget.attrs['required'] = 'required'
+            field.field.widget.attrs['data-required'] = 'true'
+        else:
+            field.field.widget.attrs = {'required': 'required', 'data-required': 'true'}
+    
+    # Add date-field class for DateField fields to enable flatpickr calendar
+    if hasattr(field.field, '__class__') and field.field.__class__.__name__ == 'DateField':
+        if hasattr(field.field.widget, 'attrs'):
+            existing_class = field.field.widget.attrs.get('class', '')
+            if 'date-field' not in existing_class:
+                field.field.widget.attrs['class'] = f"{existing_class} date-field".strip()
+                print(f"🗓️ Added date-field class to {field.name}")
+        else:
+            field.field.widget.attrs = {'class': 'date-field'}
+            print(f"🗓️ Created attrs with date-field class for {field.name}")
+    
+    # Add checkbox styling for BooleanField fields
+    if hasattr(field.field, '__class__') and field.field.__class__.__name__ == 'BooleanField':
+        if hasattr(field.field.widget, 'attrs'):
+            existing_class = field.field.widget.attrs.get('class', '')
+            if 'form-check-input' not in existing_class:
+                field.field.widget.attrs['class'] = f"{existing_class} form-check-input".strip()
+        else:
+            field.field.widget.attrs = {'class': 'form-check-input'}
+    
+    return field
     return "No User"
 
 # ======= Add/Set arbitrary attribute on a Form Field widget ======= #

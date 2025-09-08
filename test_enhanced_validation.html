@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Enhanced Validation</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .btn { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>Enhanced Validation Test</h1>
+    
+    <div class="test-section">
+        <h3>Test 1: Generic "Validation failed" Override</h3>
+        <p>This should show a detailed message instead of generic "Validation failed"</p>
+        <button class="btn" onclick="testGenericValidation()">Test Generic Validation Override</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 2: Branch-Specific Validation</h3>
+        <p>This should show branch-specific error messages</p>
+        <button class="btn" onclick="testBranchValidation()">Test Branch Validation</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 3: Field-Level Errors</h3>
+        <p>This should show field-specific error messages</p>
+        <button class="btn" onclick="testFieldErrors()">Test Field Errors</button>
+    </div>
+
+    <script>
+        // Test 1: Generic validation override
+        function testGenericValidation() {
+            // Simulate the generic "Validation failed" message
+            alert("Validation failed.");
+        }
+        
+        // Test 2: Branch validation
+        function testBranchValidation() {
+            const mockErrors = {
+                'code': 'Branch code "BRN001" already exists. Please use a different code.',
+                'name': 'Branch name is required.',
+                'company': 'Company is required.'
+            };
+            
+            if (typeof window.showDetailedBranchErrors === 'function') {
+                window.showDetailedBranchErrors(mockErrors);
+            } else {
+                alert('Branch validation functions not loaded. Errors:\n' + JSON.stringify(mockErrors, null, 2));
+            }
+        }
+        
+        // Test 3: Field errors
+        function testFieldErrors() {
+            const mockErrors = {
+                'phone': 'Phone number must be exactly 10 digits.',
+                'open_date': 'Please enter a valid date in DD/MM/YYYY format.'
+            };
+            
+            if (typeof window.highlightInvalidFields === 'function') {
+                window.highlightInvalidFields(mockErrors);
+                alert('Field errors highlighted. Check console for details.');
+            } else {
+                alert('Field error functions not loaded. Errors:\n' + JSON.stringify(mockErrors, null, 2));
+            }
+        }
+        
+        // Load the enhanced validation scripts
+        function loadEnhancedValidation() {
+            // Create a mock entity-form to simulate the branch form
+            const mockForm = document.createElement('div');
+            mockForm.id = 'entity-form';
+            mockForm.dataset.entity = 'branch';
+            mockForm.innerHTML = `
+                <input name="code" type="text" placeholder="Branch Code">
+                <input name="name" type="text" placeholder="Branch Name">
+                <select name="company">
+                    <option value="">Select Company</option>
+                    <option value="1">Test Company</option>
+                </select>
+                <input name="phone" type="text" placeholder="Phone">
+                <input name="open_date" type="text" placeholder="Open Date">
+            `;
+            document.body.appendChild(mockForm);
+            
+            console.log('Mock branch form created for testing');
+        }
+        
+        // Load scripts when page loads
+        window.addEventListener('load', function() {
+            loadEnhancedValidation();
+            
+            // Try to load the enhanced validation scripts
+            const scripts = [
+                '/static/js/enhanced_validation.js',
+                '/static/js/branch_validation_fix.js'
+            ];
+            
+            scripts.forEach(src => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => console.log(`Loaded: ${src}`);
+                script.onerror = () => console.log(`Failed to load: ${src}`);
+                document.head.appendChild(script);
+            });
+        });
+    </script>
+</body>
+</html>

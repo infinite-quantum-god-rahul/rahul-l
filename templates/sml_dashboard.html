@@ -1,0 +1,737 @@
+{% extends "base_enterprise.html" %}
+{% load static %}
+
+{% block title %}SML Project Dashboard - Professional Loan Monitoring System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sml_project_features.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- ========================================
+     SML PROJECT PROFESSIONAL DASHBOARD
+     ======================================== -->
+
+<div class="enterprise-main">
+    <!-- Main Header -->
+    <div class="main-header">
+        <div class="main-header-content">
+            <h1 class="main-title">
+                <i class="fas fa-chart-line"></i>
+                SML Project Dashboard
+            </h1>
+            <p class="main-subtitle">Professional Loan Monitoring & Management System</p>
+        </div>
+        
+        <div class="main-header-actions">
+            <button class="btn btn-primary" onclick="LoanManagement.openLoanApplication()">
+                <i class="fas fa-plus"></i> New Loan
+            </button>
+            <button class="btn btn-secondary" onclick="FieldOperations.openFieldSchedule()">
+                <i class="fas fa-calendar-alt"></i> Field Schedule
+            </button>
+            <button class="btn btn-info" onclick="CreditBureau.pullCreditReport()">
+                <i class="fas fa-credit-card"></i> Credit Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Stats Row -->
+    <div class="sml-stats-row">
+        <div class="sml-stat-card primary">
+            <div class="sml-stat-icon">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="sml-stat-content">
+                <div class="sml-stat-number">₹15,45,000</div>
+                <div class="sml-stat-label">Total Portfolio</div>
+                <div class="sml-stat-trend up">
+                    <i class="fas fa-arrow-up"></i> +12.5%
+                </div>
+            </div>
+        </div>
+        
+        <div class="sml-stat-card success">
+            <div class="sml-stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="sml-stat-content">
+                <div class="sml-stat-number">1,247</div>
+                <div class="sml-stat-label">Active Clients</div>
+                <div class="sml-stat-trend up">
+                    <i class="fas fa-arrow-up"></i> +8.2%
+                </div>
+            </div>
+        </div>
+        
+        <div class="sml-stat-card warning">
+            <div class="sml-stat-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="sml-stat-content">
+                <div class="sml-stat-number">₹78,500</div>
+                <div class="sml-stat-label">NPA Amount</div>
+                <div class="sml-stat-trend down">
+                    <i class="fas fa-arrow-down"></i> -5.1%
+                </div>
+            </div>
+        </div>
+        
+        <div class="sml-stat-card info">
+            <div class="sml-stat-icon">
+                <i class="fas fa-percentage"></i>
+            </div>
+            <div class="sml-stat-content">
+                <div class="sml-stat-number">87.2%</div>
+                <div class="sml-stat-label">Collection Efficiency</div>
+                <div class="sml-stat-trend up">
+                    <i class="fas fa-arrow-up"></i> +2.3%
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Grid -->
+    <div class="sml-dashboard-grid">
+        <!-- Left Column -->
+        <div class="sml-dashboard-left">
+            <!-- Loan Applications Section -->
+            <div class="enterprise-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        Recent Loan Applications
+                    </h3>
+                    <div class="card-actions">
+                        <button class="btn btn-primary btn-sm" onclick="LoanManagement.openLoanApplication()">
+                            <i class="fas fa-plus"></i> New
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <div class="sml-table-container">
+                        <table class="sml-table">
+                            <thead>
+                                <tr>
+                                    <th>Application ID</th>
+                                    <th>Client Name</th>
+                                    <th>Loan Amount</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>LA001</strong></td>
+                                    <td>Ramesh Kumar</td>
+                                    <td>₹50,000</td>
+                                    <td><span class="sml-status-badge sml-status-approved">Approved</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="LoanManagement.viewLoanDetails('LA001')">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>LA002</strong></td>
+                                    <td>Meena Devi</td>
+                                    <td>₹75,000</td>
+                                    <td><span class="sml-status-badge sml-status-pending">Pending</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning">
+                                            <i class="fas fa-clock"></i> Review
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>LA003</strong></td>
+                                    <td>Anjali Devi</td>
+                                    <td>₹25,000</td>
+                                    <td><span class="sml-status-badge sml-status-rejected">Rejected</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger">
+                                            <i class="fas fa-times"></i> Details
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Field Operations Section -->
+            <div class="enterprise-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-map-marked-alt"></i>
+                        Field Operations
+                    </h3>
+                    <div class="card-actions">
+                        <button class="btn btn-info btn-sm" onclick="FieldOperations.openFieldSchedule()">
+                            <i class="fas fa-calendar-alt"></i> Schedule
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <div id="field-operations">
+                        <!-- Field operations will be rendered here by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="sml-dashboard-right">
+            <!-- NPA Dashboard Section -->
+            <div class="enterprise-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        NPA Analysis
+                    </h3>
+                    <div class="card-actions">
+                        <button class="btn btn-warning btn-sm">
+                            <i class="fas fa-chart-bar"></i> Report
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <div id="npa-dashboard">
+                        <!-- NPA dashboard will be rendered here by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client Management Section -->
+            <div class="enterprise-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-user-tie"></i>
+                        Client Management
+                    </h3>
+                    <div class="card-actions">
+                        <button class="btn btn-primary btn-sm" onclick="ClientManagement.openKYCDocumentUpload()">
+                            <i class="fas fa-upload"></i> KYC
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <div id="client-management">
+                        <!-- Client management will be rendered here by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Row -->
+    <div class="sml-dashboard-bottom">
+        <!-- Financial Reports Section -->
+        <div class="enterprise-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-chart-pie"></i>
+                    Financial Reports
+                </h3>
+                <div class="card-actions">
+                    <button class="btn btn-success btn-sm">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <div id="financial-reports">
+                    <!-- Financial reports will be rendered here by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Loan Dashboard Section -->
+        <div class="enterprise-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-chart-line"></i>
+                    Loan Portfolio Overview
+                </h3>
+                <div class="card-actions">
+                    <button class="btn btn-primary btn-sm" onclick="LoanManagement.openLoanApplication()">
+                        <i class="fas fa-plus"></i> New Loan
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <div id="loan-dashboard">
+                    <!-- Loan dashboard will be rendered here by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Insights Section -->
+    <div class="enterprise-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-robot"></i>
+                AI-Powered Insights
+            </h3>
+            <div class="card-actions">
+                <button class="btn btn-info btn-sm">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+        
+        <div class="card-body">
+            <div class="sml-ai-insights">
+                <div class="sml-ai-insight success">
+                    <div class="sml-ai-icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <div class="sml-ai-content">
+                        <h4>Portfolio Optimization</h4>
+                        <p>Based on current trends, consider increasing loan amounts for clients with credit scores above 750.</p>
+                        <div class="sml-ai-confidence">Confidence: 87%</div>
+                    </div>
+                </div>
+                
+                <div class="sml-ai-insight warning">
+                    <div class="sml-ai-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="sml-ai-content">
+                        <h4>Risk Alert</h4>
+                        <p>3 clients in Village A showing early warning signs. Recommend field visit within 7 days.</p>
+                        <div class="sml-ai-confidence">Confidence: 92%</div>
+                    </div>
+                </div>
+                
+                <div class="sml-ai-insight info">
+                    <div class="sml-ai-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="sml-ai-content">
+                        <h4>Collection Strategy</h4>
+                        <p>Morning collection visits (9-11 AM) show 23% higher success rate than afternoon visits.</p>
+                        <div class="sml-ai-confidence">Confidence: 78%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================
+     SML PROJECT MODALS & OVERLAYS
+     ======================================== -->
+
+<!-- Loan Application Modal -->
+<div id="loan-application-modal" class="enterprise-modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <i class="fas fa-file-invoice-dollar"></i>
+                New Loan Application
+            </h3>
+            <button class="modal-close" onclick="ModalSystem.close()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="modal-body">
+            <form id="loan-application-form" class="enterprise-form">
+                <div class="sml-form-row">
+                    <div class="form-group">
+                        <label class="form-label">Loan Type *</label>
+                        <select name="loan_type" class="form-control" required>
+                            <option value="">Select loan type</option>
+                            <option value="personal">Personal Loan</option>
+                            <option value="business">Business Loan</option>
+                            <option value="agriculture">Agriculture Loan</option>
+                            <option value="gold">Gold Loan</option>
+                            <option value="mortgage">Mortgage Loan</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Loan Amount (₹) *</label>
+                        <input type="number" name="loan_amount" class="form-control" 
+                               min="1000" max="10000000" step="1000" required>
+                    </div>
+                </div>
+                
+                <div class="sml-form-row">
+                    <div class="form-group">
+                        <label class="form-label">Tenure (Months) *</label>
+                        <input type="number" name="tenure" class="form-control" 
+                               min="3" max="120" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Purpose *</label>
+                        <textarea name="purpose" class="form-control" rows="3" required></textarea>
+                    </div>
+                </div>
+                
+                <div class="sml-form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> Submit Application
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="ModalSystem.close()">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Field Schedule Modal -->
+<div id="field-schedule-modal" class="enterprise-modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <i class="fas fa-calendar-alt"></i>
+                Field Schedule
+            </h3>
+            <button class="modal-close" onclick="ModalSystem.close()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="sml-field-schedule">
+                <div class="sml-schedule-day">
+                    <div class="sml-schedule-day-header">
+                        <span class="sml-schedule-day-title">Monday</span>
+                        <span class="sml-schedule-day-date">15 Jan 2024</span>
+                    </div>
+                    
+                    <div class="sml-schedule-item completed">
+                        <span>Center A - Group 1</span>
+                        <span>9:00 AM</span>
+                        <span>Completed</span>
+                    </div>
+                    
+                    <div class="sml-schedule-item pending">
+                        <span>Center B - Group 2</span>
+                        <span>11:00 AM</span>
+                        <span>Pending</span>
+                    </div>
+                </div>
+                
+                <div class="sml-schedule-day">
+                    <div class="sml-schedule-day-header">
+                        <span class="sml-schedule-day-title">Tuesday</span>
+                        <span class="sml-schedule-day-date">16 Jan 2024</span>
+                    </div>
+                    
+                    <div class="sml-schedule-item pending">
+                        <span>Center C - Group 3</span>
+                        <span>10:00 AM</span>
+                        <span>Pending</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- KYC Document Upload Modal -->
+<div id="kyc-upload-modal" class="enterprise-modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <i class="fas fa-id-card"></i>
+                KYC Document Upload
+            </h3>
+            <button class="modal-close" onclick="ModalSystem.close()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="modal-body">
+            <form id="kyc-upload-form" class="enterprise-form">
+                <div class="sml-form-row">
+                    <div class="form-group">
+                        <label class="form-label">Document Type *</label>
+                        <select name="document_type" class="form-control" required>
+                            <option value="">Select document type</option>
+                            <option value="aadhaar">Aadhaar Card</option>
+                            <option value="pan">PAN Card</option>
+                            <option value="voter_id">Voter ID</option>
+                            <option value="driving_license">Driving License</option>
+                            <option value="passport">Passport</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Document Number</label>
+                        <input type="text" name="document_number" class="form-control">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Document File *</label>
+                    <input type="file" name="document_file" class="form-control" 
+                           accept="image/*,.pdf" required>
+                    <div class="form-help">Upload clear image or PDF (Max 5MB)</div>
+                </div>
+                
+                <div class="sml-form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Upload Document
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="ModalSystem.close()">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Credit Bureau Report Modal -->
+<div id="credit-bureau-modal" class="enterprise-modal" style="display: none;">
+    <div class="modal-content modal-xlarge">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <i class="fas fa-credit-card"></i>
+                Credit Bureau Report
+            </h3>
+            <button class="modal-close" onclick="ModalSystem.close()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="sml-credit-bureau">
+                <div class="sml-credit-score">
+                    <div class="sml-credit-number">750</div>
+                    <div class="sml-credit-label">Credit Score</div>
+                    <div class="sml-credit-rating sml-credit-good">Good</div>
+                </div>
+                
+                <div class="sml-table-container">
+                    <table class="sml-table">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Value</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Payment History</td>
+                                <td>95%</td>
+                                <td><span class="sml-text-success">Excellent</span></td>
+                            </tr>
+                            <tr>
+                                <td>Credit Utilization</td>
+                                <td>35%</td>
+                                <td><span class="sml-text-success">Good</span></td>
+                            </tr>
+                            <tr>
+                                <td>Credit History Length</td>
+                                <td>5 years</td>
+                                <td><span class="sml-text-warning">Average</span></td>
+                            </tr>
+                            <tr>
+                                <td>Recent Inquiries</td>
+                                <td>2</td>
+                                <td><span class="sml-text-success">Good</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/enterprise_framework.js' %}"></script>
+<script src="{% static 'js/sml_project_core.js' %}"></script>
+
+<script>
+// ========================================
+// SML PROJECT DASHBOARD INITIALIZATION
+// ========================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 SML Project Dashboard initialized!');
+    
+    // Initialize all SML components
+    if (window.SMLProject) {
+        window.SMLProject.init();
+    }
+    
+    // Setup form submissions
+    setupFormSubmissions();
+    
+    // Setup real-time updates
+    setupRealTimeUpdates();
+});
+
+// Setup form submissions
+function setupFormSubmissions() {
+    // Loan application form
+    const loanForm = document.getElementById('loan-application-form');
+    if (loanForm) {
+        loanForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleLoanApplicationSubmit(this);
+        });
+    }
+    
+    // KYC upload form
+    const kycForm = document.getElementById('kyc-upload-form');
+    if (kycForm) {
+        kycForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleKYCUploadSubmit(this);
+        });
+    }
+}
+
+// Handle loan application submission
+function handleLoanApplicationSubmit(form) {
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    
+    // Show loading
+    showLoading();
+    
+    // Simulate API call
+    setTimeout(() => {
+        hideLoading();
+        
+        // Show success notification
+        if (window.NotificationSystem) {
+            window.NotificationSystem.success(
+                'Loan application submitted successfully! Application ID: LA' + Date.now(),
+                'Application Submitted'
+            );
+        }
+        
+        // Close modal
+        ModalSystem.close();
+        
+        // Refresh loan dashboard
+        if (window.LoanManagement) {
+            window.LoanManagement.refreshLoanDashboard();
+        }
+    }, 2000);
+}
+
+// Handle KYC upload submission
+function handleKYCUploadSubmit(form) {
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    
+    // Show loading
+    showLoading();
+    
+    // Simulate API call
+    setTimeout(() => {
+        hideLoading();
+        
+        // Show success notification
+        if (window.NotificationSystem) {
+            window.NotificationSystem.success(
+                'KYC document uploaded successfully!',
+                'Document Uploaded'
+            );
+        }
+        
+        // Close modal
+        ModalSystem.close();
+        
+        // Refresh client management
+        if (window.ClientManagement) {
+            window.ClientManagement.renderClientManagement(
+                document.getElementById('client-management')
+            );
+        }
+    }, 2000);
+}
+
+// Setup real-time updates
+function setupRealTimeUpdates() {
+    // Simulate real-time data updates every 30 seconds
+    setInterval(() => {
+        updateDashboardStats();
+    }, 30000);
+}
+
+// Update dashboard stats
+function updateDashboardStats() {
+    // Update portfolio amount
+    const portfolioElement = document.querySelector('.sml-stat-card.primary .sml-stat-number');
+    if (portfolioElement) {
+        const currentAmount = parseInt(portfolioElement.textContent.replace(/[^\d]/g, ''));
+        const newAmount = currentAmount + Math.floor(Math.random() * 10000);
+        portfolioElement.textContent = '₹' + newAmount.toLocaleString('en-IN');
+    }
+    
+    // Update client count
+    const clientElement = document.querySelector('.sml-stat-card.success .sml-stat-number');
+    if (clientElement) {
+        const currentCount = parseInt(clientElement.textContent);
+        const newCount = currentCount + Math.floor(Math.random() * 5);
+        clientElement.textContent = newCount.toLocaleString('en-IN');
+    }
+}
+
+// Utility functions
+function showLoading() {
+    // Show loading indicator
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'sml-loading-overlay';
+    loadingDiv.innerHTML = `
+        <div class="sml-loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Processing...</p>
+        </div>
+    `;
+    document.body.appendChild(loadingDiv);
+}
+
+function hideLoading() {
+    // Hide loading indicator
+    const loadingDiv = document.querySelector('.sml-loading-overlay');
+    if (loadingDiv) {
+        loadingDiv.remove();
+    }
+}
+
+// ========================================
+// LEGACY COMPATIBILITY LAYER
+// ========================================
+
+// Preserve existing functions
+if (typeof window.openCreditPullModal === 'function') {
+    const originalOpenCreditPullModal = window.openCreditPullModal;
+    window.openCreditPullModal = function() {
+        originalOpenCreditPullModal.apply(this, arguments);
+        // Add SML credit bureau integration
+        if (window.CreditBureau) {
+            window.CreditBureau.pullCreditReport();
+        }
+    };
+}
+
+console.log('🎯 SML Project Dashboard fully loaded!');
+</script>
+{% endblock %}
+
+

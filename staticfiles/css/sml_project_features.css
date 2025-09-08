@@ -1,0 +1,843 @@
+/* ========================================
+   SML PROJECT FEATURES CSS
+   Integrates with Enterprise Design System
+   Preserves all existing functionality
+   ======================================== */
+
+/* ========================================
+   SML PROJECT SPECIFIC COMPONENTS
+   ======================================== */
+
+/* Loan Application Cards */
+.sml-loan-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+  border-left: 4px solid var(--primary-blue);
+  transition: all var(--transition-normal);
+}
+
+.sml-loan-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.sml-loan-card.approved {
+  border-left-color: var(--success-green);
+}
+
+.sml-loan-card.pending {
+  border-left-color: var(--warning-orange);
+}
+
+.sml-loan-card.rejected {
+  border-left-color: var(--error-red);
+}
+
+.sml-loan-card.overdue {
+  border-left-color: var(--error-red);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.8; }
+  100% { opacity: 1; }
+}
+
+/* Loan Status Indicators */
+.sml-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sml-status-approved {
+  background-color: #f0fdf4;
+  color: var(--success-green);
+  border: 1px solid var(--success-green);
+}
+
+.sml-status-pending {
+  background-color: #fffbeb;
+  color: var(--warning-orange);
+  border: 1px solid var(--warning-orange);
+}
+
+.sml-status-rejected {
+  background-color: #fef2f2;
+  color: var(--error-red);
+  border: 1px solid var(--error-red);
+}
+
+.sml-status-overdue {
+  background-color: #fef2f2;
+  color: var(--error-red);
+  border: 1px solid var(--error-red);
+  animation: pulse 2s infinite;
+}
+
+/* Client Profile Cards */
+.sml-client-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid var(--gray-200);
+  transition: all var(--transition-normal);
+}
+
+.sml-client-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.sml-client-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--primary-blue);
+  margin-bottom: var(--spacing-md);
+}
+
+.sml-client-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+}
+
+.sml-client-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.sml-client-detail-label {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  font-weight: 500;
+}
+
+.sml-client-detail-value {
+  font-size: 1rem;
+  color: var(--gray-900);
+  font-weight: 600;
+}
+
+/* Field Schedule Components */
+.sml-field-schedule {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+}
+
+.sml-schedule-day {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  background: var(--gray-50);
+}
+
+.sml-schedule-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.sml-schedule-day-title {
+  font-weight: 600;
+  color: var(--primary-blue);
+  font-size: 1.125rem;
+}
+
+.sml-schedule-day-date {
+  color: var(--gray-600);
+  font-size: 0.875rem;
+}
+
+.sml-schedule-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm);
+  background: white;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-xs);
+  border-left: 3px solid var(--primary-blue);
+}
+
+.sml-schedule-item.completed {
+  border-left-color: var(--success-green);
+  background-color: #f0fdf4;
+}
+
+.sml-schedule-item.pending {
+  border-left-color: var(--warning-orange);
+  background-color: #fffbeb;
+}
+
+/* NPA Dashboard Components */
+.sml-npa-dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.sml-npa-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-xl);
+  text-align: center;
+  border-top: 4px solid;
+}
+
+.sml-npa-card.low-risk {
+  border-top-color: var(--success-green);
+}
+
+.sml-npa-card.medium-risk {
+  border-top-color: var(--warning-orange);
+}
+
+.sml-npa-card.high-risk {
+  border-top-color: var(--error-red);
+}
+
+.sml-npa-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: var(--spacing-sm);
+}
+
+.sml-npa-label {
+  font-size: 1rem;
+  color: var(--gray-600);
+  margin-bottom: var(--spacing-sm);
+}
+
+.sml-npa-trend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  font-size: 0.875rem;
+}
+
+.sml-npa-trend.up {
+  color: var(--error-red);
+}
+
+.sml-npa-trend.down {
+  color: var(--success-green);
+}
+
+/* KYC Document Components */
+.sml-kyc-section {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+}
+
+.sml-kyc-document {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+  background: var(--gray-50);
+}
+
+.sml-kyc-document.verified {
+  border-color: var(--success-green);
+  background-color: #f0fdf4;
+}
+
+.sml-kyc-document.pending {
+  border-color: var(--warning-orange);
+  background-color: #fffbeb;
+}
+
+.sml-kyc-document.rejected {
+  border-color: var(--error-red);
+  background-color: #fef2f2;
+}
+
+.sml-kyc-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: white;
+}
+
+.sml-kyc-icon.verified {
+  background-color: var(--success-green);
+}
+
+.sml-kyc-icon.pending {
+  background-color: var(--warning-orange);
+}
+
+.sml-kyc-icon.rejected {
+  background-color: var(--error-red);
+}
+
+.sml-kyc-info {
+  flex: 1;
+}
+
+.sml-kyc-name {
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: var(--spacing-xs);
+}
+
+.sml-kyc-status {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+}
+
+/* Group and Center Management */
+.sml-group-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid var(--gray-200);
+}
+
+.sml-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.sml-group-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.sml-group-members {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.sml-group-member {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--gray-50);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--gray-200);
+}
+
+.sml-member-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.sml-member-info {
+  flex: 1;
+}
+
+.sml-member-name {
+  font-weight: 500;
+  color: var(--gray-900);
+  font-size: 0.875rem;
+}
+
+.sml-member-role {
+  font-size: 0.75rem;
+  color: var(--gray-600);
+}
+
+/* Financial Management Components */
+.sml-financial-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+}
+
+.sml-financial-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.sml-financial-item {
+  text-align: center;
+  padding: var(--spacing-lg);
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--gray-200);
+}
+
+.sml-financial-amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-blue);
+  margin-bottom: var(--spacing-xs);
+}
+
+.sml-financial-label {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Route Management */
+.sml-route-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid var(--gray-200);
+}
+
+.sml-route-map {
+  height: 300px;
+  background: var(--gray-100);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-500);
+  margin-bottom: var(--spacing-lg);
+  border: 2px dashed var(--gray-300);
+}
+
+.sml-route-stops {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.sml-route-stop {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm);
+  background: var(--gray-50);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--primary-blue);
+}
+
+.sml-stop-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--primary-blue);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Repayment Schedule */
+.sml-repayment-schedule {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+}
+
+.sml-repayment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.sml-repayment-item:last-child {
+  border-bottom: none;
+}
+
+.sml-repayment-item.overdue {
+  background-color: #fef2f2;
+  border-left: 4px solid var(--error-red);
+}
+
+.sml-repayment-item.paid {
+  background-color: #f0fdf4;
+  border-left: 4px solid var(--success-green);
+}
+
+.sml-repayment-date {
+  font-weight: 500;
+  color: var(--gray-900);
+}
+
+.sml-repayment-amount {
+  font-weight: 600;
+  color: var(--primary-blue);
+}
+
+.sml-repayment-status {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Credit Bureau Integration */
+.sml-credit-bureau {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+}
+
+.sml-credit-score {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.sml-credit-number {
+  font-size: 4rem;
+  font-weight: 700;
+  margin-bottom: var(--spacing-sm);
+}
+
+.sml-credit-label {
+  font-size: 1.25rem;
+  color: var(--gray-600);
+  margin-bottom: var(--spacing-md);
+}
+
+.sml-credit-rating {
+  display: inline-block;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sml-credit-excellent {
+  background-color: #f0fdf4;
+  color: var(--success-green);
+}
+
+.sml-credit-good {
+  background-color: #eff6ff;
+  color: var(--info-blue);
+}
+
+.sml-credit-fair {
+  background-color: #fffbeb;
+  color: var(--warning-orange);
+}
+
+.sml-credit-poor {
+  background-color: #fef2f2;
+  color: var(--error-red);
+}
+
+/* Mobile Responsiveness for SML Features */
+@media (max-width: 768px) {
+  .sml-npa-dashboard {
+    grid-template-columns: 1fr;
+  }
+  
+  .sml-financial-summary {
+    grid-template-columns: 1fr;
+  }
+  
+  .sml-client-info {
+    grid-template-columns: 1fr;
+  }
+  
+  .sml-group-members {
+    grid-template-columns: 1fr;
+  }
+  
+  .sml-repayment-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+  
+  .sml-credit-number {
+    font-size: 3rem;
+  }
+}
+
+/* ========================================
+   SML PROJECT UTILITY CLASSES
+   ======================================== */
+
+.sml-text-success { color: var(--success-green); }
+.sml-text-warning { color: var(--warning-orange); }
+.sml-text-error { color: var(--error-red); }
+.sml-text-info { color: var(--info-blue); }
+
+.sml-bg-success { background-color: #f0fdf4; }
+.sml-bg-warning { background-color: #fffbeb; }
+.sml-bg-error { background-color: #fef2f2; }
+.sml-bg-info { background-color: #eff6ff; }
+
+.sml-border-success { border-color: var(--success-green); }
+.sml-border-warning { border-color: var(--warning-orange); }
+.sml-border-error { border-color: var(--error-red); }
+.sml-border-info { border-color: var(--info-blue); }
+
+/* ========================================
+   SML PROJECT ANIMATIONS
+   ======================================== */
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.sml-slide-in-up {
+  animation: slideInUp 0.5s ease-out;
+}
+
+.sml-fade-in-scale {
+  animation: fadeInScale 0.3s ease-out;
+}
+
+/* ========================================
+   SML PROJECT LOADING STATES
+   ======================================== */
+
+.sml-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2xl);
+  color: var(--gray-500);
+}
+
+.sml-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--gray-200);
+  border-top: 3px solid var(--primary-blue);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: var(--spacing-md);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ========================================
+   SML PROJECT FORM ENHANCEMENTS
+   ======================================== */
+
+.sml-form-section {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+}
+
+.sml-form-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 2px solid var(--gray-100);
+}
+
+.sml-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.sml-form-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-end;
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--gray-200);
+}
+
+/* ========================================
+   SML PROJECT TABLE ENHANCEMENTS
+   ======================================== */
+
+.sml-table-container {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.sml-table-header {
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+  color: white;
+  padding: var(--spacing-lg);
+}
+
+.sml-table-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.sml-table-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.sml-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sml-table th {
+  background: var(--gray-100);
+  padding: var(--spacing-md);
+  text-align: left;
+  font-weight: 600;
+  color: var(--gray-700);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.sml-table td {
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.sml-table tbody tr:hover {
+  background-color: var(--gray-50);
+}
+
+/* ========================================
+   SML PROJECT MODAL ENHANCEMENTS
+   ======================================== */
+
+.sml-modal-large .modal-content {
+  max-width: 90vw;
+  width: 90vw;
+}
+
+.sml-modal-xlarge .modal-content {
+  max-width: 95vw;
+  width: 95vw;
+}
+
+.sml-modal-header {
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+  color: white;
+}
+
+.sml-modal-header .modal-title {
+  color: white;
+}
+
+.sml-modal-header .modal-close {
+  color: white;
+}
+
+.sml-modal-header .modal-close:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ========================================
+   SML PROJECT PRINT STYLES
+   ======================================== */
+
+@media print {
+  .sml-print-hidden {
+    display: none !important;
+  }
+  
+  .sml-print-visible {
+    display: block !important;
+  }
+  
+  .sml-loan-card,
+  .sml-client-card,
+  .sml-group-card {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #000;
+  }
+  
+  .enterprise-header,
+  .enterprise-sidebar,
+  .enterprise-footer {
+    display: none !important;
+  }
+  
+  .enterprise-main {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+

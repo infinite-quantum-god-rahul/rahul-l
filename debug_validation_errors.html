@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Validation Errors - Find the Real Problem</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .debug-section { background: white; margin: 20px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .btn { padding: 12px 24px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .log { background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 4px; margin: 10px 0; font-family: monospace; white-space: pre-wrap; }
+        .error { color: #dc3545; }
+        .success { color: #28a745; }
+        .warning { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Validation Errors</h1>
+    <p>This page will help us find out what's <strong>really</strong> causing the "Validation failed" error.</p>
+    
+    <div class="debug-section">
+        <h3>🚨 Step 1: Simulate the Exact Error</h3>
+        <p>Click this button to see what happens when you get "Validation failed":</p>
+        <button class="btn btn-danger" onclick="simulateValidationFailed()">Simulate "Validation failed" Error</button>
+        <div id="step1-result" class="log"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>🔍 Step 2: Check What's in the Console</h3>
+        <p>Open your browser's Developer Tools (F12) and check the Console tab for any error messages.</p>
+        <button class="btn" onclick="checkConsole()">Check Console for Errors</button>
+        <div id="step2-result" class="log"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>🌐 Step 3: Test Network Requests</h3>
+        <p>This will simulate what happens when you submit the branch form:</p>
+        <button class="btn" onclick="testNetworkRequest()">Test Network Request</button>
+        <div id="step3-result" class="log"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>📋 Step 4: Check Form Data</h3>
+        <p>Let's see what data would be sent in the branch form:</p>
+        <button class="btn" onclick="checkFormData()">Check Form Data</button>
+        <div id="step4-result" class="log"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>🎯 Step 5: Identify the Real Problem</h3>
+        <p>Based on the above tests, we can identify what's causing the error:</p>
+        <div id="step5-result" class="log"></div>
+    </div>
+
+    <script>
+        let debugLog = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            debugLog.push(logEntry);
+            
+            console.log(logEntry);
+            
+            // Update display
+            const logDiv = document.getElementById('step5-result');
+            if (logDiv) {
+                logDiv.innerHTML = debugLog.map(entry => {
+                    if (entry.includes('ERROR')) return `<span class="error">${entry}</span>`;
+                    if (entry.includes('SUCCESS')) return `<span class="success">${entry}</span>`;
+                    if (entry.includes('WARNING')) return `<span class="warning">${entry}</span>`;
+                    return entry;
+                }).join('\n');
+            }
+        }
+        
+        // Step 1: Simulate the exact error
+        function simulateValidationFailed() {
+            const resultDiv = document.getElementById('step1-result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                // This is what you're currently seeing
+                alert("Validation failed.");
+                
+                resultDiv.innerHTML = '✅ Alert shown successfully. This confirms the JavaScript is working.';
+                log('SUCCESS: Alert "Validation failed" shown successfully');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `❌ Error showing alert: ${error.message}`;
+                log(`ERROR: Failed to show alert: ${error.message}`);
+            }
+        }
+        
+        // Step 2: Check console for errors
+        function checkConsole() {
+            const resultDiv = document.getElementById('step2-result');
+            resultDiv.innerHTML = 'Checking console...';
+            
+            // Simulate some console errors that might be happening
+            console.error('This is a test error message');
+            console.warn('This is a test warning message');
+            
+            resultDiv.innerHTML = `
+✅ Console check completed.
+📝 Check your browser's Developer Tools (F12) → Console tab
+🔍 Look for any red error messages or warnings
+📋 Copy any error messages you see and share them
+            `;
+            
+            log('SUCCESS: Console check completed');
+        }
+        
+        // Step 3: Test network request
+        function testNetworkRequest() {
+            const resultDiv = document.getElementById('step3-result');
+            resultDiv.innerHTML = 'Testing network request...';
+            
+            // Simulate what happens when you submit the branch form
+            const testData = {
+                code: 'BRN001',
+                name: 'GUDIVADA',
+                company: 'gdzzzz',
+                phone: '7674988604'
+            };
+            
+            // Try to make a request to see what happens
+            fetch('/branch/create/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(testData)
+            })
+            .then(response => {
+                log(`SUCCESS: Network request completed with status: ${response.status}`);
+                return response.text();
+            })
+            .then(data => {
+                resultDiv.innerHTML = `
+✅ Network request completed successfully
+📊 Response status: 200 (or other)
+📄 Response data: ${data.substring(0, 200)}...
+🔍 Check Network tab in Developer Tools for more details
+                `;
+                log(`SUCCESS: Response data received: ${data.substring(0, 100)}...`);
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `
+❌ Network request failed
+🚨 Error: ${error.message}
+🔍 This suggests a network/server issue
+                `;
+                log(`ERROR: Network request failed: ${error.message}`);
+            });
+        }
+        
+        // Step 4: Check form data
+        function checkFormData() {
+            const resultDiv = document.getElementById('step4-result');
+            
+            const mockFormData = {
+                'code': 'BRN001',
+                'name': 'GUDIVADA', 
+                'company': 'gdzzzz',
+                'open_date': '01/10/2025',
+                'status': 'active',
+                'phone': '7674988604',
+                'address1': 'Tadipatri, 515411',
+                'district': 'Anantapur'
+            };
+            
+            resultDiv.innerHTML = `
+✅ Form data check completed
+📋 This is what would be sent to the server:
+${JSON.stringify(mockFormData, null, 2)}
+
+🔍 Check if any of these fields have validation rules:
+• code: Must be unique
+• name: Required
+• company: Required (foreign key)
+• phone: Must be 10 digits
+• open_date: Must be valid date format
+            `;
+            
+            log('SUCCESS: Form data check completed');
+        }
+        
+        // Initialize
+        window.addEventListener('load', function() {
+            log('SUCCESS: Debug page loaded successfully');
+            log('WARNING: Open Developer Tools (F12) to see console messages');
+            log('INFO: Click each step button to debug the validation issue');
+        });
+        
+        // Override alert to catch "Validation failed"
+        const originalAlert = window.alert;
+        window.alert = function(message) {
+            if (message === "Validation failed." || message.includes("Validation failed")) {
+                log(`WARNING: "Validation failed" alert caught: "${message}"`);
+                log('INFO: This suggests the error is coming from JavaScript validation');
+            }
+            
+            // Call original alert
+            originalAlert(message);
+        };
+    </script>
+</body>
+</html>

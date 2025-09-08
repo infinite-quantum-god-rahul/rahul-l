@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Branch Form Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .debug-section { background: white; margin: 20px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .btn { padding: 12px 24px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .result { background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 4px; margin: 10px 0; font-family: monospace; white-space: pre-wrap; }
+        .error { color: #dc3545; }
+        .success { color: #28a745; }
+        .warning { color: #ffc107; }
+        .form-control { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Direct Branch Form Debug</h1>
+    <p>This page directly tests the Branch form to see what HTML is generated.</p>
+    
+    <div class="debug-section">
+        <h3>🚨 Test Branch Form Creation</h3>
+        <p>Create a test Branch form and inspect the HTML:</p>
+        <button class="btn btn-success" onclick="createBranchForm()">Create Branch Form</button>
+        <button class="btn btn-danger" onclick="clearResults()">Clear Results</button>
+        <div id="form-creation-result" class="result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>📋 Generated HTML Inspection</h3>
+        <p>Inspect the actual HTML attributes:</p>
+        <div id="html-inspection-result" class="result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>🔧 Required Attribute Test</h3>
+        <p>Test if required attributes are working correctly:</p>
+        <div id="required-test-result" class="result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>🌐 Live Branch Form Test</h3>
+        <p>Try to open the actual Branch form:</p>
+        <button class="btn btn-success" onclick="openLiveBranchForm()">Open Live Branch Form</button>
+        <div id="live-form-result" class="result"></div>
+    </div>
+
+    <script>
+        // Create a test Branch form
+        function createBranchForm() {
+            const resultDiv = document.getElementById('form-creation-result');
+            resultDiv.innerHTML = 'Creating test Branch form...';
+            
+            try {
+                // Create a form container
+                const formContainer = document.createElement('div');
+                formContainer.id = 'test-branch-form';
+                
+                // Create form fields based on what we expect from forms_spec.py
+                const fields = [
+                    { name: 'code', type: 'text', required: true, label: 'Branch Code' },
+                    { name: 'name', type: 'text', required: true, label: 'Branch Name' },
+                    { name: 'company', type: 'select', required: true, label: 'Company' },
+                    { name: 'open_date', type: 'text', required: false, label: 'Open Date' },
+                    { name: 'phone', type: 'text', required: false, label: 'Phone' },
+                    { name: 'address1', type: 'text', required: false, label: 'Address' },
+                    { name: 'district', type: 'text', required: false, label: 'District' }
+                ];
+                
+                let formHTML = '';
+                fields.forEach(field => {
+                    const requiredAttr = field.required ? 'required="required"' : '';
+                    const dataRequiredAttr = field.required ? 'data-required="true"' : '';
+                    
+                    if (field.type === 'select') {
+                        formHTML += `
+                            <div class="form-group">
+                                <label for="${field.name}">${field.label} ${field.required ? '<span class="required">*</span>' : ''}</label>
+                                <select name="${field.name}" id="${field.name}" class="form-control" ${requiredAttr} ${dataRequiredAttr}>
+                                    <option value="">Select ${field.label}</option>
+                                    <option value="1">Test Option 1</option>
+                                    <option value="2">Test Option 2</option>
+                                </select>
+                            </div>
+                        `;
+                    } else if (field.name === 'open_date') {
+                        formHTML += `
+                            <div class="form-group">
+                                <label for="${field.name}">${field.label}</label>
+                                <input type="text" name="${field.name}" id="${field.name}" class="form-control date-field" placeholder="dd/mm/yyyy" ${requiredAttr} ${dataRequiredAttr}>
+                                <small class="form-text">Enter branch opening date</small>
+                            </div>
+                        `;
+                    } else {
+                        formHTML += `
+                            <div class="form-group">
+                                <label for="${field.name}">${field.label} ${field.required ? '<span class="required">*</span>' : ''}</label>
+                                <input type="${field.type}" name="${field.name}" id="${field.name}" class="form-control" ${requiredAttr} ${dataRequiredAttr}>
+                            </div>
+                        `;
+                    }
+                });
+                
+                formContainer.innerHTML = `
+                    <form id="test-form">
+                        <h4>Test Branch Form</h4>
+                        ${formHTML}
+                        <button type="submit" class="btn btn-success">Submit</button>
+                    </form>
+                `;
+                
+                // Add to page
+                document.body.appendChild(formContainer);
+                
+                resultDiv.innerHTML = `
+✅ Test Branch form created successfully!
+📋 Form ID: test-branch-form
+📋 Fields created: ${fields.length}
+🎉 Now inspect the HTML below
+                `;
+                
+                // Auto-inspect the HTML
+                setTimeout(() => {
+                    inspectHTML();
+                }, 500);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+❌ Error creating test form
+🚨 Error: ${error.message}
+                `;
+            }
+        }
+        
+        // Inspect the generated HTML
+        function inspectHTML() {
+            const resultDiv = document.getElementById('html-inspection-result');
+            resultDiv.innerHTML = 'Inspecting HTML...';
+            
+            try {
+                const form = document.getElementById('test-form');
+                if (!form) {
+                    resultDiv.innerHTML = '❌ Test form not found';
+                    return;
+                }
+                
+                let result = '📋 HTML Inspection Results:\n\n';
+                
+                // Check all input fields
+                const inputs = form.querySelectorAll('input, select');
+                result += `Found ${inputs.length} form fields:\n\n`;
+                
+                inputs.forEach((input, index) => {
+                    const name = input.name;
+                    const required = input.hasAttribute('required');
+                    const requiredValue = input.getAttribute('required');
+                    const dataRequired = input.getAttribute('data-required');
+                    const placeholder = input.placeholder || 'N/A';
+                    
+                    result += `Field ${index + 1}: ${name}\n`;
+                    result += `  - Required attribute: ${required}\n`;
+                    result += `  - Required value: "${requiredValue}"\n`;
+                    result += `  - Data required: "${dataRequired}"\n`;
+                    result += `  - Placeholder: "${placeholder}"\n`;
+                    
+                    // Check for the specific issue
+                    if (requiredValue === 'True') {
+                        result += `  ❌ PROBLEM: required=True (Python boolean)\n`;
+                    } else if (requiredValue === 'required') {
+                        result += `  ✅ GOOD: required="required" (string)\n`;
+                    } else if (requiredValue === null) {
+                        result += `  ⚠️ WARNING: No required attribute\n`;
+                    }
+                    
+                    result += '\n';
+                });
+                
+                resultDiv.innerHTML = result;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+❌ Error inspecting HTML
+🚨 Error: ${error.message}
+                `;
+            }
+        }
+        
+        // Test required attributes
+        function testRequiredAttributes() {
+            const resultDiv = document.getElementById('required-test-result');
+            resultDiv.innerHTML = 'Testing required attributes...';
+            
+            try {
+                const form = document.getElementById('test-form');
+                if (!form) {
+                    resultDiv.innerHTML = '❌ Test form not found. Create it first.';
+                    return;
+                }
+                
+                let result = '🔧 Required Attribute Test:\n\n';
+                
+                // Test 1: Check if we can access attributes without errors
+                const requiredInputs = form.querySelectorAll('[required]');
+                result += `Found ${requiredInputs.length} required fields\n\n`;
+                
+                let errorCount = 0;
+                requiredInputs.forEach((input, index) => {
+                    try {
+                        const requiredValue = input.getAttribute('required');
+                        const dataRequired = input.getAttribute('data-required');
+                        
+                        result += `Field ${index + 1}: ${input.name}\n`;
+                        result += `  - Required value: "${requiredValue}"\n`;
+                        result += `  - Data required: "${dataRequired}"\n`;
+                        
+                        if (requiredValue === 'True') {
+                            result += `  ❌ This will cause "True is not defined" error!\n`;
+                            errorCount++;
+                        } else if (requiredValue === 'required') {
+                            result += `  ✅ This should work correctly\n`;
+                        }
+                        
+                        result += '\n';
+                        
+                    } catch (error) {
+                        result += `  ❌ Error accessing field: ${error.message}\n\n`;
+                        errorCount++;
+                    }
+                });
+                
+                if (errorCount === 0) {
+                    result += '🎉 All required attributes are working correctly!\n';
+                    result += '✅ No "True is not defined" errors should occur\n';
+                } else {
+                    result += `🚨 Found ${errorCount} problematic required attributes\n`;
+                    result += '❌ These will cause JavaScript errors\n';
+                }
+                
+                resultDiv.innerHTML = result;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+❌ Error testing required attributes
+🚨 Error: ${error.message}
+                `;
+            }
+            }
+        
+        // Try to open the live Branch form
+        function openLiveBranchForm() {
+            const resultDiv = document.getElementById('live-form-result');
+            resultDiv.innerHTML = 'Attempting to open live Branch form...';
+            
+            try {
+                // This simulates what happens when opening the Branch form
+                const testForm = document.createElement('form');
+                testForm.id = 'entity-form';
+                testForm.dataset.entity = 'Branch';
+                
+                // Add test fields with the problematic required=True
+                const codeField = document.createElement('input');
+                codeField.name = 'code';
+                codeField.required = true;
+                codeField.setAttribute('required', 'True'); // Simulate the problem
+                codeField.setAttribute('data-required', 'true');
+                
+                const nameField = document.createElement('input');
+                nameField.name = 'name';
+                nameField.required = true;
+                nameField.setAttribute('required', 'True'); // Simulate the problem
+                nameField.setAttribute('data-required', 'true');
+                
+                testForm.appendChild(codeField);
+                testForm.appendChild(nameField);
+                document.body.appendChild(testForm);
+                
+                let result = '🌐 Live Branch Form Test:\n\n';
+                result += '✅ Test form created successfully\n';
+                result += `📋 Form entity: ${testForm.dataset.entity}\n`;
+                
+                // Test if we can access the required attributes without errors
+                try {
+                    const codeRequired = codeField.getAttribute('required');
+                    const nameRequired = nameField.getAttribute('required');
+                    
+                    result += `📋 Code required value: "${codeRequired}"\n`;
+                    result += `📋 Name required value: "${nameRequired}"\n`;
+                    
+                    if (codeRequired === 'True' || nameRequired === 'True') {
+                        result += '❌ PROBLEM: required=True will cause JavaScript error!\n';
+                        result += '🚨 This is exactly what we need to fix\n';
+                    } else {
+                        result += '✅ No problems detected\n';
+                    }
+                    
+                } catch (error) {
+                    result += `❌ Error accessing attributes: ${error.message}\n`;
+                    result += '🚨 This confirms the "True is not defined" error\n';
+                }
+                
+                // Clean up
+                document.body.removeChild(testForm);
+                
+                resultDiv.innerHTML = result;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+❌ Live form test failed
+🚨 Error: ${error.message}
+                `;
+            }
+        }
+        
+        // Clear all results
+        function clearResults() {
+            document.getElementById('form-creation-result').innerHTML = '';
+            document.getElementById('html-inspection-result').innerHTML = '';
+            document.getElementById('required-test-result').innerHTML = '';
+            document.getElementById('live-form-result').innerHTML = '';
+            
+            // Remove test form if it exists
+            const testForm = document.getElementById('test-branch-form');
+            if (testForm) {
+                document.body.removeChild(testForm);
+            }
+        }
+        
+        // Initialize
+        window.addEventListener('load', function() {
+            console.log('Direct Branch Form Debug page loaded');
+            console.log('Ready to debug the Branch form issues directly');
+        });
+    </script>
+</body>
+</html>

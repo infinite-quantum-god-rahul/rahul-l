@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Fixes Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 20px; margin: 5px; background-color: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Form Fixes Test Suite</h1>
+    
+    <div class="test-section info">
+        <h3>📋 Test Summary</h3>
+        <p>This test suite verifies that the form fixes are working correctly:</p>
+        <ul>
+            <li>✅ Removed extra__ prefix from form fields</li>
+            <li>✅ Fixed mortgage fields showing empty in edit mode</li>
+            <li>🔄 Testing server save functionality</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h3>🔗 Test Links</h3>
+        <button onclick="testBranchForm()">Test Branch Form</button>
+        <button onclick="testMortgageForm()">Test Mortgage Form</button>
+        <button onclick="testCompanyForm()">Test Company Form</button>
+        <button onclick="testUserProfile()">Test UserProfile</button>
+    </div>
+
+    <div class="test-section">
+        <h3>📊 Test Results</h3>
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        const baseUrl = 'https://127.0.0.1:8001';
+        
+        function addTestResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        async function testBranchForm() {
+            addTestResult('Testing Branch Form...', 'info');
+            try {
+                const response = await fetch(`${baseUrl}/branch/get/`);
+                if (response.ok) {
+                    addTestResult('✅ Branch Form loaded successfully', 'success');
+                } else {
+                    addTestResult(`❌ Branch Form failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addTestResult(`❌ Branch Form error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMortgageForm() {
+            addTestResult('Testing Mortgage Form...', 'info');
+            try {
+                const response = await fetch(`${baseUrl}/mortgage/get/`);
+                if (response.ok) {
+                    addTestResult('✅ Mortgage Form loaded successfully', 'success');
+                } else {
+                    addTestResult(`❌ Mortgage Form failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addTestResult(`❌ Mortgage Form error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCompanyForm() {
+            addTestResult('Testing Company Form...', 'info');
+            try {
+                const response = await fetch(`${baseUrl}/company/get/`);
+                if (response.ok) {
+                    addTestResult('✅ Company Form loaded successfully', 'success');
+                } else {
+                    addTestResult(`❌ Company Form failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addTestResult(`❌ Company Form error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testUserProfile() {
+            addTestResult('Testing UserProfile...', 'info');
+            try {
+                const response = await fetch(`${baseUrl}/userprofile/get/`);
+                if (response.ok) {
+                    addTestResult('✅ UserProfile loaded successfully', 'success');
+                } else {
+                    addTestResult(`❌ UserProfile failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addTestResult(`❌ UserProfile error: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run basic tests on page load
+        window.onload = function() {
+            addTestResult('🚀 Form Fixes Test Suite loaded', 'success');
+            addTestResult('Click the test buttons above to verify form functionality', 'info');
+        };
+    </script>
+</body>
+</html>

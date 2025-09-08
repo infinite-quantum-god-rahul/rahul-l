@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Branch Form</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .debug-section { background: white; margin: 20px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .btn { padding: 12px 24px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .result { background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 4px; margin: 10px 0; font-family: monospace; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <h1>🐛 Debug Branch Form Issues</h1>
+    <p>This page helps debug why the Branch form is still showing errors.</p>
+    
+    <div class="debug-section">
+        <h3>🔍 Check JavaScript File Versions</h3>
+        <p>Check which version of JavaScript files are being loaded:</p>
+        <button class="btn btn-success" onclick="checkJavaScriptVersions()">Check JavaScript Versions</button>
+        <div id="js-versions-result" class="result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>📅 Test Date Field Fix</h3>
+        <p>Test if the date field fix is working:</p>
+        <button class="btn btn-success" onclick="testDateFieldFix()">Test Date Field Fix</button>
+        <div id="date-fix-result" class="result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>🚨 Test JavaScript Error Fix</h3>
+        <p>Test if the JavaScript error fix is working:</p>
+        <button class="btn btn-success" onclick="testJavaScriptErrorFix()">Test JavaScript Error Fix</button>
+        <div id="js-error-result" class="result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>🌐 Check Network Requests</h3>
+        <p>Check if the correct JavaScript files are being loaded:</p>
+        <button class="btn btn-success" onclick="checkNetworkRequests()">Check Network Requests</button>
+        <div id="network-result" class="result"></div>
+    </div>
+
+    <script>
+        // Check JavaScript file versions
+        function checkJavaScriptVersions() {
+            const resultDiv = document.getElementById('js-versions-result');
+            resultDiv.innerHTML = 'Checking...';
+            
+            let result = '🔍 JavaScript File Versions:\n\n';
+            
+            // Check if formatDateFields function exists and its source
+            if (typeof window.formatDateFields === 'function') {
+                result += '✅ formatDateFields function exists\n';
+                result += `📋 Function source: ${window.formatDateFields.toString().slice(0, 100)}...\n`;
+                
+                // Check if it has the fix
+                const functionText = window.formatDateFields.toString();
+                if (functionText.includes('Only set placeholder if it doesn\'t already have one')) {
+                    result += '✅ Date field fix is present\n';
+                } else {
+                    result += '❌ Date field fix is missing\n';
+                }
+            } else {
+                result += '❌ formatDateFields function not found\n';
+            }
+            
+            // Check other functions
+            const functions = ['addMasks', 'initPhoneInputs', 'setupPermissionSelectAll'];
+            functions.forEach(funcName => {
+                if (typeof window[funcName] === 'function') {
+                    result += `✅ ${funcName} function exists\n`;
+                } else {
+                    result += `❌ ${funcName} function not found\n`;
+                }
+            });
+            
+            resultDiv.innerHTML = result.replace(/\n/g, '<br>');
+        }
+        
+        // Test date field fix
+        function testDateFieldFix() {
+            const resultDiv = document.getElementById('date-fix-result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            // Create a test date field
+            const testField = document.createElement('input');
+            testField.className = 'date-field';
+            testField.placeholder = 'dd/mm/yyyy';
+            testField.name = 'test_date';
+            
+            // Simulate the formatDateFields function
+            if (typeof window.formatDateFields === 'function') {
+                // Call the function
+                window.formatDateFields();
+                
+                resultDiv.innerHTML = `
+✅ Date field fix test completed
+📋 Test field placeholder: "${testField.placeholder}"
+📋 Function called successfully
+🎉 If you see this, the fix should be working
+                `;
+            } else {
+                resultDiv.innerHTML = `
+❌ Cannot test date field fix
+🚨 formatDateFields function not available
+                `;
+            }
+        }
+        
+        // Test JavaScript error fix
+        function testJavaScriptErrorFix() {
+            const resultDiv = document.getElementById('js-error-result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            let result = '🚨 JavaScript Error Fix Test:\n\n';
+            
+            try {
+                // Test 1: Create form field with required attribute
+                const testField = document.createElement('input');
+                testField.required = true;
+                testField.setAttribute('data-required', 'true');
+                
+                result += '✅ Form field creation successful\n';
+                result += `📋 Required attribute: ${testField.hasAttribute('required')}\n`;
+                result += `📋 Data required: ${testField.getAttribute('data-required')}\n`;
+                
+                // Test 2: Check if we can access attributes without errors
+                const requiredAttr = testField.getAttribute('required');
+                const dataRequiredAttr = testField.getAttribute('data-required');
+                
+                result += `📋 Required attr value: "${requiredAttr}"\n`;
+                result += `📋 Data required value: "${dataRequiredAttr}"\n`;
+                result += '✅ No JavaScript errors occurred\n';
+                result += '🎉 The "True is not defined" error should be fixed!\n';
+                
+            } catch (error) {
+                result += `❌ JavaScript error occurred: ${error.message}\n`;
+                result += '🚨 The fix is not working yet\n';
+            }
+            
+            resultDiv.innerHTML = result.replace(/\n/g, '<br>');
+        }
+        
+        // Check network requests
+        function checkNetworkRequests() {
+            const resultDiv = document.getElementById('network-result');
+            resultDiv.innerHTML = 'Checking...';
+            
+            let result = '🌐 Network Request Check:\n\n';
+            
+            // Check if we can access the current page's scripts
+            const scripts = document.querySelectorAll('script[src]');
+            result += `📋 Found ${scripts.length} script tags with src\n\n`;
+            
+            scripts.forEach((script, index) => {
+                const src = script.src;
+                result += `Script ${index + 1}: ${src}\n`;
+                
+                // Check if it's one of our target files
+                if (src.includes('script.js')) {
+                    result += '  📁 This is script.js\n';
+                } else if (src.includes('forms.validation.js')) {
+                    result += '  📁 This is forms.validation.js\n';
+                } else if (src.includes('branch_validation_fix.js')) {
+                    result += '  📁 This is branch_validation_fix.js\n';
+                }
+                result += '\n';
+            });
+            
+            // Check if we can see the formatDateFields function
+            if (typeof window.formatDateFields === 'function') {
+                result += '✅ formatDateFields function is available\n';
+                result += '🎉 JavaScript files are loading correctly\n';
+            } else {
+                result += '❌ formatDateFields function not found\n';
+                result += '🚨 JavaScript files may not be loading\n';
+            }
+            
+            resultDiv.innerHTML = result.replace(/\n/g, '<br>');
+        }
+        
+        // Initialize
+        window.addEventListener('load', function() {
+            console.log('Debug Branch Form page loaded');
+            console.log('Ready to debug the Branch form issues');
+            
+            // Auto-run JavaScript versions check
+            setTimeout(() => {
+                checkJavaScriptVersions();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

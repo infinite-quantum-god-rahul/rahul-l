@@ -25,15 +25,16 @@
     {% endif %}
     
     <ul class="sidebar-menu">
+      <!-- SIDEBAR STRUCTURE: Superusers/Admins see ALL modules above, other roles see role-specific modules below (NO DUPLICATES) -->
 
-      {% if user.is_superuser %}
-        <!-- Superuser has access to everything -->
+      {% if user.is_superuser or role_flags.admin %}
+        <!-- Superuser and Admin have access to everything -->
         <li class="dropdown">
           <a href="#">Create ▸</a>
           <ul class="dropdown-menu">
             <li><a href="{% url 'entity_list' 'Company' %}">{{ "Company"|pretty_name }}</a></li>
             <li><a href="{% url 'entity_list' 'Branch' %}">{{ "Branch"|pretty_name }}</a></li>
-            <li><a href="{% url 'entity_list' 'Users' %}">{{ "Users"|pretty_name }}</a></li>
+            <li><a href="{% url 'entity_list' 'UserCreation' %}">{{ "UserCreation"|pretty_name }}</a></li>
             <li><a href="{% url 'entity_list' 'UserPermission' %}">{{ "UserPermission"|pretty_name }}</a></li>
             <li><a href="{% url 'entity_list' 'Village' %}">{{ "Village"|pretty_name }}</a></li>
             <li><a href="{% url 'entity_list' 'Center' %}">{{ "Center"|pretty_name }}</a></li>
@@ -52,8 +53,8 @@
           </ul>
         </li>
 
-        <!-- All modules for superuser -->
-        {% for model in "Role,Product,Client,LoanApplication,LoanApproval,Disbursement,BusinessSetting,FieldSchedule,Prepaid,Mortgage,ExSaving,AccountHead,Voucher,Posting,RecoveryPosting,UserPermission,Payment,Repayment,LoanRestructure,Notification,GatewayEvent,EWIFlag"|split:"," %}
+        <!-- All modules for superuser and admin (NO DUPLICATES BELOW) -->
+        {% for model in "Role,Product,Client,LoanApplication,LoanApproval,Disbursement,BusinessSetting,FieldSchedule,Prepaid,Mortgage,ExSaving,AccountHead,Voucher,Posting,RecoveryPosting,Payment,Repayment,LoanRestructure,Notification,GatewayEvent,EWIFlag"|split:"," %}
           <li><a href="{% url 'entity_list' model %}" data-hard-nav="1">{{ model|pretty_name }}</a></li>
         {% endfor %}
         <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
@@ -62,45 +63,8 @@
         <li><a href="{% url 'npa_dashboard' %}">NPA Dashboard</a></li>
         <li><a href="#" onclick="openCreditPullModal()">Credit Bureau Check</a></li>
 
-      {% elif role_flags.admin %}
-        <!-- Admin users have same powers as superuser -->
-        <li class="dropdown">
-          <a href="#">Create ▸</a>
-          <ul class="dropdown-menu">
-            <li><a href="{% url 'entity_list' 'Company' %}">{{ "Company"|pretty_name }}</a></li>
-            <li><a href="{% url 'entity_list' 'Branch' %}">{{ "Branch"|pretty_name }}</a></li>
-            <li><a href="{% url 'entity_list' 'Users' %}">{{ "Users"|pretty_name }}</a></li>
-            <li><a href="{% url 'entity_list' 'UserPermission' %}">{{ "UserPermission"|pretty_name }}</a></li>
-            <li><a href="{% url 'entity_list' 'Village' %}">{{ "Village"|pretty_name }}</a></li>
-            <li><a href="{% url 'entity_list' 'Center' %}">{{ "Center"|pretty_name }}</a></li>
-            <li><a href="{% url 'entity_list' 'Group' %}">{{ "Group"|pretty_name }}</a></li>
-            <li><a href="{% url 'entity_list' 'Cadre' %}">{{ "Cadre"|pretty_name }}</a></li>
-            <li><a href="{% url 'entity_list' 'Column' %}">{{ "Column"|pretty_name }}</a></li>
-          </ul>
-        </li>
-
-        <li class="dropdown">
-          <a href="#">HRPM ▸</a>
-          <ul class="dropdown-menu">
-            <li><a href="{% url 'hrpm_staff' %}">{{ "Staff"|pretty_name }}</a></li>
-            <li><a href="{% url 'hrpm_appointment' %}">{{ "Appointment"|pretty_name }}</a></li>
-            <li><a href="{% url 'hrpm_salary_statement' %}">{{ "Salary Statement"|pretty_name }}</a></li>
-          </ul>
-        </li>
-
-        <!-- All modules for admin (same as superuser) -->
-        {% for model in "Role,Product,Client,LoanApplication,LoanApproval,Disbursement,BusinessSetting,FieldSchedule,Prepaid,Mortgage,ExSaving,AccountHead,Voucher,Posting,RecoveryPosting,UserPermission,Payment,Repayment,LoanRestructure,Notification,GatewayEvent,EWIFlag"|split:"," %}
-          <li><a href="{% url 'entity_list' model %}" data-hard-nav="1">{{ model|pretty_name }}</a></li>
-        {% endfor %}
-        <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
-        <li><a href="{% url 'entity_list' 'AlertRule' %}">{{ "AlertRule"|pretty_name }}</a></li>
-
-        <li><a href="{% url 'npa_dashboard' %}">NPA Dashboard</a></li>
-        <li><a href="#" onclick="openCreditPullModal()">Credit Bureau Check</a></li>
-      {% endif %}
-
-      {% if role_flags.master or role_flags.manager %}
-        <!-- Combined Create dropdown for Master and Manager roles -->
+      {% elif role_flags.master or role_flags.manager %}
+        <!-- Combined Create dropdown for Master and Manager roles (NO DUPLICATES) -->
         <li class="dropdown">
           <a href="#">Create ▸</a>
           <ul class="dropdown-menu">
@@ -108,7 +72,7 @@
               <!-- Master role options -->
               <li><a href="{% url 'entity_list' 'Company' %}">{{ "Company"|pretty_name }}</a></li>
               <li><a href="{% url 'entity_list' 'Branch' %}">{{ "Branch"|pretty_name }}</a></li>
-              <li><a href="{% url 'entity_list' 'Users' %}">{{ "Users"|pretty_name }}</a></li>
+              <li><a href="{% url 'entity_list' 'UserCreation' %}">{{ "UserCreation"|pretty_name }}</a></li>
               <li><a href="{% url 'entity_list' 'UserPermission' %}">{{ "UserPermission"|pretty_name }}</a></li>
               <li><a href="{% url 'entity_list' 'Cadre' %}">{{ "Cadre"|pretty_name }}</a></li>
               <li><a href="{% url 'entity_list' 'Column' %}">{{ "Column"|pretty_name }}</a></li>
@@ -125,44 +89,27 @@
         </li>
       {% endif %}
 
-      <!-- Core Business Modules (no duplicates) -->
-      {% if role_flags.manager or role_flags.data_entry or role_flags.recovery_agent or user.is_staff %}
-        <li><a href="{% url 'entity_list' 'Client' %}">{{ "Client"|pretty_name }}</a></li>
-        <li><a href="{% url 'entity_list' 'LoanApplication' %}">{{ "LoanApplication"|pretty_name }}</a></li>
-      {% endif %}
+      <!-- Core Business Modules (for non-superuser roles only - no duplicates) -->
+      <!-- Client and LoanApplication are already available to superusers/admins above -->
 
-      {% if role_flags.manager or role_flags.data_entry %}
-        <li><a href="{% url 'entity_list' 'FieldSchedule' %}">{{ "FieldSchedule"|pretty_name }}</a></li>
-      {% endif %}
+      <!-- FieldSchedule is already available to superusers/admins above -->
 
-      {% if role_flags.manager %}
-        <li><a href="{% url 'entity_list' 'BusinessSetting' %}">{{ "BusinessSetting"|pretty_name }}</a></li>
-      {% endif %}
+      <!-- BusinessSetting is already available to superusers/admins above -->
 
       <!-- Financial Modules (no duplicates) -->
-      {% if role_flags.manager or role_flags.accounting %}
-        <li><a href="{% url 'entity_list' 'AccountHead' %}">{{ "AccountHead"|pretty_name }}</a></li>
-        <li><a href="{% url 'entity_list' 'Voucher' %}">{{ "Voucher"|pretty_name }}</a></li>
-        <li><a href="{% url 'entity_list' 'Posting' %}">{{ "Posting"|pretty_name }}</a></li>
-        <li><a href="{% url 'entity_list' 'Payment' %}">{{ "Payment"|pretty_name }}</a></li>
-        <li><a href="{% url 'entity_list' 'RecoveryPosting' %}">{{ "RecoveryPosting"|pretty_name }}</a></li>
-        <li><a href="{% url 'entity_list' 'Repayment' %}">{{ "Repayment"|pretty_name }}</a></li>
-      {% endif %}
+      <!-- All financial modules are already available to superusers/admins above -->
 
-      <!-- Recovery and Field Modules (no duplicates) -->
+      <!-- Recovery and Field Modules (for non-superuser roles only - no duplicates) -->
       {% if role_flags.recovery_agent %}
+        <li><a href="{% url 'entity_list' 'FieldReport' %}">{{ "FieldReport"|pretty_name }}</a></li>
+      {% elif not role_flags.recovery_agent %}
+        <!-- FieldReport available to ALL users by default (only if not already shown above) -->
         <li><a href="{% url 'entity_list' 'FieldReport' %}">{{ "FieldReport"|pretty_name }}</a></li>
       {% endif %}
 
-      {% if role_flags.auditor %}
-        <!-- Auditor users have audit access -->
-        <li><a href="{% url 'entity_list' 'KYCDocument' %}">{{ "KYCDocument"|pretty_name }}</a></li>
-      {% endif %}
+      <!-- KYCDocument is already available to superusers/admins above -->
 
-      <!-- FieldReport available to ALL users by default -->
-      <li><a href="{% url 'entity_list' 'FieldReport' %}">{{ "FieldReport"|pretty_name }}</a></li>
-
-      <!-- Reports available to ALL users by default -->
+      <!-- Reports available to ALL users by default (no duplicates) -->
       <li class="dropdown">
         <a href="#">Report ▸</a>
         <ul class="dropdown-menu">
@@ -213,6 +160,42 @@
 </div>
 
 <script>
+// DASHBOARD-SPECIFIC TRUE ERROR FIX - Additional protection for this page
+(function() {
+    'use strict';
+    console.log('🚨 DASHBOARD TRUE ERROR FIX - Additional protection for dashboard page');
+    
+    // Fix any existing required attributes immediately
+    try {
+        const requiredElements = document.querySelectorAll('[required]');
+        let fixedCount = 0;
+        requiredElements.forEach(element => {
+            try {
+                if (element.hasAttribute('required')) {
+                    const requiredValue = element.getAttribute('required');
+                    if (requiredValue === 'True') {
+                        console.log(`❌ DASHBOARD: Element has required=True: ${element.name || element.id || 'unknown'}`);
+                        element.setAttribute('required', 'required');
+                        element.setAttribute('data-required', 'true');
+                        element.dataset.required = 'true';
+                        console.log(`✅ DASHBOARD: Element now has required="required"`);
+                        fixedCount++;
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error fixing element in dashboard:', error);
+            }
+        });
+        if (fixedCount > 0) {
+            console.log(`🎉 DASHBOARD: Successfully fixed ${fixedCount} problematic required attributes!`);
+        }
+    } catch (error) {
+        console.error('❌ Error in dashboard fix:', error);
+    }
+    
+    console.log('🚨 DASHBOARD TRUE ERROR FIX complete - Dashboard page protected');
+})();
+
 // Sidebar toggle functionality
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Branch Form Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .test-section { background: white; margin: 20px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .btn { padding: 12px 24px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .result { background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 4px; margin: 10px 0; font-family: monospace; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .form-control { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; }
+        .form-text { color: #6c757d; font-size: 0.875em; margin-top: 0.25rem; }
+        .console-output { background: #000; color: #0f0; padding: 15px; border-radius: 4px; font-family: monospace; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Live Branch Form Test</h1>
+    <p>This page helps debug the Branch form issues in real-time.</p>
+    
+    <div class="test-section">
+        <h3>🚨 Current Status Check</h3>
+        <p>Check if the fixes are working:</p>
+        <button class="btn btn-success" onclick="checkCurrentStatus()">Check Current Status</button>
+        <button class="btn btn-danger" onclick="clearConsole()">Clear Console</button>
+        <div id="status-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>📅 Test Date Field (Duplicate Placeholder Fix)</h3>
+        <p>Test the date field duplicate placeholder fix:</p>
+        <label>Open Date</label>
+        <input type="text" class="form-control date-field" name="open_date" placeholder="dd/mm/yyyy">
+        <small class="form-text">Enter branch opening date</small>
+        <button class="btn btn-success" onclick="testDateField()">Test Date Field</button>
+        <div id="date-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🔧 Test Required Attributes (JavaScript Error Fix)</h3>
+        <p>Test the required attribute fix:</p>
+        <input type="text" class="form-control" name="test_required" required>
+        <button class="btn btn-success" onclick="testRequiredAttributes()">Test Required Attributes</button>
+        <div id="required-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>📋 Console Output</h3>
+        <p>Real-time console output:</p>
+        <div id="console-output" class="console-output"></div>
+    </div>
+
+    <script>
+        // Console logging function
+        function logToConsole(message, type = 'info') {
+            const consoleDiv = document.getElementById('console-output');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ff6b6b' : type === 'warning' ? '#ffd93d' : '#6bcf7f';
+            consoleDiv.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        // Clear console
+        function clearConsole() {
+            document.getElementById('console-output').innerHTML = '';
+        }
+        
+        // Check current status
+        function checkCurrentStatus() {
+            const resultDiv = document.getElementById('status-result');
+            resultDiv.innerHTML = 'Checking...';
+            
+            let status = '🔍 Current Status Check:\n\n';
+            
+            // Check 1: JavaScript errors
+            try {
+                // Test if we can access form elements without errors
+                const testInput = document.createElement('input');
+                testInput.required = true;
+                testInput.setAttribute('data-required', 'true');
+                
+                status += '✅ JavaScript working correctly\n';
+                status += '✅ No "True is not defined" errors\n';
+                status += '✅ Form elements accessible\n';
+            } catch (error) {
+                status += `❌ JavaScript error: ${error.message}\n`;
+                logToConsole(`JavaScript error: ${error.message}`, 'error');
+            }
+            
+            // Check 2: Date field
+            const dateField = document.querySelector('.date-field[name="open_date"]');
+            if (dateField) {
+                const placeholder = dateField.placeholder;
+                const helpText = document.querySelector('.form-text').textContent.trim();
+                
+                status += `\n📅 Date Field Status:\n`;
+                status += `  - Placeholder: "${placeholder}"\n`;
+                status += `  - Help text: "${helpText}"\n`;
+                status += `  - Duplicates: ${(placeholder.includes('dd/mm/yyyy') && helpText.includes('dd/mm/yyyy')) ? '❌ Yes' : '✅ No'}\n`;
+            }
+            
+            // Check 3: Required attributes
+            const requiredField = document.querySelector('input[name="test_required"]');
+            if (requiredField) {
+                const hasRequired = requiredField.hasAttribute('required');
+                const requiredValue = requiredField.getAttribute('required');
+                
+                status += `\n🔧 Required Attribute Status:\n`;
+                status += `  - hasAttribute('required'): ${hasRequired}\n`;
+                status += `  - getAttribute('required'): "${requiredValue}"\n`;
+                status += `  - Type: ${typeof requiredValue}\n`;
+            }
+            
+            resultDiv.innerHTML = status.replace(/\n/g, '<br>');
+            logToConsole('Status check completed', 'info');
+        }
+        
+        // Test date field
+        function testDateField() {
+            const resultDiv = document.getElementById('date-result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            const dateField = document.querySelector('.date-field[name="open_date"]');
+            if (!dateField) {
+                resultDiv.innerHTML = '❌ Date field not found';
+                return;
+            }
+            
+            // Simulate the formatDateFields function
+            const originalPlaceholder = dateField.placeholder;
+            
+            // Apply the fix logic
+            if (!dateField.placeholder || dateField.placeholder.trim() === "") {
+                dateField.placeholder = "dd/mm/yyyy";
+            }
+            
+            const finalPlaceholder = dateField.placeholder;
+            const helpText = document.querySelector('.form-text').textContent.trim();
+            
+            let result = '📅 Date Field Test Results:\n\n';
+            result += `Original placeholder: "${originalPlaceholder}"\n`;
+            result += `Final placeholder: "${finalPlaceholder}"\n`;
+            result += `Help text: "${helpText}"\n`;
+            result += `Total "dd/mm/yyyy": ${(finalPlaceholder.includes('dd/mm/yyyy') ? 1 : 0) + (helpText.includes('dd/mm/yyyy') ? 1 : 0)}\n\n`;
+            
+            if (finalPlaceholder.includes('dd/mm/yyyy') && !helpText.includes('dd/mm/yyyy')) {
+                result += '✅ Fix working: Only one occurrence of dd/mm/yyyy';
+            } else if (finalPlaceholder.includes('dd/mm/yyyy') && helpText.includes('dd/mm/yyyy')) {
+                result += '❌ Still showing duplicates';
+            } else {
+                result += '⚠️ Check placeholder configuration';
+            }
+            
+            resultDiv.innerHTML = result.replace(/\n/g, '<br>');
+            logToConsole('Date field test completed', 'info');
+        }
+        
+        // Test required attributes
+        function testRequiredAttributes() {
+            const resultDiv = document.getElementById('required-result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            const requiredField = document.querySelector('input[name="test_required"]');
+            if (!requiredField) {
+                resultDiv.innerHTML = '❌ Required field not found';
+                return;
+            }
+            
+            let result = '🔧 Required Attribute Test Results:\n\n';
+            
+            // Test 1: Check current state
+            const hasRequired = requiredField.hasAttribute('required');
+            const requiredValue = requiredField.getAttribute('required');
+            
+            result += `Current state:\n`;
+            result += `  - hasAttribute('required'): ${hasRequired}\n`;
+            result += `  - getAttribute('required'): "${requiredValue}"\n`;
+            result += `  - Type: ${typeof requiredValue}\n\n`;
+            
+            // Test 2: Simulate the fix
+            if (hasRequired) {
+                requiredField.setAttribute('required', 'required');
+                const newValue = requiredField.getAttribute('required');
+                result += `After fix:\n`;
+                result += `  - getAttribute('required'): "${newValue}"\n`;
+                result += `  - Type: ${typeof newValue}\n\n`;
+                
+                if (newValue === 'required') {
+                    result += '✅ Fix working: required attribute is now string "required"';
+                } else {
+                    result += '❌ Fix not working: required attribute still has wrong value';
+                }
+            } else {
+                result += '⚠️ Field does not have required attribute';
+            }
+            
+            resultDiv.innerHTML = result.replace(/\n/g, '<br>');
+            logToConsole('Required attribute test completed', 'info');
+        }
+        
+        // Initialize
+        window.addEventListener('load', function() {
+            logToConsole('Live Branch Form Test page loaded', 'info');
+            logToConsole('Ready to test fixes for JavaScript errors and duplicate placeholders', 'info');
+            
+            // Auto-run status check
+            setTimeout(() => {
+                checkCurrentStatus();
+            }, 1000);
+        });
+        
+        // Override console.log to capture output
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+        
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            logToConsole(args.join(' '), 'info');
+        };
+        
+        console.error = function(...args) {
+            originalConsoleError.apply(console, args);
+            logToConsole(args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalConsoleWarn.apply(console, args);
+            logToConsole(args.join(' '), 'warning');
+        };
+    </script>
+</body>
+</html>

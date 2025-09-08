@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Branch Final Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .test-section { background: white; margin: 20px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .btn { padding: 12px 24px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .result { background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 4px; margin: 10px 0; font-family: monospace; white-space: pre-wrap; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .form-control { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; }
+        .console-output { background: #000; color: #0f0; padding: 15px; border-radius: 4px; font-family: monospace; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Branch Final Fix</h1>
+    <p>This page tests the comprehensive fix for the "True is not defined" error.</p>
+    
+    <div class="test-section">
+        <h3>🚨 Test Problematic Required Attributes</h3>
+        <p>Create form fields with the problematic required=True to test the fix:</p>
+        <button class="btn btn-success" onclick="createProblematicForm()">Create Problematic Form</button>
+        <button class="btn btn-danger" onclick="clearResults()">Clear Results</button>
+        <div id="problematic-form-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🔧 Test Required Attribute Fix</h3>
+        <p>Test if the fix function can resolve the problematic attributes:</p>
+        <button class="btn btn-success" onclick="testRequiredAttributeFix()">Test Required Attribute Fix</button>
+        <div id="required-fix-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>📋 HTML Inspection After Fix</h3>
+        <p>Inspect the HTML attributes after applying the fix:</p>
+        <div id="html-inspection-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🌐 Test Live Branch Form</h3>
+        <p>Test the actual Branch form functionality:</p>
+        <button class="btn btn-success" onclick="testLiveBranchForm()">Test Live Branch Form</button>
+        <div id="live-form-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>📋 Console Output</h3>
+        <p>Real-time console output:</p>
+        <div id="console-output" class="console-output"></div>
+    </div>
+
+    <script>
+        // Console logging function
+        function logToConsole(message, type = 'info') {
+            const consoleDiv = document.getElementById('console-output');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ff6b6b' : type === 'warning' ? '#ffd93d' : '#6bcf7f';
+            consoleDiv.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        // Clear results
+        function clearResults() {
+            document.getElementById('problematic-form-result').innerHTML = '';
+            document.getElementById('required-fix-result').innerHTML = '';
+            document.getElementById('html-inspection-result').innerHTML = '';
+            document.getElementById('live-form-result').innerHTML = '';
+            document.getElementById('console-output').innerHTML = '';
+            
+            // Remove test form if it exists
+            const testForm = document.getElementById('test-problematic-form');
+            if (testForm) {
+                document.body.removeChild(testForm);
+            }
+        }
+        
+        // Create a form with problematic required attributes
+        function createProblematicForm() {
+            const resultDiv = document.getElementById('problematic-form-result');
+            resultDiv.innerHTML = 'Creating problematic form...';
+            
+            try {
+                // Create a form container
+                const formContainer = document.createElement('div');
+                formContainer.id = 'test-problematic-form';
+                
+                // Create form fields with the problematic required=True
+                const fields = [
+                    { name: 'code', type: 'text', required: true, label: 'Branch Code' },
+                    { name: 'name', type: 'text', required: true, label: 'Branch Name' },
+                    { name: 'company', type: 'select', required: true, label: 'Company' },
+                    { name: 'open_date', type: 'text', required: false, label: 'Open Date' }
+                ];
+                
+                let formHTML = '';
+                fields.forEach(field => {
+                    // Intentionally create the problematic required=True
+                    const requiredAttr = field.required ? 'required=True' : '';
+                    const dataRequiredAttr = field.required ? 'data-required="true"' : '';
+                    
+                    if (field.type === 'select') {
+                        formHTML += `
+                            <div class="form-group">
+                                <label for="${field.name}">${field.label} ${field.required ? '<span class="required">*</span>' : ''}</label>
+                                <select name="${field.name}" id="${field.name}" class="form-control" ${requiredAttr} ${dataRequiredAttr}>
+                                    <option value="">Select ${field.label}</option>
+                                    <option value="1">Test Option 1</option>
+                                    <option value="2">Test Option 2</option>
+                                </select>
+                            </div>
+                        `;
+                    } else if (field.name === 'open_date') {
+                        formHTML += `
+                            <div class="form-group">
+                                <label for="${field.name}">${field.label}</label>
+                                <input type="text" name="${field.name}" id="${field.name}" class="form-control date-field" placeholder="dd/mm/yyyy" ${requiredAttr} ${dataRequiredAttr}>
+                                <small class="form-text">Enter branch opening date</small>
+                            </div>
+                        `;
+                    } else {
+                        formHTML += `
+                            <div class="form-group">
+                                <label for="${field.name}">${field.label} ${field.required ? '<span class="required">*</span>' : ''}</label>
+                                <input type="${field.type}" name="${field.name}" id="${field.name}" class="form-control" ${requiredAttr} ${dataRequiredAttr}>
+                            </div>
+                        `;
+                    }
+                });
+                
+                formContainer.innerHTML = `
+                    <form id="problematic-form">
+                        <h4>Problematic Form (required=True)</h4>
+                        ${formHTML}
+                        <button type="submit" class="btn btn-success">Submit</button>
+                    </form>
+                `;
+                
+                // Add to page
+                document.body.appendChild(formContainer);
+                
+                resultDiv.innerHTML = `
+✅ Problematic form created successfully!
+📋 Form ID: test-problematic-form
+📋 Fields created: ${fields.length}
+⚠️ This form has the problematic required=True attributes
+🚨 This will cause "True is not defined" errors
+🎯 Now test the fix function below
+                `;
+                
+                logToConsole('Problematic form created with required=True attributes', 'warning');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+❌ Error creating problematic form
+🚨 Error: ${error.message}
+                `;
+                logToConsole(`Error creating form: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test the required attribute fix
+        function testRequiredAttributeFix() {
+            const resultDiv = document.getElementById('required-fix-result');
+            resultDiv.innerHTML = 'Testing required attribute fix...';
+            
+            try {
+                const form = document.getElementById('problematic-form');
+                if (!form) {
+                    resultDiv.innerHTML = '❌ Problematic form not found. Create it first.';
+                    return;
+                }
+                
+                logToConsole('Testing required attribute fix...', 'info');
+                
+                // Check the current state
+                const requiredInputs = form.querySelectorAll('[required]');
+                let problematicCount = 0;
+                let goodCount = 0;
+                
+                requiredInputs.forEach((input, index) => {
+                    const requiredValue = input.getAttribute('required');
+                    if (requiredValue === 'True') {
+                        problematicCount++;
+                        logToConsole(`Field ${input.name} has required=True (problematic)`, 'error');
+                    } else if (requiredValue === 'required') {
+                        goodCount++;
+                        logToConsole(`Field ${input.name} has required="required" (good)`, 'success');
+                    } else {
+                        logToConsole(`Field ${input.name} has required="${requiredValue}" (unknown)`, 'warning');
+                    }
+                });
+                
+                resultDiv.innerHTML = `
+🔧 Required Attribute Test Results:
+📋 Total required fields: ${requiredInputs.length}
+❌ Problematic fields (required=True): ${problematicCount}
+✅ Good fields (required="required"): ${goodCount}
+
+🎯 Now apply the fix function to resolve the issues
+                `;
+                
+                // Auto-apply the fix if available
+                if (typeof window.fixBranchRequiredAttributes === 'function') {
+                    logToConsole('Auto-applying fix function...', 'info');
+                    setTimeout(() => {
+                        window.fixBranchRequiredAttributes();
+                        setTimeout(inspectHTMLAfterFix, 1000);
+                    }, 500);
+                } else {
+                    logToConsole('Fix function not available, manual fix required', 'warning');
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+❌ Error testing required attributes
+🚨 Error: ${error.message}
+                `;
+                logToConsole(`Error testing required attributes: ${error.message}`, 'error');
+            }
+        }
+        
+        // Inspect HTML after applying the fix
+        function inspectHTMLAfterFix() {
+            const resultDiv = document.getElementById('html-inspection-result');
+            resultDiv.innerHTML = 'Inspecting HTML after fix...';
+            
+            try {
+                const form = document.getElementById('problematic-form');
+                if (!form) {
+                    resultDiv.innerHTML = '❌ Form not found';
+                    return;
+                }
+                
+                logToConsole('Inspecting HTML after fix...', 'info');
+                
+                let result = '📋 HTML Inspection After Fix:\n\n';
+                
+                // Check all input fields
+                const inputs = form.querySelectorAll('input, select');
+                result += `Found ${inputs.length} form fields:\n\n`;
+                
+                let fixedCount = 0;
+                let stillProblematicCount = 0;
+                
+                inputs.forEach((input, index) => {
+                    const name = input.name;
+                    const required = input.hasAttribute('required');
+                    const requiredValue = input.getAttribute('required');
+                    const dataRequired = input.getAttribute('data-required');
+                    
+                    result += `Field ${index + 1}: ${name}\n`;
+                    result += `  - Required attribute: ${required}\n`;
+                    result += `  - Required value: "${requiredValue}"\n`;
+                    result += `  - Data required: "${dataRequired}"\n`;
+                    
+                    // Check if the fix worked
+                    if (requiredValue === 'True') {
+                        result += `  ❌ STILL PROBLEMATIC: required=True (Python boolean)\n`;
+                        stillProblematicCount++;
+                        logToConsole(`Field ${name} still has required=True`, 'error');
+                    } else if (requiredValue === 'required') {
+                        result += `  ✅ FIXED: required="required" (string)\n`;
+                        fixedCount++;
+                        logToConsole(`Field ${name} has been fixed`, 'success');
+                    } else if (requiredValue === null) {
+                        result += `  ⚠️ WARNING: No required attribute\n`;
+                        logToConsole(`Field ${name} has no required attribute`, 'warning');
+                    }
+                    
+                    result += '\n';
+                });
+                
+                result += `📊 Fix Summary:\n`;
+                result += `  - Fields fixed: ${fixedCount}\n`;
+                result += `  - Still problematic: ${stillProblematicCount}\n`;
+                
+                if (stillProblematicCount === 0) {
+                    result += '\n🎉 All problematic required attributes have been fixed!\n';
+                    result += '✅ The "True is not defined" error should no longer occur\n';
+                    logToConsole('All required attributes fixed successfully!', 'success');
+                } else {
+                    result += `\n🚨 ${stillProblematicCount} fields still have problematic attributes\n`;
+                    result += '❌ The fix may not be working completely\n';
+                    logToConsole(`${stillProblematicCount} fields still problematic`, 'error');
+                }
+                
+                resultDiv.innerHTML = result;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+❌ Error inspecting HTML
+🚨 Error: ${error.message}
+                `;
+                logToConsole(`Error inspecting HTML: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test live Branch form
+        function testLiveBranchForm() {
+            const resultDiv = document.getElementById('live-form-result');
+            resultDiv.innerHTML = 'Testing live Branch form...';
+            
+            try {
+                logToConsole('Testing live Branch form...', 'info');
+                
+                // Create a test form that simulates the Branch form
+                const testForm = document.createElement('form');
+                testForm.id = 'entity-form';
+                testForm.dataset.entity = 'Branch';
+                
+                // Add test fields with the problematic required=True
+                const codeField = document.createElement('input');
+                codeField.name = 'code';
+                codeField.required = true;
+                codeField.setAttribute('required', 'True'); // Simulate the problem
+                codeField.setAttribute('data-required', 'true');
+                
+                const nameField = document.createElement('input');
+                nameField.name = 'name';
+                nameField.required = true;
+                nameField.setAttribute('required', 'True'); // Simulate the problem
+                nameField.setAttribute('data-required', 'true');
+                
+                testForm.appendChild(codeField);
+                testForm.appendChild(nameField);
+                document.body.appendChild(testForm);
+                
+                let result = '🌐 Live Branch Form Test:\n\n';
+                result += '✅ Test form created successfully\n';
+                result += `📋 Form entity: ${testForm.dataset.entity}\n`;
+                result += `📋 Code field required: ${codeField.hasAttribute('required')}\n`;
+                result += `📋 Name field required: ${nameField.hasAttribute('required')}\n`;
+                
+                // Test if we can access the required attributes without errors
+                try {
+                    const codeRequired = codeField.getAttribute('required');
+                    const nameRequired = nameField.getAttribute('required');
+                    
+                    result += `📋 Code required value: "${codeRequired}"\n`;
+                    result += `📋 Name required value: "${nameRequired}"\n`;
+                    
+                    if (codeRequired === 'True' || nameRequired === 'True') {
+                        result += '❌ PROBLEM: required=True will cause JavaScript error!\n';
+                        result += '🚨 This is exactly what we need to fix\n';
+                        logToConsole('Live form has problematic required=True attributes', 'error');
+                    } else {
+                        result += '✅ No problems detected\n';
+                        logToConsole('Live form has no problematic attributes', 'success');
+                    }
+                    
+                } catch (error) {
+                    result += `❌ Error accessing attributes: ${error.message}\n`;
+                    result += '🚨 This confirms the "True is not defined" error\n';
+                    logToConsole(`Error accessing attributes: ${error.message}`, 'error');
+                }
+                
+                // Clean up
+                document.body.removeChild(testForm);
+                
+                resultDiv.innerHTML = result;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+❌ Live form test failed
+🚨 Error: ${error.message}
+                `;
+                logToConsole(`Live form test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Initialize
+        window.addEventListener('load', function() {
+            logToConsole('Test Branch Final Fix page loaded', 'info');
+            logToConsole('Ready to test the comprehensive fix for "True is not defined" error', 'info');
+        });
+        
+        // Override console.log to capture output
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+        
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            logToConsole(args.join(' '), 'info');
+        };
+        
+        console.error = function(...args) {
+            originalConsoleError.apply(console, args);
+            logToConsole(args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalConsoleWarn.apply(console, args);
+            logToConsole(args.join(' '), 'warning');
+        };
+    </script>
+</body>
+</html>

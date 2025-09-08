@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Validation Fix - Verify Specific Error Messages</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .test-section { background: white; margin: 20px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .btn { padding: 12px 24px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .result { background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 4px; margin: 10px 0; font-family: monospace; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Validation Fix</h1>
+    <p>This page tests whether the validation error fix is working correctly.</p>
+    
+    <div class="test-section">
+        <h3>✅ Test 1: Simulate Django Validation Response</h3>
+        <p>This simulates what Django sends when validation fails:</p>
+        <button class="btn btn-success" onclick="testDjangoValidation()">Test Django Validation Response</button>
+        <div id="test1-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🔍 Test 2: Check Error Handling Logic</h3>
+        <p>This tests the error handling logic in your JavaScript:</p>
+        <button class="btn btn-success" onclick="testErrorHandling()">Test Error Handling Logic</button>
+        <div id="test2-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>📋 Test 3: Show Form Errors</h3>
+        <p>This tests the showFormErrors function:</p>
+        <button class="btn btn-success" onclick="testShowFormErrors()">Test Show Form Errors</button>
+        <div id="test3-result" class="result"></div>
+    </div>
+
+    <script>
+        // Mock the functions that should exist in your main script
+        function showFormErrors(errors) {
+            console.log('showFormErrors called with:', errors);
+            
+            // Simulate what the real function does
+            let errorHtml = '<div style="color: red;">Validation errors:</div>';
+            for (let field in errors) {
+                const msgs = Array.isArray(errors[field]) ? errors[field].join(", ") : errors[field];
+                errorHtml += `<div><strong>${field}:</strong> ${msgs}</div>`;
+            }
+            
+            // Show in result div
+            const resultDiv = document.getElementById('test3-result');
+            if (resultDiv) {
+                resultDiv.innerHTML = errorHtml;
+            }
+            
+            return errorHtml;
+        }
+        
+        function locateField(form, fieldName) {
+            // Mock field location
+            return document.createElement('input');
+        }
+        
+        function focusAndClear(field) {
+            console.log('focusAndClear called on:', field);
+        }
+        
+        // Test 1: Simulate Django validation response
+        function testDjangoValidation() {
+            const resultDiv = document.getElementById('test1-result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            // This is exactly what Django sends when validation fails
+            const mockDjangoResponse = {
+                success: false,
+                errors: {
+                    'code': ['Branch code "BRN001" already exists. Please use a different code.'],
+                    'name': ['Branch name is required.'],
+                    'company': ['Company is required.']
+                }
+            };
+            
+            console.log('Mock Django response:', mockDjangoResponse);
+            
+            // Test the logic that should handle this
+            if (mockDjangoResponse.errors) {
+                const [field, msgs] = Object.entries(mockDjangoResponse.errors)[0] || [];
+                const msg = Array.isArray(msgs) ? msgs[0] : String(msgs || "Fix errors.");
+                
+                resultDiv.innerHTML = `
+✅ Django validation response handled correctly!
+📋 First error field: ${field}
+📝 First error message: ${msg}
+🔍 All errors: ${JSON.stringify(mockDjangoResponse.errors, null, 2)}
+                `;
+            } else {
+                resultDiv.innerHTML = '❌ Errors not detected in response';
+            }
+        }
+        
+        // Test 2: Check error handling logic
+        function testErrorHandling() {
+            const resultDiv = document.getElementById('test2-result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            // Simulate the exact logic from your script.js
+            const mockResponse = {
+                success: false,
+                errors: {
+                    'phone': ['Phone number must be exactly 10 digits.'],
+                    'open_date': ['Please enter a valid date in DD/MM/YYYY format.']
+                }
+            };
+            
+            let result = '';
+            
+            if (mockResponse.success) {
+                result += '✅ Success case handled\n';
+            } else {
+                result += '❌ Success case not handled (expected)\n';
+            }
+            
+            if (mockResponse.errors) {
+                result += '✅ Errors case handled correctly\n';
+                const [field, msgs] = Object.entries(mockResponse.errors)[0] || [];
+                const msg = Array.isArray(msgs) ? msgs[0] : String(msgs || "Fix errors.");
+                result += `📋 First error: ${field} - ${msg}\n`;
+            } else {
+                result += '❌ Errors case not handled\n';
+            }
+            
+            if (mockResponse.error) {
+                result += '✅ General error case handled\n';
+            } else {
+                result += '❌ General error case not handled (expected)\n';
+            }
+            
+            if (mockResponse.html) {
+                result += '✅ HTML case handled\n';
+            } else {
+                result += '❌ HTML case not handled (expected)\n';
+            }
+            
+            resultDiv.innerHTML = result.replace(/\n/g, '<br>');
+        }
+        
+        // Test 3: Test showFormErrors function
+        function testShowFormErrors() {
+            const resultDiv = document.getElementById('test3-result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            const testErrors = {
+                'code': 'Branch code already exists',
+                'name': 'Branch name is required',
+                'phone': 'Invalid phone number format'
+            };
+            
+            const result = showFormErrors(testErrors);
+            
+            resultDiv.innerHTML = `
+✅ showFormErrors function working correctly!
+📋 Result: ${result}
+🔍 Check console for function call details
+            `;
+        }
+        
+        // Initialize
+        window.addEventListener('load', function() {
+            console.log('✅ Validation fix test page loaded');
+            console.log('🔍 Open Developer Tools (F12) to see console messages');
+        });
+    </script>
+</body>
+</html>

@@ -1,6 +1,4 @@
 
-
-
 /* Extracted from script.js — app.modals.js */
 /* ====== MODALS, ROUTING, ENTITY CRUD (UserProfile hard-nav + stable) ====== */
 (function(){

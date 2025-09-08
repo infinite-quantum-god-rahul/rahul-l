@@ -44,18 +44,18 @@ urlpatterns = [
     path("hrpm/appointment/",          views.entity_list, {"entity": "appointment"},      name="hrpm_appointment"),
     path("hrpm/salary-statement/",     views.entity_list, {"entity": "salarystatement"},  name="hrpm_salary_statement"),
 
-    # Users specific URLs - PERFECT ROUTING
-    path("users/",               views.entity_list, {"entity": "Users"}, name="users_list"),
-    path("users/get/",           views.entity_form, {"entity": "Users"}, name="users_get_form"),
-    path("users/form/",          views.entity_form, {"entity": "Users"}, name="users_form"),
-    path("users/create/",        views.entity_create, {"entity": "Users"}, name="users_create"),
-    path("users/<int:pk>/",      views.entity_get, {"entity": "Users"}, name="users_detail"),
-    path("users/<int:pk>/edit/", views.entity_update, {"entity": "Users"}, name="users_edit"),
-    path("users/<int:pk>/delete/", views.entity_delete, {"entity": "Users"}, name="users_delete"),
+    # UserCreation specific URLs - WORKING SOLUTION
+    path("usercreation/",               views.entity_list, {"entity": "UserCreation"}, name="usercreation_list"),
+    path("usercreation/get/",           views.simple_user_form, name="usercreation_get_form"),
+    path("usercreation/form/",          views.simple_user_form, name="usercreation_form"),
+    path("usercreation/create/",        views.simple_user_create, name="usercreation_create"),
+    path("usercreation/<int:pk>/",      views.entity_get, {"entity": "UserCreation"}, name="usercreation_detail"),
+    path("usercreation/<int:pk>/edit/", views.entity_update, {"entity": "UserCreation"}, name="usercreation_edit"),
+    path("usercreation/<int:pk>/delete/", views.entity_delete, {"entity": "UserCreation"}, name="usercreation_delete"),
     
     # explicit aliases mapped to generic handlers
-    path("Users/get/",           views.entity_get,    {"entity": "Users"}, name="users_get"),
-    path("Users/create/",        views.entity_create, {"entity": "Users"}, name="users_create"),
+    path("UserCreation/get/",           views.entity_get,    {"entity": "UserCreation"}, name="usercreation_get"),
+    path("UserCreation/create/",        views.entity_create, {"entity": "UserCreation"}, name="usercreation_create"),
 
     # Custom Fields functionality is now integrated into entity_list view
     # No separate custom-fields URL needed
