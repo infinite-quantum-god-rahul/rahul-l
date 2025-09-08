@@ -26,6 +26,23 @@ from django.views.decorators.http import require_POST, require_GET
 from django.utils.timezone import localdate  # ← added
 from django.http import JsonResponse, HttpResponse, HttpResponseRedirect, HttpResponseNotAllowed, QueryDict
 
+# Simple test views for deployment
+def simple_home(request):
+    """Simple home view for testing deployment"""
+    return JsonResponse({
+        'message': 'SML777 Django Application is running!',
+        'status': 'success',
+        'version': '1.0.0',
+        'debug': settings.DEBUG
+    })
+
+def simple_health(request):
+    """Simple health check"""
+    return JsonResponse({
+        'status': 'healthy',
+        'message': 'SML777 is running successfully'
+    })
+
 # Optional spec import for grid and modal sections (PDF/SML sync)
 try:
     from .forms_spec import FORMS_SPEC
@@ -486,7 +503,7 @@ def login_view(request):
         request.session.set_expiry(14 * 24 * 3600 if remember else 0)
         cache.delete(attempt_key);
         cache.delete(lock_key)
-        return JsonResponse({"success": True, "redirect_url": "/dashboard/"})
+        return JsonResponse({"success": True, "redirect_url": "/companies/dashboard/"})
 
     attempts += 1
     cache.set(attempt_key, attempts, timeout=LOCK_SECONDS * 3)
@@ -518,7 +535,10 @@ def dashboard_view(request):
     branch_name = ""
     role_label = None
 
-    profile = get_profile_for_user(user)
+    try:
+        profile = get_profile_for_user(user)
+    except Exception:
+        profile = None
     if profile:
         if getattr(profile, "branch", None):
             try:
@@ -727,17 +747,29 @@ def get_profile_for_user(user):
     try:
         user_field = Users._meta.get_field("user")
         if isinstance(user_field, ForeignKey):
-            profile = Users.objects.filter(user_id=user.id).first() or Users.objects.filter(
-                user__username=username).first()
+            try:
+                profile = Users.objects.filter(user_id=user.id).first() or Users.objects.filter(
+                    user__username=username).first()
+            except Exception:
+                profile = None
         else:
-            profile = Users.objects.filter(user=username).first() or Users.objects.filter(
-                user__iexact=username).first()
+            try:
+                profile = Users.objects.filter(user=username).first() or Users.objects.filter(
+                    user__iexact=username).first()
+            except Exception:
+                profile = None
     except Exception:
         profile = None
     if profile is None:
-        profile = Users.objects.filter(extra_data__auth_username=username).first()
+        try:
+            profile = Users.objects.filter(extra_data__auth_username=username).first()
+        except Exception:
+            profile = None
     if profile is None:
-        profile = Users.objects.filter(extra_data__auth_user_id=user.id).first()
+        try:
+            profile = Users.objects.filter(extra_data__auth_user_id=user.id).first()
+        except Exception:
+            profile = None
     return profile
 
 

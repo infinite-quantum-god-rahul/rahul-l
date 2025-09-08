@@ -18,7 +18,24 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-spoorthi-secret-key-c
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['*', '.onrender.com', '*.onrender.com', 'localhost', '127.0.0.1']
+# Allow Render.com domains and localhost for development
+ALLOWED_HOSTS = [
+    'localhost', 
+    '127.0.0.1',
+    '.onrender.com',
+    '*.onrender.com',
+    'sml777.onrender.com',  # Your specific Render domain
+]
+
+# HTTPS Settings
+SECURE_SSL_REDIRECT = False  # Disabled for development
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_HSTS_SECONDS = 0  # Disabled for development
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = 'DENY'
 
 # Application definition
 INSTALLED_APPS = [
@@ -28,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',  # For HTTPS support
     'whitenoise.runserver_nostatic',  # For static files on Render
     'companies',
 ]
@@ -55,7 +73,7 @@ TEMPLATES = [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',  # needed for role-based UI in templates
                 'django.contrib.auth.context_processors.auth',  # must come before user_header_info
-                "companies.context_processors.user_header_info",
+                # "companies.context_processors.user_header_info",  # Temporarily disabled due to database issue
                 'django.contrib.messages.context_processors.messages',
             ],
         },
@@ -66,20 +84,23 @@ WSGI_APPLICATION = 'spoorthi_macs.wsgi.application'
 
 # --- Database Configuration ---
 # Use PostgreSQL on Render, SQLite for local development
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
+# Try to use PostgreSQL if DATABASE_URL is available
 if os.getenv('DATABASE_URL'):
-    # Render PostgreSQL configuration
-    import dj_database_url
-    DATABASES = {
-        'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
-    }
-else:
-    # Local SQLite configuration
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+    try:
+        import dj_database_url
+        DATABASES = {
+            'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
         }
-    }
+    except ImportError:
+        # Fallback to SQLite if dj_database_url is not available
+        pass
 #DATABASES = {
     #'default': {
         #'ENGINE': 'django.db.backends.mysql',
