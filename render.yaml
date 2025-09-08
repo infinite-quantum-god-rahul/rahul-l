@@ -45,12 +45,6 @@ services:
       - key: RAZORPAY_PROVIDER
         value: RAZORPAY
 
-  # PostgreSQL Database
-  - type: pserv
-    name: sml777-db
-    env: postgresql
-    plan: free
-
 databases:
   - name: sml777-db
     databaseName: sml777
