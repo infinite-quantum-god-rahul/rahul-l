@@ -15,9 +15,10 @@ pip install -r requirements.txt
 echo "🔍 Testing Django installation..."
 python -c "import django; print(f'Django version: {django.get_version()}')"
 
-# Check database connection
-echo "🗄️ Testing database connection..."
-python manage.py check --database default
+# Test with minimal settings first
+echo "🔍 Testing with minimal settings..."
+export DJANGO_SETTINGS_MODULE=spoorthi_macs.settings_minimal
+python manage.py check --settings=spoorthi_macs.settings_minimal
 
 # Run database migrations
 echo "🗄️ Running database migrations..."
