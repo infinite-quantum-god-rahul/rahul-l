@@ -27,16 +27,16 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>{{ pretty_entity }}</h2>
 
-    {% if entity|lower == "users" %}
-      <!-- Users Add Button - Clean Modal -->
+    {% if entity|lower == "usercreation" %}
+      <!-- UserCreation Add Button - Clean Modal -->
       <div>
         <button
           class="btn btn-primary btn-add"
           id="create-{{ entity }}-btn"
           data-entity="{{ entity }}"
-          onclick="openEntityModal('{{ entity }}')"
+          onclick="ultimateWorkingModal.openModal()"
           role="button">
-          <i class="fas fa-plus"></i> Add Users
+          <i class="fas fa-plus"></i> Add User Creation
         </button>
       </div>
       
@@ -196,9 +196,21 @@
                           {% for f in spec_grid %}
                             <td>
                               {% if f|slice:":7" == "extra__" %}
+                                {% if debug %}
+                                  <!-- Debug: {{ f }} = {{ obj.extra_data|get_extra_item:f|default:"NOT_FOUND" }} -->
+                                {% endif %}
+                                {{ obj.extra_data|get_extra_item:f|default:"-" }}
+                              {% elif f in obj.extra_data %}
+                                {% if debug %}
+                                  <!-- Debug: {{ f }} = {{ obj.extra_data|get_item:f|default:"NOT_FOUND" }} -->
+                                {% endif %}
                                 {{ obj.extra_data|get_item:f|default:"-" }}
                               {% elif f == "user_profile" and entity|lower == "userpermission" %}
-                                {{ obj|display_user_name }}
+                                {% if obj.user_profile %}
+                                  {{ obj|display_user_name }}
+                                {% else %}
+                                  <span class="text-muted">No User Profile</span>
+                                {% endif %}
                               {% else %}
                                 {{ obj|attr:f|default:"-" }}
                               {% endif %}

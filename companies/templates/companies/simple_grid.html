@@ -34,7 +34,7 @@
             <!-- Standard Fields from spec_grid -->
             {% if spec_grid %}
               {% for f in spec_grid %}
-                <th>{{ f|cut:"extra__"|replace_underscore }}</th>
+                <th>{{ f|cut:""|replace_underscore }}</th>
               {% endfor %}
             {% endif %}
             
@@ -56,7 +56,7 @@
               {% if spec_grid %}
                 {% for f in spec_grid %}
                   <td>
-                    {% if f|slice:":7" == "extra__" %}
+                    {% if f|slice:":7" == "" %}
                       <!-- Handle extra_data fields -->
                       {% with extra_val=obj.extra_data|get_item:f %}
                         {% if extra_val %}
@@ -109,4 +109,6 @@
     <div class="alert alert-warning">No records found.</div>
   {% endif %}
 </div>
+
+
 

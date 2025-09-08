@@ -30,7 +30,7 @@
           <!-- Standard Fields -->
           {% if spec_grid %}
             {% for f in spec_grid %}
-              <th>{{ f|cut:"extra__" }}</th>
+              <th>{{ f|cut:"" }}</th>
             {% endfor %}
           {% endif %}
           
@@ -52,7 +52,7 @@
             {% if spec_grid %}
               {% for f in spec_grid %}
                 <td>
-                  {% if f|slice:":7" == "extra__" %}
+                  {% if f|slice:":7" == "" %}
                     {{ obj.extra_data|default:"-" }}
                   {% else %}
                     {{ obj|default:"-" }}

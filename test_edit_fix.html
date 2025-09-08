@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Fields Fix Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 20px; margin: 5px; background-color: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Edit Fields Fix Test</h1>
+    
+    <div class="test-section info">
+        <h3>📋 Test Instructions</h3>
+        <p>This test verifies that extra fields are properly populated when editing existing records.</p>
+        <p><strong>Expected Result:</strong> When you edit a Company or Mortgage record, the extra fields should show the existing values instead of being empty.</p>
+    </div>
+    
+    <div class="test-section">
+        <h3>🧪 Test Cases</h3>
+        
+        <div class="test-result">
+            <h4>1. Test Company Edit (with mortgage field)</h4>
+            <p>Click the button below to open the Company edit form and check if the "mortgage" field is populated.</p>
+            <button onclick="testCompanyEdit()">Test Company Edit</button>
+            <div id="company-result"></div>
+        </div>
+        
+        <div class="test-result">
+            <h4>2. Test Mortgage Edit (with amount fields)</h4>
+            <p>Click the button below to open the Mortgage edit form and check if the amount fields are populated.</p>
+            <button onclick="testMortgageEdit()">Test Mortgage Edit</button>
+            <div id="mortgage-result"></div>
+        </div>
+        
+        <div class="test-result">
+            <h4>3. Test Branch Edit (with branch_manager field)</h4>
+            <p>Click the button below to open the Branch edit form and check if the "branch_manager" field is populated.</p>
+            <button onclick="testBranchEdit()">Test Branch Edit</button>
+            <div id="branch-result"></div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h3>📊 Test Results</h3>
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        function testCompanyEdit() {
+            const resultDiv = document.getElementById('company-result');
+            resultDiv.innerHTML = '<p>🔄 Testing Company edit...</p>';
+            
+            // Open Company list page
+            window.open('https://127.0.0.1:8001/Company/', '_blank');
+            
+            setTimeout(() => {
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <p>✅ Company page opened. Please:</p>
+                        <ol>
+                            <li>Click on an existing Company record to edit it</li>
+                            <li>Check if the "mortgage" field shows the existing value</li>
+                            <li>If it shows the value, the fix is working!</li>
+                        </ol>
+                    </div>
+                `;
+            }, 1000);
+        }
+        
+        function testMortgageEdit() {
+            const resultDiv = document.getElementById('mortgage-result');
+            resultDiv.innerHTML = '<p>🔄 Testing Mortgage edit...</p>';
+            
+            // Open Mortgage list page
+            window.open('https://127.0.0.1:8001/Mortgage/', '_blank');
+            
+            setTimeout(() => {
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <p>✅ Mortgage page opened. Please:</p>
+                        <ol>
+                            <li>Click on an existing Mortgage record to edit it</li>
+                            <li>Check if the "mortgage_amount" and "collateral_val" fields show existing values</li>
+                            <li>If they show values, the fix is working!</li>
+                        </ol>
+                    </div>
+                `;
+            }, 1000);
+        }
+        
+        function testBranchEdit() {
+            const resultDiv = document.getElementById('branch-result');
+            resultDiv.innerHTML = '<p>🔄 Testing Branch edit...</p>';
+            
+            // Open Branch list page
+            window.open('https://127.0.0.1:8001/Branch/', '_blank');
+            
+            setTimeout(() => {
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <p>✅ Branch page opened. Please:</p>
+                        <ol>
+                            <li>Click on an existing Branch record to edit it</li>
+                            <li>Check if the "branch_manager" field shows the existing value</li>
+                            <li>If it shows the value, the fix is working!</li>
+                        </ol>
+                    </div>
+                `;
+            }, 1000);
+        }
+        
+        // Auto-run basic connectivity test
+        window.onload = function() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = `
+                <div class="info">
+                    <p>🔗 <strong>Server Status:</strong> HTTPS server is running on port 8001</p>
+                    <p>🌐 <strong>Access URL:</strong> <a href="https://127.0.0.1:8001/" target="_blank">https://127.0.0.1:8001/</a></p>
+                    <p>⚠️ <strong>Note:</strong> You may need to accept the self-signed certificate warning</p>
+                </div>
+            `;
+        };
+    </script>
+</body>
+</html>

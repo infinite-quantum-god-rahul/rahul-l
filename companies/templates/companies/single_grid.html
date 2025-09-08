@@ -30,7 +30,7 @@
           <!-- Standard Fields -->
           {% if spec_grid %}
             {% for f in spec_grid %}
-              <th>{{ f|cut:"extra__" }}</th>
+              <th>{{ f|cut:"" }}</th>
             {% endfor %}
           {% endif %}
           
@@ -75,4 +75,6 @@
     <div class="alert alert-warning">No records found.</div>
   {% endif %}
 </div>
+
+
 
