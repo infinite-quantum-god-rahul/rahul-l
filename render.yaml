@@ -1,50 +1,58 @@
 services:
+  # Web Service
   - type: web
-    name: sml777-app
+    name: sml777-web
     env: python
     plan: free
-    region: oregon
-    branch: main
-    buildCommand: |
-      pip install --upgrade pip
-      pip install -r requirements.txt
-      python manage.py collectstatic --noinput
-      python manage.py migrate --noinput
-      python manage.py shell -c "
-      from django.contrib.auth import get_user_model
-      User = get_user_model()
-      if not User.objects.filter(username='admin').exists():
-          User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
-          print('Superuser created: admin/admin123')
-      else:
-          print('Superuser already exists')
-      "
-    startCommand: gunicorn spoorthi_macs.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
-    healthCheckPath: /
+    buildCommand: chmod +x build.sh && ./build.sh
+    startCommand: gunicorn spoorthi_macs.wsgi:application
     envVars:
-      - key: DJANGO_SETTINGS_MODULE
-        value: spoorthi_macs.settings_production
+      - key: PYTHON_VERSION
+        value: 3.11.7
+      - key: SECRET_KEY
+        generateValue: true
       - key: DEBUG
         value: False
       - key: ALLOWED_HOSTS
-        value: "*.onrender.com"
-      - key: SECRET_KEY
-        generateValue: true
-      - key: DATABASE_URL
-        fromDatabase:
-          name: sml777-db
-          property: connectionString
-      - key: ADMIN_EMAIL
-        value: admin@yourdomain.com
+        value: sml777.onrender.com
+      - key: STATIC_URL
+        value: /static/
+      - key: STATIC_ROOT
+        value: staticfiles
+      - key: MEDIA_URL
+        value: /media/
+      - key: MEDIA_ROOT
+        value: media
+      # SML Feature Flags
+      - key: SML_FEATURES_CREDIT_BUREAU
+        value: True
+      - key: SML_FEATURES_NPA_DASHBOARD
+        value: True
+      - key: SML_FEATURES_OFFLINE_KYC
+        value: True
+      - key: SML_FEATURES_ESCALATION_ALERTS
+        value: True
+      - key: SML_FEATURES_SMS
+        value: True
+      - key: SML_FEATURES_PAYMENTS
+        value: True
+      - key: SML_FEATURES_BORROWER_PORTAL
+        value: True
+      # Credit Bureau
       - key: SML_BUREAU_PROVIDER
         value: CIBIL
+      # Payment Provider
       - key: RAZORPAY_PROVIDER
         value: RAZORPAY
-      - key: CUSTOM_DOMAIN
-        value: ""
-    autoDeploy: true
+
+  # PostgreSQL Database
+  - type: pserv
+    name: sml777-db
+    env: postgresql
+    plan: free
+    ipAllowList: []
 
 databases:
   - name: sml777-db
-    plan: free
-    region: oregon
+    databaseName: sml777
+    user: sml777_user
