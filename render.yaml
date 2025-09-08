@@ -14,7 +14,7 @@ services:
       - key: DEBUG
         value: False
       - key: ALLOWED_HOSTS
-        value: sml777.onrender.com
+        value: sml777-web.onrender.com
       - key: STATIC_URL
         value: /static/
       - key: STATIC_ROOT
@@ -50,7 +50,6 @@ services:
     name: sml777-db
     env: postgresql
     plan: free
-    ipAllowList: []
 
 databases:
   - name: sml777-db
