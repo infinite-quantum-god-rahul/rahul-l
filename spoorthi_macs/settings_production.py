@@ -1,19 +1,31 @@
 """
-SML777 Production Settings for Render
-====================================
-This includes all original features with proper error handling
+SML777 - Production Settings for Render Deployment
+=================================================
+
+This is a production-ready Django settings file optimized for Render.com
+with proper error handling and security configurations.
 """
 
 import os
 from pathlib import Path
 
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-production-key')
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-this-in-production')
 
-DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['*', '.onrender.com', 'localhost', '127.0.0.1']
+# Allow Render.com domains and localhost for development
+ALLOWED_HOSTS = [
+    'localhost', 
+    '127.0.0.1',
+    '.onrender.com',
+    '*.onrender.com',
+    'sml777-web.onrender.com',
+]
 
 # Application definition
 INSTALLED_APPS = [
@@ -49,9 +61,7 @@ TEMPLATES = [
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',  # Must come before custom processors
-                'companies.context_processors.user_header_info',
-                'companies.context_processors.sml_features',
+                'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
         },
@@ -60,19 +70,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'spoorthi_macs.wsgi.application'
 
-# Database
+# --- Database Configuration ---
+# Use PostgreSQL on Render, SQLite for local development
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
+# Try to use PostgreSQL if DATABASE_URL is available
 if os.getenv('DATABASE_URL'):
-    import dj_database_url
-    DATABASES = {
-        'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+    try:
+        import dj_database_url
+        DATABASES = {
+            'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
         }
-    }
+    except ImportError:
+        # Fallback to SQLite if dj_database_url is not available
+        pass
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -92,7 +108,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Asia/Kolkata'
+TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
@@ -101,12 +117,12 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / "companies/static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# WhiteNoise configuration for Render
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# WhiteNoise configuration for Render
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -115,89 +131,36 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 
-# Media files
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# Session configuration
-SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = "Lax"
-CSRF_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_AGE = 14 * 24 * 3600  # Two weeks
-
-# Cache configuration
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'sml777-cache',
-    }
-}
-
-# Authentication backends
-AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
-]
-
-# SML777 Feature Flags
-SML_FEATURES = {
-    "CREDIT_BUREAU": True,
-    "NPA_DASHBOARD": True,
-    "OFFLINE_KYC": True,
-    "ESCALATION_ALERTS": True,
-    "SMS": True,
-    "PAYMENTS": True,
-    "BORROWER_PORTAL": True,
-}
-
-# Credit Bureau Configuration
-SML_CREDIT_BUREAU = {
-    "PROVIDER": os.getenv("SML_BUREAU_PROVIDER", "CIBIL").upper(),
-    "CIBIL": {
-        "BASE_URL": os.getenv("CIBIL_BASE_URL", ""),
-        "API_KEY": os.getenv("CIBIL_API_KEY", ""),
-    },
-    "CRIF": {
-        "BASE_URL": os.getenv("CRIF_BASE_URL", ""),
-        "API_KEY": os.getenv("CRIF_API_KEY", ""),
-    },
-}
-
-# Payment Configuration
-SML_PAYMENT = {
-    "PROVIDER": os.getenv("RAZORPAY_PROVIDER", "RAZORPAY"),
-    "RAZORPAY": {
-        "KEY_ID": os.getenv("RAZORPAY_KEY_ID", ""),
-        "KEY_SECRET": os.getenv("RAZORPAY_KEY_SECRET", ""),
-    },
-}
-
-# SMS Configuration
-SML_SMS = {
-    "PROVIDER": os.getenv("SMS_PROVIDER", "TWILIO"),
-    "TWILIO": {
-        "ACCOUNT_SID": os.getenv("TWILIO_ACCOUNT_SID", ""),
-        "AUTH_TOKEN": os.getenv("TWILIO_AUTH_TOKEN", ""),
-        "FROM_NUMBER": os.getenv("TWILIO_FROM_NUMBER", ""),
-    },
-}
-
 # Security settings for production
 if not DEBUG:
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    X_FRAME_OPTIONS = "DENY"
+    SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+    SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # Logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'simple',
         },
     },
     'root': {
@@ -208,6 +171,11 @@ LOGGING = {
         'django': {
             'handlers': ['console'],
             'level': 'INFO',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'ERROR',
             'propagate': False,
         },
     },

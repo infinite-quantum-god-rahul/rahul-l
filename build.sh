@@ -11,13 +11,21 @@ echo "📦 Installing Python dependencies..."
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# Collect static files
-echo "📁 Collecting static files..."
-python manage.py collectstatic --noinput
+# Check if we can import Django
+echo "🔍 Testing Django installation..."
+python -c "import django; print(f'Django version: {django.get_version()}')"
+
+# Check database connection
+echo "🗄️ Testing database connection..."
+python manage.py check --database default
 
 # Run database migrations
 echo "🗄️ Running database migrations..."
 python manage.py migrate --noinput
+
+# Collect static files
+echo "📁 Collecting static files..."
+python manage.py collectstatic --noinput
 
 # Create superuser if it doesn't exist (optional)
 echo "👤 Creating superuser (if needed)..."
@@ -30,5 +38,9 @@ if not User.objects.filter(username='admin').exists():
 else:
     print("Superuser already exists")
 EOF
+
+# Final check
+echo "🔍 Running final Django checks..."
+python manage.py check --deploy
 
 echo "✅ Build completed successfully!"
