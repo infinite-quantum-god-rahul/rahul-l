@@ -15,18 +15,18 @@ pip install -r requirements.txt
 echo "🔍 Testing Django installation..."
 python -c "import django; print(f'Django version: {django.get_version()}')"
 
-# Test with minimal settings first
-echo "🔍 Testing with minimal settings..."
-export DJANGO_SETTINGS_MODULE=spoorthi_macs.settings_minimal
-python manage.py check --settings=spoorthi_macs.settings_minimal
+# Test with ultra-minimal settings first
+echo "🔍 Testing with ultra-minimal settings..."
+export DJANGO_SETTINGS_MODULE=spoorthi_macs.settings_ultra_minimal
+python manage.py check --settings=spoorthi_macs.settings_ultra_minimal
 
-# Run database migrations
+# Run database migrations with ultra-minimal settings
 echo "🗄️ Running database migrations..."
-python manage.py migrate --noinput
+python manage.py migrate --noinput --settings=spoorthi_macs.settings_ultra_minimal
 
-# Collect static files
+# Collect static files with ultra-minimal settings
 echo "📁 Collecting static files..."
-python manage.py collectstatic --noinput
+python manage.py collectstatic --noinput --settings=spoorthi_macs.settings_ultra_minimal
 
 # Create superuser if it doesn't exist (optional)
 echo "👤 Creating superuser (if needed)..."
@@ -40,8 +40,8 @@ else:
     print("Superuser already exists")
 EOF
 
-# Final check
+# Final check with ultra-minimal settings
 echo "🔍 Running final Django checks..."
-python manage.py check --deploy
+python manage.py check --deploy --settings=spoorthi_macs.settings_ultra_minimal
 
 echo "✅ Build completed successfully!"

@@ -10,7 +10,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.7
       - key: DJANGO_SETTINGS_MODULE
-        value: spoorthi_macs.settings_minimal
+        value: spoorthi_macs.settings_ultra_minimal
       - key: SECRET_KEY
         generateValue: true
       - key: DEBUG
