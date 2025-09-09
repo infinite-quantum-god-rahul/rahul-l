@@ -1,7 +1,7 @@
 services:
   # Web Service - FREE TIER ONLY - UNIQUE NAME
   - type: web
-    name: sml777-production-v2
+    name: sml777-final-deploy
     env: python
     plan: free
     buildCommand: chmod +x build.sh && ./build.sh
@@ -14,7 +14,7 @@ services:
       - key: DEBUG
         value: False
       - key: ALLOWED_HOSTS
-        value: sml777-production-v2.onrender.com
+        value: sml777-final-deploy.onrender.com
       - key: STATIC_URL
         value: /static/
       - key: STATIC_ROOT
