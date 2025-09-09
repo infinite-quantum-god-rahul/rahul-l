@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build script for Render deployment
+# Build script for Render deployment - SIMPLIFIED VERSION
 # This script will be executed by Render during the build process
 
 set -o errexit  # Exit on any error
@@ -27,18 +27,6 @@ python manage.py migrate --noinput --settings=spoorthi_macs.settings_ultra_minim
 # Collect static files with ultra-minimal settings
 echo "📁 Collecting static files..."
 python manage.py collectstatic --noinput --settings=spoorthi_macs.settings_ultra_minimal
-
-# Create superuser if it doesn't exist (optional)
-echo "👤 Creating superuser (if needed)..."
-python manage.py shell << EOF
-from django.contrib.auth import get_user_model
-User = get_user_model()
-if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@sml777.com', 'admin123')
-    print("Superuser created: admin/admin123")
-else:
-    print("Superuser already exists")
-EOF
 
 # Final check with ultra-minimal settings
 echo "🔍 Running final Django checks..."
