@@ -1,7 +1,7 @@
 services:
-  # Web Service - FREE TIER ONLY
+  # Web Service - FREE TIER ONLY - UNIQUE NAME
   - type: web
-    name: rahul-app
+    name: sml777-production-v2
     env: python
     plan: free
     buildCommand: chmod +x build.sh && ./build.sh
@@ -14,7 +14,7 @@ services:
       - key: DEBUG
         value: False
       - key: ALLOWED_HOSTS
-        value: rahul-app.onrender.com
+        value: sml777-production-v2.onrender.com
       - key: STATIC_URL
         value: /static/
       - key: STATIC_ROOT
