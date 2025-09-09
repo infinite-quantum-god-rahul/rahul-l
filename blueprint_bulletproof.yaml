@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: sml777-bulletproof
+    env: python
+    plan: free
+    buildCommand: pip install django gunicorn
+    startCommand: python manage.py runserver 0.0.0.0:$PORT --settings=spoorthi_macs.settings_ultra_minimal
+    envVars:
+      - key: SECRET_KEY
+        value: "django-insecure-bulletproof-key-12345"
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        value: sml777-bulletproof.onrender.com
