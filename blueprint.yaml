@@ -1,49 +1,16 @@
 services:
-  # Web Service - FREE TIER ONLY - UNIQUE NAME
   - type: web
-    name: sml777-final-deploy
+    name: sml777-blueprint-v3
     env: python
     plan: free
-    buildCommand: chmod +x build.sh && ./build.sh
-    startCommand: gunicorn spoorthi_macs.wsgi:application
+    buildCommand: pip install -r requirements.txt && python manage.py migrate --noinput --settings=spoorthi_macs.settings_ultra_minimal && python manage.py collectstatic --noinput --settings=spoorthi_macs.settings_ultra_minimal
+    startCommand: gunicorn spoorthi_macs.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.7
       - key: SECRET_KEY
         generateValue: true
       - key: DEBUG
         value: False
       - key: ALLOWED_HOSTS
-        value: sml777-final-deploy.onrender.com
-      - key: STATIC_URL
-        value: /static/
-      - key: STATIC_ROOT
-        value: staticfiles
-      - key: MEDIA_URL
-        value: /media/
-      - key: MEDIA_ROOT
-        value: media
-      # Use SQLite for FREE tier (no database service needed)
-      - key: DATABASE_URL
-        value: sqlite:///db.sqlite3
-      # SML Feature Flags
-      - key: SML_FEATURES_CREDIT_BUREAU
-        value: True
-      - key: SML_FEATURES_NPA_DASHBOARD
-        value: True
-      - key: SML_FEATURES_OFFLINE_KYC
-        value: True
-      - key: SML_FEATURES_ESCALATION_ALERTS
-        value: True
-      - key: SML_FEATURES_SMS
-        value: True
-      - key: SML_FEATURES_PAYMENTS
-        value: True
-      - key: SML_FEATURES_BORROWER_PORTAL
-        value: True
-      # Credit Bureau
-      - key: SML_BUREAU_PROVIDER
-        value: CIBIL
-      # Payment Provider
-      - key: RAZORPAY_PROVIDER
-        value: RAZORPAY
+        value: sml777-blueprint-v3.onrender.com
+      - key: DJANGO_SETTINGS_MODULE
+        value: spoorthi_macs.settings_ultra_minimal
