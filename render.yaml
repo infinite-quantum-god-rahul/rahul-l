@@ -1,7 +1,7 @@
 services:
-  # Web Service
+  # Web Service - 100% FREE TIER
   - type: web
-    name: sml777-web
+    name: rahul-app
     env: python
     plan: free
     buildCommand: chmod +x build.sh && ./build.sh
@@ -16,7 +16,7 @@ services:
       - key: DEBUG
         value: False
       - key: ALLOWED_HOSTS
-        value: sml777-web.onrender.com
+        value: rahul-app.onrender.com
       - key: STATIC_URL
         value: /static/
       - key: STATIC_ROOT
@@ -25,6 +25,9 @@ services:
         value: /media/
       - key: MEDIA_ROOT
         value: media
+      # Use SQLite - NO DATABASE SERVICE NEEDED
+      - key: DATABASE_URL
+        value: sqlite:///db.sqlite3
       # SML Feature Flags
       - key: SML_FEATURES_CREDIT_BUREAU
         value: True
@@ -46,8 +49,3 @@ services:
       # Payment Provider
       - key: RAZORPAY_PROVIDER
         value: RAZORPAY
-
-databases:
-  - name: sml777-db
-    databaseName: sml777
-    user: sml777_user
