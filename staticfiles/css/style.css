@@ -32,22 +32,14 @@ body {
 
 /* ================== TOGGLE BUTTON ================== */
 .sidebar-toggle-btn {
-<<<<<<< HEAD
   position: fixed;
   top: 80px;
   left: 10px;
   font-size: 18px;
-=======
-  position: absolute;
-  top: 20px;
-  left: 0;
-  font-size: 24px;
->>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
   color: #fff;
   background: #173651;
   border: none;
   border-radius: 4px;
-<<<<<<< HEAD
   padding: 10px 12px;
   cursor: pointer;
   z-index: 1100;
@@ -87,14 +79,6 @@ body {
   pointer-events: auto !important;
   cursor: pointer !important;
 }
-=======
-  padding: 8px 12px;
-  cursor: pointer;
-  z-index: 1100;
-  transition: background-color .3s;
-}
-.sidebar-toggle-btn:hover { background: #0f2b41; }
->>>>>>> 5faa31dc60eaff84d1e159e3c4ae7da58d84bdf8
 
 /* ================== SIDEBAR ================== */
 .sidebar {
@@ -103,26 +87,59 @@ body {
   left: 0;
   width: 250px;
   height: calc(100vh - 72px);
-  background: #0c1d32;
-  color: #fff;
+  background: #0c1d32 !important;
+  color: #ffffff !important;
   overflow-y: auto;
   transition: transform .3s;
   z-index: 999;
+  border-right: 2px solid #193a5a;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.3);
 }
 .sidebar.collapsed { transform: translateX(-250px); }
 .sidebar ul { list-style: none; padding: 0; margin: 0; }
 .sidebar ul li { padding: 12px 20px; }
-.sidebar ul li a { color: #fff; text-decoration: none; display: block; cursor: pointer; }
-.sidebar ul li a:hover { background: #193a5a; }
+.sidebar ul li a { 
+  color: #ffffff !important; 
+  text-decoration: none; 
+  display: block; 
+  cursor: pointer; 
+  font-weight: 600 !important;
+  font-size: 15px !important;
+  line-height: 1.4;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin: 2px 0;
+}
+.sidebar ul li a:hover { 
+  background: #193a5a; 
+  color: #ffffff !important;
+}
 
 /* dropdown */
-.sidebar .dropdown-menu { display: none; opacity: 0; transform: translateY(4px); transition: opacity .2s, transform .2s; }
+.sidebar .dropdown-menu { 
+  display: none; 
+  opacity: 0; 
+  transform: translateY(4px); 
+  transition: opacity .2s, transform .2s; 
+  background: #132a44;
+  padding-left: 10px;
+}
 .sidebar .dropdown.open > .dropdown-menu {
   display: block;
   background: #132a44;
   padding-left: 10px;
   opacity: 1;
   transform: translateY(0);
+}
+.sidebar .dropdown-menu li a {
+  color: #ffffff !important;
+  font-size: 13px;
+  padding: 8px 15px;
+}
+.sidebar .dropdown-menu li a:hover {
+  background: #1a3d5c !important;
+  color: #ffffff !important;
 }
 
 /* ================== MAIN CONTENT ================== */

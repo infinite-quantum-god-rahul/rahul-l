@@ -1,5 +1,14 @@
+"""
+SML777 Companies App Configuration
+=================================
+
+Minimal app configuration for deployment testing.
+"""
+
 from django.apps import AppConfig
 
-class CoreConfig(AppConfig):
+
+class CompaniesConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'companies'
+    verbose_name = 'SML777 Companies'

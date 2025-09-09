@@ -16,3 +16,5 @@ class CompanyAdmin(admin.ModelAdmin):
     list_filter = ['created_at']
     search_fields = ['name']
     readonly_fields = ['created_at']
+
+

@@ -65,3 +65,7 @@ python debug_render.py
 ```
 
 This will check all components and tell you what's wrong.
+
+
+
+

@@ -63,3 +63,7 @@ After deployment, your app will be available at:
 ## 🎉 **The "Not Found" Error is Fixed!**
 
 Your Django application will now show a beautiful homepage instead of "Not Found" error!
+
+
+
+

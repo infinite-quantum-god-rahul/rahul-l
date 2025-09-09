@@ -117,3 +117,7 @@ Your Django application will deploy successfully on Render with:
 ## 🚀 **You're Ready to Deploy!**
 
 Just push to GitHub and deploy on Render. Everything is configured and tested. The error from your image will be completely resolved! 🎉
+
+
+
+

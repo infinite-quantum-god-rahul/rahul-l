@@ -5,6 +5,112 @@
 {% block title %}Dashboard - Spoorthi MACS Ltd.,{% endblock %}
 
 {% block content %}
+<!-- Original Sidebar Styles with Toggle Button -->
+<style>
+/* Restore original sidebar styling */
+.sidebar {
+  background: #0c1d32;
+  color: #fff;
+  position: fixed;
+  top: 72px;
+  left: 0;
+  width: 250px;
+  height: calc(100vh - 72px);
+  overflow-y: auto;
+  transition: transform .3s;
+  z-index: 999;
+  border-right: 2px solid #193a5a;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+}
+.sidebar.collapsed { 
+  transform: translateX(-250px); 
+}
+.sidebar ul { 
+  list-style: none; 
+  padding: 0; 
+  margin: 0; 
+}
+.sidebar ul li { 
+  padding: 12px 20px; 
+}
+.sidebar ul li a {
+  color: #fff;
+  text-decoration: none;
+  display: block;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.4;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+.sidebar ul li a:hover {
+  background: #193a5a;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin: -8px -12px;
+}
+
+/* Toggle button styling */
+.sidebar-toggle-btn {
+  position: fixed;
+  top: 80px;
+  left: 10px;
+  font-size: 18px;
+  color: #fff;
+  background: #173651;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 12px;
+  cursor: pointer;
+  z-index: 1100;
+  transition: all .3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  min-width: 40px;
+  text-align: center;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+.sidebar-toggle-btn:hover {
+  background: #0f2b41;
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+/* Dropdown functionality */
+.sidebar .dropdown-menu {
+  display: none;
+  background: #132a44;
+  padding-left: 20px;
+  border-left: 2px solid #193a5a;
+  margin-left: 10px;
+}
+.sidebar .dropdown.open > .dropdown-menu {
+  display: block;
+}
+.sidebar .dropdown-menu li {
+  padding: 4px 0;
+}
+.sidebar .dropdown-menu li a {
+  color: #fff;
+  font-size: 13px;
+  padding: 8px 15px;
+  font-weight: normal;
+}
+.sidebar .dropdown-menu li a:hover {
+  background: #1a3d5c;
+}
+
+/* Main content adjustment when sidebar is visible */
+.admin-main-content {
+  margin-left: 250px;
+  transition: margin-left .3s;
+}
+.sidebar.collapsed ~ .admin-main-content {
+  margin-left: 0;
+}
+</style>
+
 <!-- Sidebar Toggle Button -->
 <button class="sidebar-toggle-btn" id="sidebar-toggle" onclick="toggleSidebar()">
   <i class="fas fa-bars"></i>
@@ -291,5 +397,54 @@ document.getElementById('creditPullForm').onsubmit = function(e) {
   resultDiv.innerHTML = '<p>Checking credit score for Aadhar: ' + aadhar + '</p>';
   // Add actual API call here
 };
+
+// Original Dropdown functionality and Sidebar Toggle
+document.addEventListener('DOMContentLoaded', function() {
+  // Sidebar toggle functionality
+  window.toggleSidebar = function() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.querySelector('.admin-main-content');
+    
+    if (sidebar) {
+      sidebar.classList.toggle('collapsed');
+    }
+  };
+  
+  // Handle dropdown clicks
+  const dropdowns = document.querySelectorAll('.sidebar .dropdown > a');
+  
+  dropdowns.forEach(function(dropdownLink) {
+    dropdownLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const dropdown = this.parentElement;
+      const isOpen = dropdown.classList.contains('open');
+      
+      // Close all other dropdowns first
+      document.querySelectorAll('.sidebar .dropdown').forEach(function(otherDropdown) {
+        if (otherDropdown !== dropdown) {
+          otherDropdown.classList.remove('open');
+        }
+      });
+      
+      // Toggle current dropdown
+      if (!isOpen) {
+        dropdown.classList.add('open');
+      } else {
+        dropdown.classList.remove('open');
+      }
+    });
+  });
+  
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.sidebar .dropdown')) {
+      document.querySelectorAll('.sidebar .dropdown').forEach(function(dropdown) {
+        dropdown.classList.remove('open');
+      });
+    }
+  });
+});
 </script>
 {% endblock %}

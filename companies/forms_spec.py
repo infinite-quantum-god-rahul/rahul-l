@@ -813,6 +813,27 @@ FORMS_SPEC = {
         },
     },
 
+    # ───────────────── ROLE MANAGEMENT ─────────────────
+    "Role": {
+        "grid": ["name", "description", "is_active", "extra__permission_count", "extra__created_date"],
+        "sections": {
+            "Basic Information": [
+                {"name": "name", "type": "char", "required": True},
+                {"name": "description", "type": "char"},
+                {"name": "is_active", "type": "select", "choices": [["True", "Active"], ["False", "Inactive"]]},
+            ],
+            "Permissions": [
+                {"name": "permissions", "type": "char"},
+                {"name": "extra__permission_count", "type": "int", "readonly": True},
+            ],
+            "Audit": [
+                {"name": "extra__created_date", "type": "date"},
+                {"name": "extra__last_modified", "type": "date"},
+                {"name": "extra__modified_by", "type": "char"},
+            ],
+        },
+    },
+
     # ───────────────── USER PERMISSION ─────────────────
     "UserPermission": {
         "grid": ["user_profile", "is_admin", "is_master", "is_data_entry", "is_accounting", "is_recovery_agent", "is_auditor", "is_manager", "extra__created_date", "extra__last_modified"],
